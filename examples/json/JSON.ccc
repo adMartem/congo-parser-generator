@@ -18,7 +18,7 @@ PARSER_PACKAGE="org.parsers.json";
 NODE_PACKAGE="org.parsers.json.ast";
 DEFAULT_LEXICAL_STATE=JSON;
 
-#if !regression_testing
+#if regression_testing
 X_SYNTHETIC_NODES_ENABLED;
 #endif
 
@@ -68,7 +68,7 @@ TOKEN #Literal :
 
 Root : Value! <EOF>! ;
 
-#if regression_testing
+#if !regression_testing
 
 Array :
     <OPEN_BRACKET>
