@@ -946,12 +946,12 @@ INJECT ExpansionChoice :
 Assignment : 
     (
             [ @propertyAssignment :=? "@" ] 
-            @name := Name
+            @name :=$ Name
         |
             DEACTIVATE_TOKENS SLASHASSIGN (
                 @namedAssignment :=? 
                 "/" 
-                @name = Name
+                @name =$ Name
                 "/"
             )
     )
