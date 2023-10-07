@@ -179,8 +179,9 @@ Array :
                 {
 #if __java__
                     assert(aCommaNode.get(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
+                    // can't access a property in a manner compatible with both Java and CSharp?
 #endif
-#if __python__ || __csharp__
+#if __python__
                     assert(aCommaNode.getChild(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
 #endif
                 }
@@ -195,6 +196,7 @@ Array :
                 {
 #if __java__
                     assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
+                    // can't access a property in a manner compatible with both Java and CSharp?
 #endif
 #if __python__
                     assert(thisProduction.getValues().getChildCount() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
