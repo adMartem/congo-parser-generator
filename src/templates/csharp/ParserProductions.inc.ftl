@@ -544,6 +544,7 @@ if (BuildTree) {
    [#-- take care of the non-tree-building classes --]
    [#if classname = "CodeBlock"]
 ${globals.translateCodeBlock(expansion, 1)}
+[#-- FIXME: for some reason a CodeBlock consisting only of a "// ..." line throws a ParseException on previous template line (for CSharp, not Java). --]
    [#-- OMITTED: [#elseif classname = "UncacheTokens"]
          uncacheTokens(); --]
    [#elseif classname = "Failure"]

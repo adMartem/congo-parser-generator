@@ -134,11 +134,15 @@ Array :
     openBracket = <OPEN_BRACKET> #AnOpenBracket 
         {
 #if __java__ 
-            assert((openBracket instanceof Delimiter) && openBracket.toString().equals("[")) : "openBracket local variable not assigned to \"[\"";           
+            assert((openBracket instanceof Delimiter) && openBracket.toString().equals("[")) : "openBracket local variable not assigned to '['";           
             assert(peekNode().get(0).equals(openBracket)) : "unconditional tree node AnOpenBracket does not have a child = to '['";
 #endif
 #if __python__
             assert(/*DOESN'T WORK FOR PYTHON:(openBracket instanceof Delimiter) && */openBracket.toString().equals("[")) : "openBracket local variable not assigned to \"[\"";
+            assert(peekNode().getChild(0).equals(openBracket)) : "unconditional tree node AnOpenBracket does not have a child = to '['";
+#endif
+#if __csharp__
+            assert((openBracket instanceof Delimiter) && openBracket.toString().equals("[")) : "openBracket local variable not assigned to '['";
             assert(peekNode().getChild(0).equals(openBracket)) : "unconditional tree node AnOpenBracket does not have a child = to '['";
 #endif
         }
@@ -156,7 +160,10 @@ Array :
          */
         @values := ( /values/ += Value )
         {
+#if __java__ || __python__
             assert(thisProduction.getValues() instanceof BaseNode) : "values property not type BaseNode";
+            // can't access a property in a manner compatible with both Java and CSharp?
+#endif
             assert(thisProduction.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point";            
         } 
         /**
@@ -173,7 +180,7 @@ Array :
 #if __java__
                     assert(aCommaNode.get(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
 #endif
-#if __python__
+#if __python__ || __csharp__
                     assert(aCommaNode.getChild(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
 #endif
                 }
@@ -192,6 +199,7 @@ Array :
 #if __python__
                     assert(thisProduction.getValues().getChildCount() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
 #endif
+
                 }
         )*! 
     ]
@@ -199,7 +207,10 @@ Array :
 ;
 
 Value :
-    ( <TRUE>
+    ( <TRUE> 
+    {
+    //hello
+    }
     |
     <FALSE>
     |
