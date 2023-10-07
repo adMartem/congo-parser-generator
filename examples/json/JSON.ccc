@@ -207,10 +207,7 @@ Array :
 ;
 
 Value :
-    ( <TRUE> 
-    {
-    //hello
-    }
+    ( <TRUE>
     |
     <FALSE>
     |
