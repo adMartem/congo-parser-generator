@@ -194,9 +194,7 @@ Array :
              * string assignment since each node is "closed" (i.e., "add"ed to its parent) after it is "add"ed to the referenced value property.  I'm
              * thinking this is a bad idea and the "+=" for properties (but not named child lists) should be removed.  But for now, since it is experimental, I've left it.
              */
-#if __java__ || __python__
-            @values += 
-#endif     
+            @values +=
             Value /[values]/ 
                 {
 #if __java__
@@ -231,9 +229,11 @@ Value :
 ;
 
 KeyValuePair : 
-    @key    :=$ <STRING_LITERAL> 
-                <COLON> 
-    @value  :=$ Value;
+    //@key    :=$ 
+    <STRING_LITERAL> 
+    <COLON> 
+    //@value  :=$ 
+    Value;
 
 JSONObject : 
     <OPEN_BRACE>!
