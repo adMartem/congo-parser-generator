@@ -18,7 +18,7 @@ PARSER_PACKAGE="org.parsers.json";
 NODE_PACKAGE="org.parsers.json.ast";
 DEFAULT_LEXICAL_STATE=JSON;
 
-#if regression_testing
+#if !regression_testing
 X_SYNTHETIC_NODES_ENABLED;
 #endif
 
@@ -68,7 +68,7 @@ TOKEN #Literal :
 
 Root : Value! <EOF>! ;
 
-#if !regression_testing
+#if regression_testing
 
 Array :
     <OPEN_BRACKET>
@@ -190,9 +190,14 @@ Array :
              * a reference to the same "Value" node is added to the named child list "values" of the anonymous BaseNode added by the 'moreThanOne' property assignment.
              * N.B., This illustrates a significant semantic difference between the behavior of the "/name/ += ..." construct and the "... /name/" construct.  The former
              * ALWAYS references the properties of the production node instance (i.e. the node that is open before parsing the first expansion), whereas the latter references the named child or list
-             * of the node last closed.
+             * of the node last closed. Furthermore, the parentage of the Value nodes here is the synthetic BaseNode created by the outer
+             * string assignment since each node is "closed" (i.e., "add"ed to its parent) after it is "add"ed to the referenced value property.  I'm
+             * thinking this is a bad idea and the "+=" for properties (but not named child lists) should be removed.  But for now, since it is experimental, I've left it.
              */
-            @values += Value /[values]/ 
+#if __java__ || __python__
+            @values += 
+#endif     
+            Value /[values]/ 
                 {
 #if __java__
                     assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
