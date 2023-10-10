@@ -515,6 +515,8 @@ if (BuildTree) {
       [#set type = "bool"]
    [#elseif assignment?? && assignment.stringOf]
       [#set type = "string"]
+   [#elseif assignment?? && assignment.addTo]
+      [#set type = "List<Node>"]
    [/#if]
    [#if (injectedFields[field])?is_null]
       [#set injectedFields = injectedFields + {field : type}]

@@ -960,11 +960,11 @@ Assignment :
         |   
             @declarationOf :=? ":="
         | 
-            (@existenceOf :=? "=?" {CURRENT_NODE.setNoAutoDefinition(true);} | @existenceOf =? ":=?" {CURRENT_NODE.setDeclarationOf(true);})       
+            (@existenceOf :=? "=?" {CURRENT_NODE.setNoAutoDefinition(true);} | @existenceOf :=? ":=?" {CURRENT_NODE.setDeclarationOf(true);})       
         |
-            (@stringOf :=? "=$" {CURRENT_NODE.setNoAutoDefinition(true);} | @stringOf =? ":=$" {CURRENT_NODE.setDeclarationOf(true);})
+            (@stringOf :=? "=$" {CURRENT_NODE.setNoAutoDefinition(true);} | @stringOf :=? ":=$" {CURRENT_NODE.setDeclarationOf(true);})
         |
-            @addTo :=? "+=" {CURRENT_NODE.setNoAutoDefinition(true);}
+            (@addTo :=? "+=" {CURRENT_NODE.setNoAutoDefinition(true);} | @addTo :=? ":+=" {CURRENT_NODE.setDeclarationOf(true);})
     )
     =>||
 ;

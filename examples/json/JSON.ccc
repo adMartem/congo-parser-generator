@@ -19,6 +19,8 @@ NODE_PACKAGE="org.parsers.json.ast";
 DEFAULT_LEXICAL_STATE=JSON;
 USES_PREPROCESSOR;
 
+#define localtest
+
 #if localtest
 X_SYNTHETIC_NODES_ENABLED;
 #endif
@@ -79,6 +81,7 @@ Root : Value! <EOF>! ;
 INJECT PARSER_CLASS :
 {
     import NODE_PACKAGE.Delimiter;
+    import java.util.List;
 }
 {}
 
@@ -122,10 +125,10 @@ Array :
          *  /values/ += Value (<COMMA> (/values/ += Value))*!  // note the disambiguation required after <COMMA>
          *  @values:=[{}] @values += Value =>|| (<COMMA> @values += Value)*!
          */
-        @values := ( /values/ += Value )
+        @values :+= ( /values/ += Value )
         {
 #if __java__ || __python__
-            assert(thisProduction.getValues() instanceof BaseNode) : "values property not type BaseNode";
+            assert(thisProduction.getValues() instanceof List) : "values property not type List";
             // can't access a property in a manner compatible with both Java and CSharp?
 #endif
             assert(thisProduction.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point";            
@@ -136,10 +139,10 @@ Array :
          */
         @moreThanOne :=? (
             /**
-             * The token "," is assigned to an explicitly injected @Property named "aCommaToken" in the "Array" node, and
+             * The token "," is added to an explicitly injected @Property named "commaTokens" in the "Array" node, and
              * an unconditional tree node called "ACommaNode" is built and wraps the "," token.
              */
-            @aCommaToken = <COMMA> aCommaNode = #ACommaNode 
+            @commaTokens :+= <COMMA> aCommaNode = #ACommaNode 
                 {
 #if __java__
                     assert(aCommaNode.get(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
@@ -154,15 +157,12 @@ Array :
              * a reference to the same "Value" node is added to the named child list "values" of the anonymous BaseNode added by the 'moreThanOne' property assignment.
              * N.B., This illustrates a significant semantic difference between the behavior of the "/name/ += ..." construct and the "... /name/" construct.  The former
              * ALWAYS references the properties of the production node instance (i.e. the node that is open before parsing the first expansion), whereas the latter references the named child or list
-             * of the node last closed. Furthermore, the parentage of the Value nodes here is the synthetic BaseNode created by the outer
-             * string assignment since each node is "closed" (i.e., "add"ed to its parent) after it is "add"ed to the referenced value property.  I'm
-             * thinking this is a bad idea and the "+=" for properties (but not named child lists) should be removed.  But for now, since it is experimental, I've left it.
+             * of the node last closed. 
              */
-            @values +=
-            Value /[values]/ 
+            @values += Value /[values]/ 
                 {
 #if __java__
-                    assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
+                    assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the List<Node> property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
                     // can't access a property in a manner compatible with both Java and CSharp?
 #endif
 #if __python__
