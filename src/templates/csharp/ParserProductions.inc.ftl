@@ -482,8 +482,8 @@ if (BuildTree) {
             ${injectDeclaration(lhsType, assignment.name, assignment)}
          [/#if]
          [#if assignment.addTo!false]
-            [#-- This is the addition of the current node as a child of the specified property's node value --]
-            [#return "thisProduction." + lhsName + ".AddChild(" + getRhsAssignmentPattern(assignment) + ")" /]
+            [#-- This is the addition of the current node as an element of the specified list property --]
+            [#return "thisProduction." + lhsName + ".Add(" + getRhsAssignmentPattern(assignment) + ")" /]
          [#else]
             [#-- This is an assignment of the current node's effective value to the specified property of the production node --]
             [#return "thisProduction." + lhsName + " = " + getRhsAssignmentPattern(assignment) /]
@@ -517,6 +517,7 @@ if (BuildTree) {
       [#set type = "string"]
    [#elseif assignment?? && assignment.addTo]
       [#set type = "List<Node>"]
+      [#set field = field + " = new ArrayList<Node>()"]
    [/#if]
    [#if (injectedFields[field])?is_null]
       [#set injectedFields = injectedFields + {field : type}]

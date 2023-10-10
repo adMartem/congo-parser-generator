@@ -114,20 +114,20 @@ Array :
     @optionalArrayElements :=$ [
         /**
          * The "Value" node is added (as the first element) to a child list named "values" in the "Array" node
-         * and the "Value" node is then wrapped in a "BaseNode" which is assigned to a property named "values" 
+         * and the "Value" node is then wrapped in a "BaseNode" which is assigned to a list property named "values" 
          * automatically defined in the "Array" node.
          *
          * Illustrative alternatives using other features and achieving approximately the same result are:
          *  Value (<COMMA> Value)*!
          *  Value /[values]/ (<COMMA> Value /[values]/)*!
          *  /values/ += Value (<COMMA> (/values/ += Value))*!  // note the disambiguation required after <COMMA>
-         *  @values:=[{}] @values += Value =>|| (<COMMA> @values += Value)*!
          */
         @values :+= ( /values/ += Value )
         {
-#if __java__ || __python__
+#if __java__
             assert(thisProduction.getValues() instanceof List) : "values property not type List";
-            // can't access a property in a manner compatible with both Java and CSharp?
+            // Can't access a property in a manner compatible with both Java and CSharp? 
+            // But can with Python, however, the instanceof does not recognize "List".
 #endif
             assert(thisProduction.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point";            
         } 
@@ -143,11 +143,8 @@ Array :
             @commaTokens :+= <COMMA> aCommaNode = #ACommaNode 
                 {
 #if __java__
-                    assert(aCommaNode.get(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
-                    // can't access a property in a manner compatible with both Java and CSharp?
-#endif
-#if __python__
-                    assert(aCommaNode.getChild(0).equals(thisProduction.getACommaToken())) : "the ACommaNode does not have a child token that is = the property aCommaToken in the Array node";
+                    assert(aCommaNode.get(0).toString().equals(thisProduction.getCommaTokens().get(0).toString())) : "the ACommaNode does not have a child token that is = the property commaTokens[0] in the Array node";
+                    // can't access a property in a manner compatible with CSharp and Python?
 #endif
                 }
             /**
@@ -164,7 +161,7 @@ Array :
                     // can't access a property in a manner compatible with both Java and CSharp?
 #endif
 #if __python__
-                    assert(thisProduction.getValues().getChildCount() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
+                    assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
 #endif
 
                 }

@@ -556,6 +556,7 @@
       [#set type = "String"]
    [#elseif assignment?? && assignment.addTo]
       [#set type = "List<Node>"]
+      [#set field = field + " = new ArrayList<Node>()"]
    [/#if]
    [#if (injectedFields[field])?is_null]
       [#set injectedFields = injectedFields + {field : type}]
