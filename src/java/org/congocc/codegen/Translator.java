@@ -1395,43 +1395,49 @@ public class Translator {
             return resultNode;
         }
         else if (node instanceof ClassicTryStatement) {
+        	ClassicTryStatement classicTryStatement = (ClassicTryStatement) node;
             ASTTryStatement resultNode = new ASTTryStatement();
-            resultNode.block = (ASTStatement) transformTree(node.getNamedChild("block"));
-            List<Node> catchBlocks = node.getNamedChildList("catchBlocks");
-            for (Node cb: catchBlocks) {
+            resultNode.block = (ASTStatement) transformTree(classicTryStatement.getBlock());
+            List<Node> catchBlocks = classicTryStatement.getCatchBlocks();
+            for (Node n: catchBlocks) {
+            	CatchBlock cb = (CatchBlock) n;
                 ASTExceptionInfo info = new ASTExceptionInfo();
-                List<Node> excTypes = cb.getNamedChildList("exceptionTypes");
+                List<Node> excTypes = cb.getExceptionTypes();
 
                 for (Node et: excTypes) {
                     info.addExceptionType((ASTTypeExpression) transformTree(et, true));
                 }
-                info.variable = ((Token) cb.getNamedChild("varDecl")).toString();
+                info.variable = cb.getVarDeclString();
                 info.block = (ASTStatement) transformTree(cb.getLastChild());
                 resultNode.addCatchBlock(info);
             }
-            Node fb = node.getNamedChild("finallyBlock");
+            FinallyBlock fb = classicTryStatement.getFinallyBlock();
             if (fb != null) {
                 resultNode.finallyBlock = (ASTStatement) transformTree(fb);
             }
             return resultNode;
         }
         else if (node instanceof EnumDeclaration) {
+        	EnumDeclaration enumDeclaration = (EnumDeclaration) node;
             ASTEnumDeclaration resultNode = new ASTEnumDeclaration();
 
-            resultNode.name = ((Token) node.getNamedChild("name")).toString();
+            resultNode.name = enumDeclaration.getName();
             addNestedDeclaration(resultNode.name);
-            List<Node> values = node.getNamedChild("body").getNamedChildList("values");
+            List<Node> values = enumDeclaration.getEnumBody().getValues();
             for (Node child: values) {
                 resultNode.addValue(((Token) child).toString());
             }
             return resultNode;
         }
         else if (node instanceof ClassDeclaration) {
+        	ClassDeclaration classDeclaration = (ClassDeclaration) node;
             ASTClassDeclaration resultNode = new ASTClassDeclaration();
 
-            resultNode.name = ((Token) node.getNamedChild("name")).toString();
+            resultNode.name = classDeclaration.getName();
+
             addNestedDeclaration(resultNode.name);
-            List<Node> decls = node.getLastChild().getNamedChildList("decls");
+            List<Node> decls = classDeclaration.getBody().getDeclarations();
+
             for (Node decl: decls) {
                 resultNode.addDeclaration((ASTStatement) transformTree(decl));
             }

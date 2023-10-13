@@ -105,8 +105,7 @@ class Reaper extends Node.Visitor {
     }
 
     void visit(ObjectType ot) {
-        Identifier firstID = ot.firstChildOfType(Identifier.class);
-        usedTypeNames.add(firstID.getImage());
+        usedTypeNames.add(ot.getName());
         recurse(ot);
     }
 

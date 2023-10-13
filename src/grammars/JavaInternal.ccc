@@ -282,8 +282,7 @@ INJECT TypeDeclaration :
     import java.util.*;
 {
     default String getName() {
-        Node thisNode = getNamedChild("name");
-        return (thisNode != null) ? thisNode.toString() : firstChildOfType(Identifier.class).toString();
+        return firstChildOfType(Identifier.class).toString();
     }
     
     default TypeParameters getTypeParameters() {
