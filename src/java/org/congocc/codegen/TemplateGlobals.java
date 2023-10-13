@@ -373,16 +373,20 @@ public class TemplateGlobals {
                     continue;
                 }
                 if (decl instanceof FieldDeclaration) {
+                	FieldDeclaration fieldDeclaration = (FieldDeclaration) decl;
                     ArrayList<String> names = new ArrayList<>();
-                    for (Node child : decl.children()) {
+                    for (Node child : fieldDeclaration.children()) {
                         if (child instanceof Identifier) {
                             names.add(((Identifier) child).toString());
                         } else if (child instanceof VariableDeclarator) {
-                            Identifier ident = child.firstChildOfType(Identifier.class);
-                            if (ident == null) {
-                                throw new UnsupportedOperationException();
-                            }
-                            names.add(ident.toString());
+                        	VariableDeclarator variableDeclarator = (VariableDeclarator) child;
+                        	VariableDeclaratorId variableDeclaratorId = (VariableDeclaratorId) variableDeclarator.getId();
+                        	names.add(variableDeclaratorId.getVarName());
+//                            Identifier ident = variableDeclarator.firstChildOfType(Identifier.class);
+//                            if (ident == null) {
+//                                throw new UnsupportedOperationException();
+//                            }
+//                            names.add(ident.toString());
                         }
                     }
                     if (names.size() == 0) {

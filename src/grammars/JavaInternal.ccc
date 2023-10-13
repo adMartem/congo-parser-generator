@@ -10,7 +10,7 @@ TOKEN_CHAINING;
 
 INCLUDE "../../examples/java/Java.ccc"
 
-VariableDeclarator# : VariableDeclaratorId [ "=" VariableInitializer ] ;
+VariableDeclarator# : @id := VariableDeclaratorId [ "=" VariableInitializer ] ;
 
 INJECT CompilationUnit : 
     import java.util.*;
@@ -278,12 +278,18 @@ INJECT ImplementsList :
     }
 }
 
+INJECT ObjectType :
+{
+    public String getName() {
+        return firstChildOfType(Identifier.class).toString();
+    }
+}
+
 INJECT TypeDeclaration : 
     import java.util.*;
 {
     default String getName() {
-        Node thisNode = getNamedChild("name");
-        return (thisNode != null) ? thisNode.toString() : firstChildOfType(Identifier.class).toString();
+        return firstChildOfType(Identifier.class).toString();
     }
     
     default TypeParameters getTypeParameters() {

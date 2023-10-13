@@ -122,14 +122,13 @@ Array :
          *  Value /[values]/ (<COMMA> Value /[values]/)*!
          *  /values/ += Value (<COMMA> (/values/ += Value))*!  // note the disambiguation required after <COMMA>
          */
-        @values :+= ( /values/ += Value )
+        @values :+= Value
         {
 #if __java__
             assert(thisProduction.getValues() instanceof List) : "values property not type List";
             // Can't access a property in a manner compatible with both Java and CSharp? 
             // But can with Python, however, the instanceof does not recognize "List".
 #endif
-            assert(thisProduction.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point";            
         } 
         /**
          * A boolean property named "moreThanOne" is automatically injected into the "Array" node and a ZeroOrMore expansion is parsed and, 
@@ -148,23 +147,12 @@ Array :
 #endif
                 }
             /**
-             * A "Value" node is built and a reference to it is added as a child of the "Array" property named "values", and
-             * a reference to the same "Value" node is added to the named child list "values" of the anonymous BaseNode added by the 'moreThanOne' property assignment.
+             * A "Value" node is built and a reference to it is added as an a node element of the "Array" node list property named "values".
              * N.B., This illustrates a significant semantic difference between the behavior of the "/name/ += ..." construct and the "... /name/" construct.  The former
              * ALWAYS references the properties of the production node instance (i.e. the node that is open before parsing the first expansion), whereas the latter references the named child or list
-             * of the node last closed. 
+             * of the CURRENT_NODE. 
              */
-            @values += Value /[values]/ 
-                {
-#if __java__
-                    assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the List<Node> property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
-                    // can't access a property in a manner compatible with both Java and CSharp?
-#endif
-#if __python__
-                    assert(thisProduction.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
-#endif
-
-                }
+            @values += Value 
         )*! 
     ]
     <CLOSE_BRACKET>

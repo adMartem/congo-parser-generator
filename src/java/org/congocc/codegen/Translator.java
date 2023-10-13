@@ -444,14 +444,17 @@ public class Translator {
         }
 
         public String getVariable() {
+        	System.out.println("catch variable is '" + variable + "'");
             return variable;
         }
 
         public ASTStatement getBlock() {
+        	System.out.println("exception block is '" + block + "'");
             return block;
         }
 
         public List<ASTTypeExpression> getExceptionTypes() {
+        	System.out.println("exception types are '" + exceptionTypes + "'");
             return exceptionTypes;
         }
     }
@@ -771,24 +774,24 @@ public class Translator {
             // just a name
             ASTPrimaryExpression resultNode = new ASTPrimaryExpression();
             result = resultNode;
-            resultNode.name = ((Identifier) name.getFirstChild()).getImage();
+            resultNode.name = name.firstDescendantOfType(Identifier.class).toString();
         }
         else {
             // dotted name
             ASTBinaryExpression lhs = new ASTBinaryExpression();
             lhs.op = ".";
             ASTPrimaryExpression pe = new ASTPrimaryExpression(lhs);
-            pe.name = ((Identifier) name.get(0)).getImage();
+            pe.name = ((Identifier) name.get(0)).toString();
             lhs.setLhs(pe);
             pe = new ASTPrimaryExpression(lhs);
-            pe.name = ((Identifier) name.get(2)).getImage();
+            pe.name = ((Identifier) name.get(2)).toString();
             lhs.setRhs(pe);
             result = lhs;
             for (int j = 4; j < m; j += 2) {
                 ASTBinaryExpression newNode = new ASTBinaryExpression();
                 newNode.setLhs(lhs);
                 pe = new ASTPrimaryExpression();
-                pe.name = ((Identifier) name.get(j)).getImage();
+                pe.name = ((Identifier) name.get(j)).toString();
                 newNode.op = ".";
                 newNode.setRhs(pe);
                 lhs = newNode;
@@ -836,7 +839,7 @@ public class Translator {
         ASTFormalParameter result = new ASTFormalParameter();
         // A "final" modifier is allowed
         Node ac = fp.getFirstChild();
-        result.isFinal = (ac instanceof Token) && ((Token) ac).getImage().equals("final");
+        result.isFinal = (ac instanceof Token) && ((Token) ac).toString().equals("final");
         if (result.isFinal) {
             ac = fp.get(1);
         }
@@ -846,10 +849,10 @@ public class Translator {
     }
 
     protected Node transformTree(Node node, boolean forType) {
-        Node result = null;
+        Node result = null;        
 
         if (node instanceof Delimiter || node instanceof Operator) {
-            throw new IllegalArgumentException("internal error");
+            throw new IllegalArgumentException("node is '" + node + "' class " + node.getClass().getSimpleName());
         }
         else if (node instanceof Name) {
             return transformName(node);
@@ -888,17 +891,17 @@ public class Translator {
         }
         else if (node instanceof Identifier) {
             ASTPrimaryExpression resultNode = forType ? new ASTTypeExpression() : new ASTPrimaryExpression();
-            resultNode.name = ((Token) node).getImage();
+            resultNode.name = ((Token) node).toString();
             return resultNode;
         }
         else if (node instanceof Token) {
             ASTPrimaryExpression resultNode = forType ? new ASTTypeExpression() : new ASTPrimaryExpression();
-            resultNode.literal = ((Token) node).getImage();
+            resultNode.literal = ((Token) node).toString();
             return resultNode;
         }
         else if (node instanceof LiteralExpression) {
             ASTPrimaryExpression resultNode = forType ? new ASTTypeExpression() : new ASTPrimaryExpression();
-            resultNode.literal = ((Token) node.getFirstChild()).getImage();
+            resultNode.literal = ((Token) node.getFirstChild()).toString();
             return resultNode;
         }
         else if (node instanceof PrimitiveType) {
@@ -910,15 +913,16 @@ public class Translator {
             return transformTree(child, forType);
         }
         else if (node instanceof ObjectType) {
+        	ObjectType objectType = (ObjectType) node;
             ASTTypeExpression resultNode = new ASTTypeExpression();
-            int n = node.size();
+            int n = objectType.size();
             if (n == 1) {
-                Node child = node.getFirstChild();
+                Node child = objectType.getFirstChild(); 
                 if (child instanceof ObjectType) {
                     return transformTree(child, forType);
                 }
                 else if (child instanceof Identifier) {
-                    resultNode.name = ((Identifier) child).getImage();
+                    resultNode.name = ((Identifier) child).toString();
                 }
                 else {
                     throw new UnsupportedOperationException();
@@ -926,9 +930,9 @@ public class Translator {
             }
             else {
                 StringBuilder sb = new StringBuilder();
-                for (Node child : node.children()) {
+                for (Node child : objectType.children()) {
                     if (child instanceof Token) {
-                        sb.append(((Token) child).getImage());
+                        sb.append(((Token) child).toString());
                     }
                     else if (child instanceof TypeArguments) {
                         for (Node gc : child.children()) {
@@ -944,7 +948,9 @@ public class Translator {
                             }
                         }
                     }
-                    else {
+                    else if (child instanceof BaseNode) {
+                    	sb.append(((BaseNode)child).toString());
+                    } else {
                         throw new UnsupportedOperationException();
                     }
                 }
@@ -958,7 +964,7 @@ public class Translator {
         else if (node instanceof UnaryExpressionNotPlusMinus || node instanceof UnaryExpression) {
             ASTUnaryExpression resultNode = new ASTUnaryExpression();
             result = resultNode;
-            resultNode.op = ((Operator) node.get(0)).getImage();
+            resultNode.op = ((Operator) node.get(0)).toString();
             resultNode.setOperand((ASTExpression) transformTree(node.get(1)));
         }
         else if (node instanceof PostfixExpression) {
@@ -1016,13 +1022,13 @@ public class Translator {
             int n = node.size();
             ASTBinaryExpression lhs = new ASTBinaryExpression();
             result = lhs;
-            lhs.op = ((Operator) node.get(1)).getImage();
+            lhs.op = ((Operator) node.get(1)).toString();
             lhs.setLhs((ASTExpression) transformTree(node.get(0)));
             lhs.setRhs((ASTExpression) transformTree(node.get(2)));
             if (n > 3) {
                 for (int i = 3; i < n; i += 2) {
                     ASTBinaryExpression newNode = new ASTBinaryExpression();
-                    newNode.op = ((Operator) node.get(i)).getImage();
+                    newNode.op = ((Operator) node.get(i)).toString();
                     newNode.setRhs((ASTExpression) transformTree(node.get(i + 1)));
                     newNode.setLhs(lhs);
                     lhs = newNode;
@@ -1085,7 +1091,7 @@ public class Translator {
                     resultNode.addNameAndInitializer(name, null);
                 }
                 else if (child instanceof VariableDeclarator) {
-                    name = (ASTPrimaryExpression) transformTree(child.getFirstChild());
+                    name = (ASTPrimaryExpression) transformName(child.getFirstChild());
                     initializer = (child.size() == 1) ? null : (ASTExpression) transformTree(child.getLastChild());
                     resultNode.addNameAndInitializer(name, initializer);
                 }
@@ -1132,7 +1138,7 @@ public class Translator {
                     resultNode.addNameAndInitializer(name, null);
                 }
                 else if (child instanceof VariableDeclarator) {
-                    name = (ASTPrimaryExpression) transformTree(child.getFirstChild());
+                    name = (ASTPrimaryExpression) transformName(child.getFirstChild());
                     initializer = (child.size() == 1) ? null : (ASTExpression) transformTree(child.getLastChild());
                     resultNode.addNameAndInitializer(name, initializer);
                 }
@@ -1189,7 +1195,7 @@ public class Translator {
                 ASTVariableOrFieldDeclaration vd = new ASTVariableOrFieldDeclaration();
                 vd.typeExpression = (ASTTypeExpression) transformTree(child, true);
                 VariableDeclarator d = (VariableDeclarator) node.get(3);
-                ASTPrimaryExpression name = (ASTPrimaryExpression) transformTree(d.getFirstChild());
+                ASTPrimaryExpression name = (ASTPrimaryExpression) transformName(d.getFirstChild());
                 ASTExpression initializer = (d.size() == 1) ? null : (ASTExpression) transformTree(d.getLastChild());
                 vd.addNameAndInitializer(name, initializer);
                 resultNode.variable = vd;
@@ -1395,50 +1401,59 @@ public class Translator {
             return resultNode;
         }
         else if (node instanceof ClassicTryStatement) {
+        	ClassicTryStatement classicTryStatement = (ClassicTryStatement) node;
             ASTTryStatement resultNode = new ASTTryStatement();
-            resultNode.block = (ASTStatement) transformTree(node.getNamedChild("block"));
-            List<Node> catchBlocks = node.getNamedChildList("catchBlocks");
-            for (Node cb: catchBlocks) {
+            resultNode.block = (ASTStatement) transformTree(classicTryStatement.getBlock());
+            List<Node> catchBlocks = classicTryStatement.getCatchBlocks();
+            for (Node n: catchBlocks) {
+            	CatchBlock catchBlock = (CatchBlock) n;
                 ASTExceptionInfo info = new ASTExceptionInfo();
-                List<Node> excTypes = cb.getNamedChildList("exceptionTypes");
-
+                List<Node> excTypes = catchBlock.getExceptionTypes();
                 for (Node et: excTypes) {
                     info.addExceptionType((ASTTypeExpression) transformTree(et, true));
                 }
-                info.variable = ((Token) cb.getNamedChild("varDecl")).toString();
-                info.block = (ASTStatement) transformTree(cb.getLastChild());
+                System.out.println("CatchBlock for " + classicTryStatement + " is '" + catchBlock + "'");
+                catchBlock.dump();
+                info.variable = catchBlock.getVarDecl().getVarName();
+                System.out.println("info.variable for " + classicTryStatement + " is '" + info.variable + "'");
+                info.block = (ASTStatement) transformTree(catchBlock.getBlock());
                 resultNode.addCatchBlock(info);
             }
-            Node fb = node.getNamedChild("finallyBlock");
+            FinallyBlock fb = classicTryStatement.getFinallyBlock();
             if (fb != null) {
                 resultNode.finallyBlock = (ASTStatement) transformTree(fb);
             }
             return resultNode;
         }
         else if (node instanceof EnumDeclaration) {
+        	EnumDeclaration enumDeclaration = (EnumDeclaration) node;
             ASTEnumDeclaration resultNode = new ASTEnumDeclaration();
 
-            resultNode.name = ((Token) node.getNamedChild("name")).toString();
+            resultNode.name = enumDeclaration.getName();
             addNestedDeclaration(resultNode.name);
-            List<Node> values = node.getNamedChild("body").getNamedChildList("values");
+            List<Node> values = enumDeclaration.getEnumBody().getValues();
             for (Node child: values) {
                 resultNode.addValue(((Token) child).toString());
             }
             return resultNode;
         }
         else if (node instanceof ClassDeclaration) {
+        	ClassDeclaration classDeclaration = (ClassDeclaration) node;
             ASTClassDeclaration resultNode = new ASTClassDeclaration();
 
-            resultNode.name = ((Token) node.getNamedChild("name")).toString();
+            resultNode.name = classDeclaration.getName();
+
             addNestedDeclaration(resultNode.name);
-            List<Node> decls = node.getLastChild().getNamedChildList("decls");
+            List<Node> decls = classDeclaration.getBody().getDeclarations();
+
             for (Node decl: decls) {
                 resultNode.addDeclaration((ASTStatement) transformTree(decl));
             }
             return resultNode;
         }
+        
         if (result == null) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("node is '" + node + "' class " + node.getClass().getSimpleName());
         }
         return result;
     }
