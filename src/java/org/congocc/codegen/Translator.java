@@ -910,15 +910,16 @@ public class Translator {
             return transformTree(child, forType);
         }
         else if (node instanceof ObjectType) {
+        	ObjectType objectType = (ObjectType) node;
             ASTTypeExpression resultNode = new ASTTypeExpression();
-            int n = node.size();
+            int n = objectType.size();
             if (n == 1) {
-                Node child = node.getFirstChild();
+                Node child = objectType.getFirstChild().getFirstChild(); // because of reified TypeIdentifier
                 if (child instanceof ObjectType) {
                     return transformTree(child, forType);
                 }
                 else if (child instanceof Identifier) {
-                    resultNode.name = ((Identifier) child).getImage();
+                    resultNode.name = ((Identifier) child).toString();
                 }
                 else {
                     throw new UnsupportedOperationException();
@@ -926,9 +927,9 @@ public class Translator {
             }
             else {
                 StringBuilder sb = new StringBuilder();
-                for (Node child : node.children()) {
+                for (Node child : objectType.children()) {
                     if (child instanceof Token) {
-                        sb.append(((Token) child).getImage());
+                        sb.append(((Token) child).toString());
                     }
                     else if (child instanceof TypeArguments) {
                         for (Node gc : child.children()) {
