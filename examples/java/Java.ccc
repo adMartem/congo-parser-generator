@@ -460,7 +460,7 @@ FieldDeclaration :
   Type VariableDeclarator ( <COMMA> VariableDeclarator )* <SEMICOLON>
 ;
 
-VariableDeclarator# : VariableDeclaratorId [ <ASSIGN> VariableInitializer ] ;
+VariableDeclarator# : @id := VariableDeclaratorId [ <ASSIGN> VariableInitializer ] ;
 
 VariableDeclaratorId : @varName :=$ <IDENTIFIER> @dimensions := ( (Annotation)* <LBRACKET> <RBRACKET> )* ;
 

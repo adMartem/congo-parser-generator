@@ -847,9 +847,10 @@ public class Translator {
 
     protected Node transformTree(Node node, boolean forType) {
         Node result = null;
+        
 
         if (node instanceof Delimiter || node instanceof Operator) {
-            throw new IllegalArgumentException("internal error");
+            throw new IllegalArgumentException("node is '" + node + "' class " + node.getClass().getSimpleName());
         }
         else if (node instanceof Name) {
             return transformName(node);
@@ -945,7 +946,9 @@ public class Translator {
                             }
                         }
                     }
-                    else {
+                    else if (child instanceof BaseNode) {
+                    	sb.append(((BaseNode)child).toString());
+                    } else {
                         throw new UnsupportedOperationException();
                     }
                 }
@@ -1444,8 +1447,17 @@ public class Translator {
             }
             return resultNode;
         }
+        
+        if (node instanceof BaseNode && node.size() >= 1) {
+        	try {
+        		return transformTree(node.get(0));
+        	} catch (IllegalArgumentException e) {
+        		// swallow
+        	}
+        }
+        
         if (result == null) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("node is '" + node + "' class " + node.getClass().getSimpleName());
         }
         return result;
     }
