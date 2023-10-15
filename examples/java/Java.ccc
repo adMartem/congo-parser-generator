@@ -275,7 +275,7 @@ ClassDeclaration :
                                     STRICTFP, SEALED, NON_SEALED);}
   @modifiers := Modifiers
   <CLASS> =>||
-  @name :=$ (TypeIdentifier)
+  TypeIdentifier @name :=$ #Id
   [ TypeParameters ]
   [ ExtendsList ]
   [ ImplementsList ]
@@ -290,7 +290,7 @@ InterfaceDeclaration :
                                      NON_SEALED);}#
   @modifiers := Modifiers
   <INTERFACE> =>||
-  @name :=$ (TypeIdentifier)
+  TypeIdentifier @name :=$ #Id
   [ TypeParameters ]
   [ ExtendsList ]
   [ PermitsList ]
@@ -339,7 +339,7 @@ EnumDeclaration :
                                       FINAL, STATIC, STRICTFP);}#
    @modifiers := Modifiers
    <ENUM> =>||
-   @name :=$ (TypeIdentifier)
+   TypeIdentifier @name :=$ #Id
    [ImplementsList]
    @enumBody := EnumBody
 ;
@@ -361,7 +361,7 @@ RecordDeclaration :
   ASSERT {checkNextTokenImage("record") && getTokenType(2) == IDENTIFIER}#
   =>||
   ACTIVATE_TOKENS RECORD (<RECORD>)
-   @name :=$ (TypeIdentifier)
+   TypeIdentifier @name :=$ #Id
   [TypeParameters]
   RecordHeader
   [ImplementsList]
@@ -394,7 +394,7 @@ RecordBody :
 CompactConstructorDeclaration :
   {permissibleModifiers = EnumSet.of(PUBLIC, PROTECTED, PRIVATE);}#
   @modifiers := Modifiers
-  @name :=$ (TypeIdentifier)
+  TypeIdentifier @name :=$ #Id
   <LBRACE> =>||
   [ ExplicitConstructorInvocation =>|| ]
   @statements = ( SCAN ~(<RBRACE>) => BlockStatement )*!
@@ -514,7 +514,7 @@ ConstructorDeclaration :
   {permissibleModifiers = EnumSet.of(PUBLIC, PROTECTED, PRIVATE);}#
   @modifiers := Modifiers
   [ TypeParameters ]
-  @name :=$ (TypeIdentifier) @formals := FormalParameters =>||
+  TypeIdentifier @name :=$ #Id @formals := FormalParameters =>||
   [ ThrowsList ]
   <LBRACE>
   [ ExplicitConstructorInvocation =>||]
@@ -553,7 +553,7 @@ ReferenceType :
 
 ObjectType# :
     (Annotation)*
-    @name :=$ (TypeIdentifier) [ TypeArguments ]
+    TypeIdentifier @name :=$ #Id [ TypeArguments ]
     ( <DOT> (Annotation)* <IDENTIFIER> =>|| [ TypeArguments ] )*
 ;
 
@@ -1356,7 +1356,7 @@ AnnotationTypeDeclaration :
                                     PRIVATE, ABSTRACT, 
                                     STATIC, STRICTFP);}#
   @modifiers := Modifiers
-  <AT> <INTERFACE> =>|| @name :=$ (TypeIdentifier) AnnotationTypeBody
+  <AT> <INTERFACE> =>|| TypeIdentifier @name :=$ #Id AnnotationTypeBody
 ;
 
 AnnotationTypeBody :
