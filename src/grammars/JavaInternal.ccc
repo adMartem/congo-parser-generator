@@ -278,6 +278,13 @@ INJECT ImplementsList :
     }
 }
 
+INJECT ObjectType :
+{
+    public String getName() {
+        return firstChildOfType(Identifier.class).toString();
+    }
+}
+
 INJECT TypeDeclaration : 
     import java.util.*;
 {

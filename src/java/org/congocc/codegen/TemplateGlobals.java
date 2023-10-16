@@ -380,13 +380,13 @@ public class TemplateGlobals {
                             names.add(((Identifier) child).toString());
                         } else if (child instanceof VariableDeclarator) {
                         	VariableDeclarator variableDeclarator = (VariableDeclarator) child;
-                        	VariableDeclaratorId variableDeclaratorId = (VariableDeclaratorId) variableDeclarator.get(0);
-                        	names.add(variableDeclaratorId.getVarName());
-//                            Identifier ident = variableDeclarator.firstChildOfType(Identifier.class);
-//                            if (ident == null) {
-//                                throw new UnsupportedOperationException();
-//                            }
-//                            names.add(ident.toString());
+//                        	VariableDeclaratorId variableDeclaratorId = (VariableDeclaratorId) variableDeclarator.getId();
+//                        	names.add(variableDeclaratorId.getVarName());
+                            Identifier ident = variableDeclarator.firstChildOfType(Identifier.class);
+                            if (ident == null) {
+                                throw new UnsupportedOperationException();
+                            }
+                            names.add(ident.toString());
                         }
                     }
                     if (names.size() == 0) {
