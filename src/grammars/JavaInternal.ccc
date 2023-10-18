@@ -10,7 +10,7 @@ TOKEN_CHAINING;
 
 INCLUDE "../../examples/java/Java.ccc"
 
-VariableDeclarator# : VariableDeclaratorId [ "=" VariableInitializer ] ;
+VariableDeclarator# : @id := VariableDeclaratorId [ "=" VariableInitializer ] ;
 
 INJECT CompilationUnit : 
     import java.util.*;

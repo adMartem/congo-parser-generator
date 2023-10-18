@@ -444,14 +444,17 @@ public class Translator {
         }
 
         public String getVariable() {
+        	System.out.println("catch variable is '" + variable + "'");
             return variable;
         }
 
         public ASTStatement getBlock() {
+        	System.out.println("exception block is '" + block + "'");
             return block;
         }
 
         public List<ASTTypeExpression> getExceptionTypes() {
+        	System.out.println("exception types are '" + exceptionTypes + "'");
             return exceptionTypes;
         }
     }
@@ -771,7 +774,7 @@ public class Translator {
             // just a name
             ASTPrimaryExpression resultNode = new ASTPrimaryExpression();
             result = resultNode;
-            resultNode.name = ((Identifier) name.getFirstChild()).toString();
+            resultNode.name = name.firstDescendantOfType(Identifier.class).toString();
         }
         else {
             // dotted name
@@ -1088,7 +1091,7 @@ public class Translator {
                     resultNode.addNameAndInitializer(name, null);
                 }
                 else if (child instanceof VariableDeclarator) {
-                    name = (ASTPrimaryExpression) transformTree(child.getFirstChild());
+                    name = (ASTPrimaryExpression) transformName(child.getFirstChild());
                     initializer = (child.size() == 1) ? null : (ASTExpression) transformTree(child.getLastChild());
                     resultNode.addNameAndInitializer(name, initializer);
                 }
@@ -1135,7 +1138,7 @@ public class Translator {
                     resultNode.addNameAndInitializer(name, null);
                 }
                 else if (child instanceof VariableDeclarator) {
-                    name = (ASTPrimaryExpression) transformTree(child.getFirstChild());
+                    name = (ASTPrimaryExpression) transformName(child.getFirstChild());
                     initializer = (child.size() == 1) ? null : (ASTExpression) transformTree(child.getLastChild());
                     resultNode.addNameAndInitializer(name, initializer);
                 }
@@ -1192,7 +1195,7 @@ public class Translator {
                 ASTVariableOrFieldDeclaration vd = new ASTVariableOrFieldDeclaration();
                 vd.typeExpression = (ASTTypeExpression) transformTree(child, true);
                 VariableDeclarator d = (VariableDeclarator) node.get(3);
-                ASTPrimaryExpression name = (ASTPrimaryExpression) transformTree(d.getFirstChild());
+                ASTPrimaryExpression name = (ASTPrimaryExpression) transformName(d.getFirstChild());
                 ASTExpression initializer = (d.size() == 1) ? null : (ASTExpression) transformTree(d.getLastChild());
                 vd.addNameAndInitializer(name, initializer);
                 resultNode.variable = vd;
@@ -1403,15 +1406,17 @@ public class Translator {
             resultNode.block = (ASTStatement) transformTree(classicTryStatement.getBlock());
             List<Node> catchBlocks = classicTryStatement.getCatchBlocks();
             for (Node n: catchBlocks) {
-            	CatchBlock cb = (CatchBlock) n;
+            	CatchBlock catchBlock = (CatchBlock) n;
                 ASTExceptionInfo info = new ASTExceptionInfo();
-                List<Node> excTypes = cb.getExceptionTypes();
-
+                List<Node> excTypes = catchBlock.getExceptionTypes();
                 for (Node et: excTypes) {
                     info.addExceptionType((ASTTypeExpression) transformTree(et, true));
                 }
-                info.variable = cb.getVarDeclString();
-                info.block = (ASTStatement) transformTree(cb.getLastChild());
+                System.out.println("CatchBlock for " + classicTryStatement + " is '" + catchBlock + "'");
+                catchBlock.dump();
+                info.variable = catchBlock.getVarDecl().getVarName();
+                System.out.println("info.variable for " + classicTryStatement + " is '" + info.variable + "'");
+                info.block = (ASTStatement) transformTree(catchBlock.getBlock());
                 resultNode.addCatchBlock(info);
             }
             FinallyBlock fb = classicTryStatement.getFinallyBlock();

@@ -462,7 +462,7 @@ FieldDeclaration :
 
 VariableDeclarator# : @id := VariableDeclaratorId [ <ASSIGN> VariableInitializer ] ;
 
-VariableDeclaratorId : @varName :=$ <IDENTIFIER> /*@dimensions := */( (Annotation)* <LBRACKET> <RBRACKET> )* ;
+VariableDeclaratorId# : @varName :=$ <IDENTIFIER> /*@dimensions := */( (Annotation)* <LBRACKET> <RBRACKET> )* ;
 
 VariableInitializer#void : ArrayInitializer | Expression ;
 
@@ -1280,7 +1280,7 @@ TryWithResources :
     )+
     <RPAREN>
     (@block := Block)
-    /*@catchBlocks :+= */( CatchBlock )*
+    ( @catchBlocks :+= CatchBlock )*
     [ @finallyBlock := FinallyBlock ]
 ;
 
@@ -1288,7 +1288,7 @@ CatchBlock :
     <CATCH>
     <LPAREN>
     [<FINAL>]
-    @exceptionTypes :+= ObjectType (<BIT_OR> (@exceptionTypes += ObjectType ) )* @varDeclString :=$ VariableDeclaratorId
+    @exceptionTypes :+= ObjectType (<BIT_OR> (@exceptionTypes += ObjectType ) )* @varDecl := VariableDeclaratorId
     <RPAREN>
     @block := Block
 ;
