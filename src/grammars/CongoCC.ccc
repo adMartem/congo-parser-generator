@@ -338,6 +338,9 @@ INJECT Identifier :
         if (image.equals("jjtThis") || image.equals("CURRENT_NODE")) { 
             image = getGrammar().getTemplateGlobals().getCurrentNodeVariableName();
         }
+        else if (image.equals("THIS_PRODUCTION")) {
+            image = "thisProduction";
+        }
         else if (image.equals("PARSER_CLASS")) {
             image = getAppSettings().getParserClassName();
         }
