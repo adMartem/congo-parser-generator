@@ -3,6 +3,7 @@ package ${settings.parserPackage};
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.lang.invoke.*;
 import java.lang.reflect.*;
 import java.util.function.Predicate;
 
@@ -810,90 +811,91 @@ public interface Node extends List<Node> {
         clearChildren();
     }
 
- 	static abstract public class Visitor {
-        private static Map<Class<? extends Node.Visitor>, Map<Class<? extends Node>, Method>> mapLookup;
-        private static final Method DUMMY_METHOD;
+    static abstract public class Visitor {
+        private static Map<Class<? extends Node.Visitor>, Map<Class<? extends Node>, MethodHandle>> mapLookup;
+        private static final MethodHandle DUMMY_METHOD;
         static {
             try {
                 // Use this just to represent no method found, since ConcurrentHashMap cannot contain nulls
-                DUMMY_METHOD = Object.class.getMethod("toString");
+                DUMMY_METHOD = MethodHandles.lookup().unreflect(Object.class.getMethod("toString"));
             } catch (Exception e) {throw new RuntimeException(e);} // Never happens anyway.
-            mapLookup = Collections.synchronizedMap(new HashMap<Class<? extends Node.Visitor>, Map<Class<? extends Node>, Method>>());
+            mapLookup = Collections.synchronizedMap(new HashMap<Class<? extends Node.Visitor>, Map<Class<? extends Node>, MethodHandle>>());
         }
-        private Map<Class<? extends Node>, Method> methodCache;
+        private Map<Class<? extends Node>, MethodHandle> methodCache;
         {
             this.methodCache = mapLookup.get(this.getClass());
             if (methodCache == null) {
-                methodCache = new ConcurrentHashMap<Class<? extends Node>, Method>();
+                methodCache = new ConcurrentHashMap<Class<? extends Node>, MethodHandle>();
                 mapLookup.put(this.getClass(), methodCache);
             }
         }
         protected boolean visitUnparsedTokens;
-		
-		private Method getVisitMethod(Node node) {
-			Class<? extends Node> nodeClass = node.getClass();
-            Method method = methodCache.get(nodeClass);
+
+        private MethodHandle getVisitMethod(Node node) {
+            Class<? extends Node> nodeClass = node.getClass();
+            MethodHandle method = methodCache.get(nodeClass);
             if (method == null) {
                 method = getVisitMethodImpl(nodeClass);
                 methodCache.put(nodeClass, method);
             }
             return method;
-		}
+        }
 
         // Find handler method for this node type. If there is none, 
         // it checks for a handler for any explicitly marked interfaces
         // If necessary, it climbs the class hierarchy to superclasses
-        private Method getVisitMethodImpl(Class<?> nodeClass) {
+        private MethodHandle getVisitMethodImpl(Class<?> nodeClass) {
             if (nodeClass == null || !Node.class.isAssignableFrom(nodeClass)) return DUMMY_METHOD;
             try {
                 Method m = this.getClass().getDeclaredMethod("visit", nodeClass);
                 if (!Modifier.isPublic(nodeClass.getModifiers()) || !Modifier.isPublic(m.getModifiers())) {
                     m.setAccessible(true);
                 }
-                return m;
-            } catch (NoSuchMethodException e) {}
+                return MethodHandles.lookup().unreflect(m);
+            } catch (NoSuchMethodException | IllegalAccessException e) {
+            }
             for (Class<?> interf : nodeClass.getInterfaces()) {
                 if (Node.class.isAssignableFrom(interf) && !Node.class.equals(interf)) try {
                     Method m = this.getClass().getDeclaredMethod("visit", interf);
                     if (!Modifier.isPublic(interf.getModifiers()) || !Modifier.isPublic(m.getModifiers())) {
                         m.setAccessible(true);
                     }
-                    return m;
-                } catch (NoSuchMethodException e) {}
+                    MethodHandles.lookup().unreflect(m);
+                } catch (NoSuchMethodException | IllegalAccessException e) {
+                }
             }
             return getVisitMethodImpl(nodeClass.getSuperclass());
         }
 
-		/**
-		 * Tries to invoke (via reflection) the appropriate visit(...) method
-		 * defined in a subclass. If there is none, it just calls the recurse() routine.
-         * @param node the Node to "visit" 
-		 */
-		public final void visit(Node node) {
-			Method visitMethod = getVisitMethod(node);
-			if (visitMethod == DUMMY_METHOD) {
-				recurse(node);
-			} else try {
-				visitMethod.invoke(this, node);
-			} catch (InvocationTargetException ite) {
-	    		Throwable cause = ite.getCause();
-	    		if (cause instanceof RuntimeException) {
-	    			throw (RuntimeException) cause;
-	    		}
-	    		throw new RuntimeException(ite);
-	 		} catch (IllegalAccessException iae) {
-	 			throw new RuntimeException(iae);
-	 		}
-		}
+        /**
+        * Tries to invoke (via reflection) the appropriate visit(...) method
+        * defined in a subclass. If there is none, it just calls the recurse() routine.
+        * @param node the Node to "visit"
+        */
+        public final void visit(Node node) {
+            MethodHandle visitMethod = getVisitMethod(node);
+            if (visitMethod == DUMMY_METHOD) {
+                recurse(node);
+            } else try {
+                visitMethod.invoke(this, node);
+            } catch (Throwable cause) {
+                if (cause instanceof RuntimeException) {
+                    throw(RuntimeException) cause;
+                }
+                //wrap the Throwable in a RuntimeException
+                throw new RuntimeException(cause);
+            }
+        }
 
         /**
-         * Just recurses over (i.e. visits) the node's children
-         * @param node the node we are traversing
-         */
-		public void recurse(Node node) {
+        * Just recurses over (i.e. visits) the node's children
+        * @param node the node we are traversing
+        */
+        public void recurse(Node node) {
             for (Node child : node.children(visitUnparsedTokens)) {
                 visit(child);
             }
-		}
+        }
+
     }
 }
