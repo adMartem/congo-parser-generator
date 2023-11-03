@@ -111,16 +111,11 @@ Array :
             assert(peekNode().get(0).equals(openBracket)) : "unconditional tree node AnOpenBracket does not have a child = to '['";
 #endif
         }
-    @optionalArrayElements :=$ [
+    @elementsPresent :=? [
         /**
          * The "Value" node is added (as the first element) to a child list named "values" in the "Array" node
          * and the "Value" node is then wrapped in a "BaseNode" which is assigned to a list property named "values" 
          * automatically defined in the "Array" node.
-         *
-         * Illustrative alternatives using other features and achieving approximately the same result are:
-         *  Value (<COMMA> Value)*!
-         *  Value /[values]/ (<COMMA> Value /[values]/)*!
-         *  /values/ += Value (<COMMA> (/values/ += Value))*!  // note the disambiguation required after <COMMA>
          */
         @values :+= ( /values/ += Value )
         {
@@ -129,7 +124,8 @@ Array :
             // Can't access a property in a manner compatible with both Java and CSharp? 
             // But can with Python, however, the instanceof does not recognize "List".
 #endif
-            assert(THIS_PRODUCTION.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point";            
+            assert(THIS_PRODUCTION.getValues().size() == 1) : "values property should be a List of at least one element here";
+            //assert(CURRENT_NODE.getNamedChildList("values").size() == 1) : "named child list 'values' should have 1 node at this point"; This doesn't work due to the synthetic BaseNode forced by the outer assignment (why?)           
         } 
         /**
          * A boolean property named "moreThanOne" is automatically injected into the "Array" node and a ZeroOrMore expansion is parsed and, 
@@ -154,17 +150,7 @@ Array :
              * ALWAYS references the properties of the production node instance (i.e. the node that is open before parsing the first expansion), whereas the latter references the named child or list
              * of the node last closed. 
              */
-            (@values += Value) /values/+=#VValue
-                {
-#if __java__
-                    assert(THIS_PRODUCTION.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the List<Node> property 'values' size is not one more than the child list named 'values' in the 'VValue' definite node added";
-                    // can't access a property in a manner compatible with both Java and CSharp?
-#endif
-#if __python__
-                    assert(THIS_PRODUCTION.getValues().size() == CURRENT_NODE.getNamedChildList("values").size() + 1) : "the BaseNode property 'values' size is not one more than the child list named 'values' in the 'moreThanOne' node added previously";
-#endif
-
-                }
+            @values += Value /values/+=#VValue(>0)
         )*! 
     ]
     <CLOSE_BRACKET>

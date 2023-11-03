@@ -215,8 +215,8 @@ public class ${settings.baseNodeClassName} implements Node {
     private Map<String, List<Node>> namedChildListMap;
 
     public Node getNamedChild(String name) {
-        if (namedChildMap == null) {
-            return null;
+        if (namedChildMap == null) {            
+            namedChildMap = new HashMap<>();
         }
         return namedChildMap.get(name);
     }
@@ -234,8 +234,11 @@ public class ${settings.baseNodeClassName} implements Node {
     }
 
     public List<Node> getNamedChildList(String name) {
-        if (namedChildListMap == null) {
-            return null;
+        if (namedChildListMap == null) {            
+            namedChildListMap = new HashMap<>();
+        }
+        if (!namedChildListMap.containsKey(name)) {
+            namedChildListMap.put(name, new ArrayList<>());
         }
         return namedChildListMap.get(name);
     }
