@@ -322,7 +322,9 @@
          #if treeNodeBehavior.assignment.declarationOf
             ${injectDeclaration(treeNodeBehavior.nodeName, treeNodeBehavior.assignment.name, treeNodeBehavior.assignment)}
          /#if
-      #elseif jtbParseTree && expansion.parent.simpleName != "ExpansionWithParentheses" && isProductionInstantiatingNode(expansion)
+      #elseif jtbParseTree && 
+              expansion.parent.simpleName != "ExpansionWithParentheses" && 
+              isProductionInstantiatingNode(currentProduction) [#-- TODO: make python and csharp change! --]
          [#-- No in-line definite node annotation; synthesize a parser node for the expansion type being built, if needed. --]
          #if nodeName??
             [#-- Determine the node name depending on syntactic type --]
@@ -433,11 +435,8 @@
 [/#function]
 
 #function isProductionInstantiatingNode expansion
-   [#if expansion.containingProduction.treeNodeBehavior?? && 
-        expansion.containingProduction.treeNodeBehavior.neverInstantiated!false]
-      #return false
-   /#if
-   #return true
+   #return !expansion.containingProduction.treeNodeBehavior?? || 
+           !expansion.containingProduction.treeNodeBehavior.neverInstantiated!false [#-- TODO: make python and csharp match this! --]
 /#function
 
 [#function nodeVar isProduction]
@@ -516,7 +515,7 @@
       #if assignment.propertyAssignment
          [#-- This is the assignment of the current node's effective value to a property of the production node --]
          #set lhsName = lhsName?cap_first
-         [#if lhsType?? && assignment.declarationOf][!-- FIXME: I don't like the double negative --]
+         #if lhsType?? && assignment.declarationOf [#-- TODO: remove the comment from python and csharp --]
             [#-- This is a declaration assignment; inject required property --]
             ${injectDeclaration(lhsType, assignment.name, assignment)}
          /#if
@@ -544,6 +543,11 @@
 /#function
 
 [#function injectDeclaration typeName, fieldName, assignment]
+   #if !isProductionInstantiatingNode(currentProduction)
+      [#-- TODO: issue error here; cannot inject into non-instantiated production --]
+      #return "<non-instantiated production>"
+   /#if
+   [#-- TODO: add preceding check to python and csharp! --] 
    [#var modifier = "public"]
    [#var type = typeName]
    [#var field = fieldName]
@@ -743,10 +747,10 @@
    [#var lhsClassName = nonterminal.production.nodeName]
    [#var expressedLHS = getLhsPattern(nonterminal.assignment, lhsClassName)]
    [#var impliedLHS = "@"]
-   [#if jtbParseTree && isProductionInstantiatingNode(nonterminal.nestedExpansion) && topLevelExpansion]
+   #if jtbParseTree && isProductionInstantiatingNode(nonterminal.production) && topLevelExpansion [#-- TODO: make this change to python and csharp! --]
       #var newName = imputedJtbFieldName(nonterminal.production.nodeName)
-      [#set impliedLHS = "thisProduction." + newName + " = @"]
-   [/#if]
+      #set impliedLHS = "thisProduction." + newName + " = @"
+   /#if
    [#-- Accept the non-terminal expansion --]
    [#if nonterminal.production.returnType != "void" && expressedLHS != "@" && !nonterminal.assignment.namedAssignment && !nonterminal.assignment.propertyAssignment]
       [#-- Not a void production, so accept and clear the expressedLHS, it has already been applied. --]
