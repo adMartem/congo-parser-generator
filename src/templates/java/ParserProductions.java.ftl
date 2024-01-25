@@ -310,12 +310,11 @@
             /#if
          #elseif nodeName??
             #-- We are attempting to do assignment of a syntactic node value, but synthetic nodes are not enabled --
-            #-- FIXME: we should probably signal an error here --
+            #exec grammar.errors::addWarning("Attempt to assign " + nodeName + " in production node " + currentProduction.name + " but either synthetic nodes are not enabled or the production is not instantiated; the assignment will be ignored")
             #return null
          /#if
       #elseif treeNodeBehavior?? &&
-               treeNodeBehavior.assignment?? &&
-               isProductionInstantiatingNode(expansion)
+               treeNodeBehavior.assignment??
          #-- There is an explicit tree node annotation with assignment; make sure a property is injected if needed. --
          #if treeNodeBehavior.assignment.declarationOf
             ${injectDeclaration(treeNodeBehavior.nodeName, treeNodeBehavior.assignment.name, treeNodeBehavior.assignment)}
@@ -434,13 +433,13 @@
 
 #function isProductionInstantiatingNode expansion
    #return !expansion.containingProduction.treeNodeBehavior?? || 
-           !expansion.containingProduction.treeNodeBehavior.neverInstantiated!false [#-- TODO: make python and csharp match this! --]
+           !expansion.containingProduction.treeNodeBehavior.neverInstantiated!true [#-- TODO: make python and csharp match this! --]
 /#function
 
 #function nodeVar isProduction
    #var nodeVarName
    #if isProduction
-      #set nodeVarName = "thisProduction" [#-- [JB] maybe should be "CURRENT_PRODUCTION" or "THIS_PRODUCTION" to match "CURRENT_NODE"? --]
+      #set nodeVarName = "THIS_PRODUCTION"
    #else
       #set nodeNumbering = nodeNumbering +1
       #set nodeVarName = currentProduction.name + nodeNumbering 
@@ -542,8 +541,8 @@
 
 #function injectDeclaration typeName, fieldName, assignment
    #if !isProductionInstantiatingNode(currentProduction)
-      #-- TODO: issue error here; cannot inject into non-instantiated production --
-      #return "<non-instantiated production>"
+      #exec grammar.errors::addWarning("Attempt to inject property or field declaration " + fieldName + " into an un-instantiated production node " + currentProduction.name + "; it will be ignored")
+      #return ""
    /#if
    #-- TODO: add preceding check to python and csharp! -- 
    #var modifier = "public",
