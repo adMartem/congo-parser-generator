@@ -1,6 +1,7 @@
 #-- This template contains the core logic for generating the various parser routines. --
 
 #var nodeNumbering = 0,
+     exceptionNesting = 0,
      NODE_USES_PARSER = settings.nodeUsesParser,
      NODE_PREFIX = grammar.nodePrefix,
      currentProduction,
@@ -211,8 +212,8 @@
          #-- Here is the "nut". --
          #nested
       } 
-      catch (ParseException e) { 
-         ${parseExceptionVar} = e;
+      catch (ParseException ${exceptionVar()}) { 
+         ${parseExceptionVar} = ${exceptionVar()};
       #if !canRecover
          #if settings.faultTolerant
          if (isParserTolerant()) this.pendingRecovery = true;
@@ -310,7 +311,7 @@
             /#if
          #elseif nodeName??
             #-- We are attempting to do assignment of a syntactic node value, but synthetic nodes are not enabled --
-            #exec grammar.errors::addWarning("Attempt to assign " + nodeName + " in production node " + currentProduction.name + " but either synthetic nodes are not enabled or the production is not instantiated; the assignment will be ignored")
+            #exec grammar.errors::addWarning(currentProduction, "Attempt to assign " + nodeName + " in production node " + currentProduction.name + " but either synthetic nodes are not enabled or the production is not instantiated; the assignment will be ignored.")
             #return null
          /#if
       #elseif treeNodeBehavior?? &&
@@ -447,6 +448,17 @@
    #return nodeVarName
 /#function
 
+#function exceptionVar(isNesting)
+   #var exceptionVarName = "e"
+   #if exceptionNesting > 0
+      #set exceptionVarName = "e" + exceptionNesting
+   /#if
+   #if isNesting!false
+      #set exceptionNesting = exceptionNesting+1
+   /#if
+   #return exceptionVarName
+/#function
+
 #macro buildTreeNode production treeNodeBehavior nodeVarName [#-- FIXME: production is not used here --]
    #exec globals::pushNodeVariableName(nodeVarName)
    [@createNode nodeClassName(treeNodeBehavior) nodeVarName /]
@@ -541,7 +553,7 @@
 
 #function injectDeclaration typeName, fieldName, assignment
    #if !isProductionInstantiatingNode(currentProduction)
-      #exec grammar.errors::addWarning("Attempt to inject property or field declaration " + fieldName + " into an un-instantiated production node " + currentProduction.name + "; it will be ignored")
+      #exec grammar.errors::addWarning(currentProduction, "Attempt to inject property or field declaration " + fieldName + " into an un-instantiated production node " + currentProduction.name + "; the assignment will be ignored.")
       #return ""
    /#if
    #-- TODO: add preceding check to python and csharp! -- 
@@ -706,9 +718,11 @@
       [@BuildCode attemptBlock.nestedExpansion /]
       popParseState();
    }
-   catch (ParseException e) {
+   #var pe = exceptionVar(true)
+   catch (ParseException ${pe}) {
       restoreStashedParseState();
       [@BuildCode attemptBlock.recoveryExpansion /]
+      #set exceptionNesting = exceptionNesting - 1
    }
 [/#macro]
 
