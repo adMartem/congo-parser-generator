@@ -7,6 +7,7 @@
  --]
 
 #import "NfaCode.java.ftl" as NFA
+#import "DfaCode.java.ftl" as DFA
 #var TOKEN = settings.baseTokenClassName
 
 package ${settings.parserPackage};
@@ -41,6 +42,7 @@ import static ${settings.parserPackage}.${TOKEN}.TokenType.*;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Map.*;
 
 #if settings.rootAPIPackage
     import ${settings.rootAPIPackage}.TokenSource;
@@ -50,8 +52,11 @@ public
 ${isFinal ?: "final" : ""}
 class ${settings.lexerClassName} extends TokenSource
 {
+    private static MatcherHook MATCHER_HOOK; // this cannot be initialize here, since hook must be set afterwards
 
-  private static MatcherHook MATCHER_HOOK; // this cannot be initialize here, since hook must be set afterwards
+#if settings.useDfa 
+    [@DFA.SetMatcherHookToDfa/]
+/#if
 
   public enum LexicalState {
   #list lexerData.lexicalStates as lexicalState
@@ -102,6 +107,10 @@ class ${settings.lexerClassName} extends TokenSource
          regularTokens.add(${token});
      /#list
      }
+  /#if
+
+  #if settings.useDfa 
+    [@DFA.GenerateDfaCode NFA.multipleLexicalStates/]
   /#if
 
     public ${settings.lexerClassName}(CharSequence input) {
@@ -288,11 +297,13 @@ class ${settings.lexerClassName} extends TokenSource
 /#if
         if (!inMore) tokenBeginOffset = position;
         if (MATCHER_HOOK != null) {
+            // This will invoke an alternative matcher, if present, and fall back to the default NFA if the alternative fails to match.
             matchInfo = MATCHER_HOOK.apply(lexicalState, this, position, activeTokenTypes, nfaFunctions, currentStates, nextStates, matchInfo);
             if (matchInfo == null) {
                 matchInfo = getMatchInfo(this, position, activeTokenTypes, nfaFunctions, currentStates, nextStates, matchInfo);
             }
         } else {
+            // No alternative is present, so the default NFA will alsways do the matching.
             matchInfo = getMatchInfo(this, position, activeTokenTypes, nfaFunctions, currentStates, nextStates, matchInfo);
         }
         matchedType = matchInfo.matchedType;

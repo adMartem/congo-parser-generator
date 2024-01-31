@@ -17,6 +17,7 @@
 PARSER_PACKAGE="org.parsers.json";
 NODE_PACKAGE="org.parsers.json.ast";
 DEFAULT_LEXICAL_STATE=JSON;
+X_USE_DFA;
 
 SKIP : <WHITESPACE : (" "| "\t"| "\n"| "\r")+>; 
 

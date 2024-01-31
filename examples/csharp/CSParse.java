@@ -65,8 +65,21 @@ public class CSParse {
     }
 
    static public void parseFile(File file, boolean dumpTree) throws IOException {
-       CSharpParser parser = new CSharpParser(file.toPath());
-       Node root=parser.CompilationUnit();
+       long parseStart, parseTime;
+       Node root = null;
+       for (int i = 0; i < 100; i++) {
+           CSharpParser parser = new CSharpParser(file.toPath());
+           parser.CompilationUnit();
+       }
+       parseStart = System.nanoTime();
+       for (int i = 0; i < 10; i++) {
+           CSharpParser parser = new CSharpParser(file.toPath());
+           root=parser.CompilationUnit();
+       }
+       parseTime = System.nanoTime() - parseStart;
+       String parseTimeString = "" + parseTime/(1000000.0 * 10);
+       parseTimeString = parseTimeString.substring(0, parseTimeString.indexOf('.')+2);
+       System.out.println("Parsed " + file + " in " + parseTimeString + " milliseconds.");
 //       Node root = CongoCCParser.parseCSharpFile(file.toPath());
        if (dumpTree) {
            root.dump("");
