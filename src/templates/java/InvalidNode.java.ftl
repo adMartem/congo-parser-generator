@@ -12,8 +12,14 @@ public class InvalidNode extends ${settings.baseNodeClassName} implements ${sett
     private ParseException cause;
     private String errorMessage;
 
+    public InvalidNode() {}
+
     public InvalidNode(ParseException pe) {
         this.cause = pe;
+    }
+
+    public void setCause(ParseException pe) {
+        cause = pe;
     }
 
     public ParseException getCause() {
