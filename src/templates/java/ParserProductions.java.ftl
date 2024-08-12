@@ -218,7 +218,7 @@
          this.pendingRecovery = true;
          // recovery for ${expansion.location}
          ${expansion.recoveryBlock!}
-         [#-- Either this code is not needed, or something needs to be done about consuming a token or an infinite loop can result.  See below. 
+         #-- REVISIT: Something needs to be done about always consuming a token if we get here, or an infinite loop can result. 
          #if production?? && production.returnType != "void"
             #var rt = production.returnType
             #-- We need a return statement here or the code won't compile! --
@@ -228,8 +228,6 @@
          return null;
             #endif
          #endif
-         --]
-         throw e;  // fixme! [#--Either this code needs to throw the exception or it needs to consume a token, else it can cause an infinite loop. --]
       #endif
       }
       finally {
