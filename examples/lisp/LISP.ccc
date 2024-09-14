@@ -1,0 +1,41 @@
+
+PARSER_PACKAGE="org.parsers.lisp";
+NODE_PACKAGE="org.parsers.lisp.ast";
+DEFAULT_LEXICAL_STATE=LISP;
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=false;
+#endif
+
+SKIP : <WHITESPACE : (" "| "\t"| "\n"| "\r")+ >;
+
+TOKEN:
+    <ATOMIC_SYMBOL:
+    <LETTER> ( <ATOM_PART> )? >
+;
+
+MORE: 
+    <ATOM_PART: ( <LETTER> | <NUMBER> )+ >
+;
+
+MORE: 
+    <LETTER: ["A"-"Z"] >
+;
+
+MORE: 
+    <NUMBER: ["0"-"9"] >
+;
+
+Root : 
+    ( Sexpression )+! <EOF>!
+;
+
+Sexpression : 
+      <ATOMIC_SYMBOL>
+    | "(" Sexpression "." =>|| Sexpression ")"
+    | List
+;
+
+List : 
+    "(" ( Sexpression )+! ")"
+;

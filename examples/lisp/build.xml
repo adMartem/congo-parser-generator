@@ -1,0 +1,69 @@
+<project name="JSONParser" default="compile" basedir=".">
+  <uptodate property="parser1.uptodate" srcfile="LISP.ccc" targetfile="${basedir}/org/parsers/lisp/LISPParser.java" />
+  <target name="clean">
+    <delete>
+      <fileset dir="${basedir}" includes="*.class" />
+    </delete>
+    <delete dir="${basedir}/org" />
+    <delete dir="${basedir}/lispparser" />
+    <delete dir="${basedir}/cs-lispparser" />
+  </target>
+  <target name="parser1-gen" unless="parser1.uptodate">
+    <mkdir dir="../../bin" />
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n ${basedir}/LISP.ccc" />
+    </java>
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n -lang python ${basedir}/LISP.ccc" />
+    </java>
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n -lang csharp ${basedir}/LISP.ccc" />
+    </java>
+  </target>
+  <target name="compile" depends="parser1-gen">
+    <javac classpath="." srcdir="." includeantruntime="off" failonerror="true" debug="on" release="8" fork="true" />
+    <echo>
+      test harness via: java LISPTest &lt;filename&gt; 
+    </echo>
+  </target>
+  <target name="test" depends="compile">
+    <echo>
+      Now test a few files from the "Bible"
+    </echo>
+    <java classname="LISPParse" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="${basedir}/testfiles/Page10.lsp" />
+      <arg value="${basedir}/testfiles/Page15.lsp" />
+      <arg value="${basedir}/testfiles/Page27.lsp" />
+    </java>
+    <echo>
+      Now test the LISP interpreter on a file.
+    </echo>
+    <java classname="LISPInterpreter" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="${basedir}/testfiles/Page15.lsp" />
+    </java>
+    <echo>
+      Now test the LISP parser on a file with errors
+    </echo>
+    <java classname="LISPParse" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="${basedir}/testfiles/invalid.lsp" />
+    </java>
+  </target>
+</project>
