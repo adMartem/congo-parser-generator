@@ -12,6 +12,8 @@ public class InvalidNode extends ${settings.baseNodeClassName} implements ${sett
     private ParseException cause;
     private String errorMessage;
 
+    public InvalidNode() {} // [JB] REVIST: for compatibility with ~ft mode user code
+
     public InvalidNode(ParseException pe) {
         this.cause = pe;
     }
