@@ -817,7 +817,16 @@
             ${followSetVarName}.addAll(outerFollowSet);
          }
        #endif
-       ${LHS?replace("@", "consumeToken(" + regexp.label + ", " + tolerant + ", " + followSetVarName + ")")};
+       ${LHS?replace(
+         "@", 
+         "consumeToken(" + 
+         regexp.label + 
+         ", " + 
+         tolerant + 
+         ", " + 
+         followSetVarName +
+         ")"
+       )};
    #endif
 #endmacro
 
