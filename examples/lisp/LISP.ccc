@@ -2,36 +2,45 @@
 PARSER_PACKAGE="org.parsers.lisp";
 NODE_PACKAGE="org.parsers.lisp.ast";
 DEFAULT_LEXICAL_STATE=LISP;
+#define FT
 #if FT
 FAULT_TOLERANT;
-FAULT_TOLERANT_DEFAULT=false;
+FAULT_TOLERANT_DEFAULT=true;
 #endif
 
 SKIP : <WHITESPACE : (" "| "\t"| "\n"| "\r")+ >;
 
 TOKEN:
-    <ATOMIC_SYMBOL:
-    <LETTER> ( <ATOM_PART> )? >
+    <ATOMIC_SYMBOL :
+    ( <LETTER> ( <ATOM_PART> )? | <VALUE> ) >
 ;
 
 MORE: 
-    <ATOM_PART: ( <LETTER> | <NUMBER> )+ >
+    <ATOM_PART : ( <LETTER> | <NUMBER> )+ >
+;
+
+MORE:
+    <VALUE : ( <NUMBER> )+ >
 ;
 
 MORE: 
-    <LETTER: ["A"-"Z"] >
+    <LETTER : ["A"-"Z", "a"-"z"] >
 ;
 
 MORE: 
-    <NUMBER: ["0"-"9"] >
+    <NUMBER : ["0"-"9"] >
+;
+
+SKIP:
+    <UNKNOWN: ~[] > {System.out.println("Unknown character!");}
 ;
 
 Root : 
-    ( Sexpression )+! <EOF>!
+    ( Sexpression )+! <EOF>
 ;
 
 Sexpression : 
-      <ATOMIC_SYMBOL>
+      <ATOMIC_SYMBOL>!
     | "(" Sexpression "." =>|| Sexpression ")"
     | List
 ;

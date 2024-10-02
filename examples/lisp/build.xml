@@ -37,15 +37,16 @@
   </target>
   <target name="test" depends="compile">
     <echo>
-      Now test a few files from the "Bible"
+      Now test a few files from the "Bible" and other sources
     </echo>
     <java classname="LISPParse" classpath="." failonerror="true" fork="true">
       <assertions>
         <enable />
       </assertions>
-      <arg value="${basedir}/testfiles/Page10.lsp" />
+      <!--<arg value="${basedir}/testfiles/Page10.lsp" />
       <arg value="${basedir}/testfiles/Page15.lsp" />
-      <arg value="${basedir}/testfiles/Page27.lsp" />
+      <arg value="${basedir}/testfiles/Page27.lsp" /> -->
+      <arg value="${basedir}/testfiles/big_one.lsp" />
     </java>
     <echo>
       Now test the LISP interpreter on a file.
