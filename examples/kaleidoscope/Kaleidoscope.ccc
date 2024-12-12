@@ -1,0 +1,158 @@
+
+PARSER_PACKAGE="org.parsers.kaleidoscope";
+NODE_PACKAGE="org.parsers.kaleidoscope.ast";
+DEFAULT_LEXICAL_STATE=KALEIDOSCOPE;
+//NODE_DEFAULT_VOID;
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+SKIP : <WHITESPACE : (" "| "\t"| "\n"| "\r")+ >;
+
+TOKEN:
+        <DEF :      "def" >
+    |   <EXTERN:    "extern" >
+;
+
+TOKEN:
+    <NUMBER : 
+            ( <DIGIT> )+ ( <DECIMAL> ( <DIGIT> )* )? 
+        |   <DECIMAL> ( <DIGIT> )+
+    >
+;
+
+TOKEN: 
+    <#DIGIT : ["0"-"9"] >
+;
+
+TOKEN: 
+    <#DECIMAL : "." >
+;
+
+TOKEN: 
+    <#LETTER : ["A"-"Z", "a"-"z"] >
+;
+
+TOKEN:
+    <IDENTIFIER: 
+        <LETTER> ( <LETTER> | <DIGIT> )*
+    >
+;
+
+TOKEN:
+    <CHARACTER: [ "\u0000"-"\u00ff" ] >
+;
+
+UNPARSED:
+    <?COMMENT: "#" ( <CHARACTER> )* "\n" >
+;
+
+SKIP:
+    <UNKNOWN: ~[] > {System.out.println("Unknown (non-ascii) character!");}
+;
+
+Root# : 
+    ( External | Definition | Expression | ";" )+! <EOF>
+;
+
+External :
+    <EXTERN> PrototypeAST
+;
+
+Definition :
+    <DEF>  PrototypeAST FunctionAST
+;
+
+PrototypeAST :
+    FAIL
+;
+
+FunctionAST :
+    FAIL
+;
+
+Expression :
+    BinaryExprAST | Primary
+;
+
+ExprAST#abstract :
+    FAIL 
+;
+
+NumberExprAST# :
+{
+    Token number;
+} 
+    number = <NUMBER> {THIS_PRODUCTION.setVal(Double.valueOf(number.toString()));}
+;
+
+INJECT NumberExprAST : extends ExprAST
+{
+    @Property double val;
+}
+
+VariableExprAST# :
+    @name =$ <IDENTIFIER> [ "(" ( Expression )* ")" ]
+;
+
+INJECT VariableExprAST : extends ExprAST
+{
+    @Property String name = "";
+} 
+
+IdentifierExpr :
+    <IDENTIFIER> [ "(" ( Expression )* ")" ]
+;
+
+BinaryExprAST# :
+    SCAN Primary Op => ArithExpr ( RelationalOperator =>|| ArithExpr )*
+; 
+
+INJECT BinaryExprAST :  extends ExprAST
+{
+    
+}
+
+Op :
+      RelationalOperator
+    | AdditiveOperator
+    | MultiplicativeOperator
+;    
+
+RelationalOperator :
+    "<"
+;
+
+ArithExpr :
+  Product ( AdditiveOperator =>|| Product )*
+;
+
+INJECT ArithExpr : extends ExprAST;
+
+AdditiveOperator :
+  "+" | "-"
+;
+
+Product :
+  Primary ( MultiplicativeOperator =>|| Primary )*
+;
+
+INJECT Product : extends ExprAST;
+
+MultiplicativeOperator :
+  "*"
+;
+
+Primary :
+    VariableExprAST | NumberExprAST | ParenExpr
+;
+
+INJECT Primary : extends ExprAST;
+
+ParenExpr :
+    "(" Expression ")"
+;
+
+INJECT ParenExpr : extends ExprAST;

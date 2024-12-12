@@ -1,0 +1,70 @@
+<project name="KaleidoscopeParser" default="compile" basedir=".">
+  <uptodate property="parser1.uptodate" srcfile="Kaleidoscope.ccc" targetfile="${basedir}/org/parsers/kaleidoscope/KaleidoscopeParser.java" />
+  <target name="clean">
+    <delete>
+      <fileset dir="${basedir}" includes="*.class" />
+    </delete>
+    <delete dir="${basedir}/org" />
+    <delete dir="${basedir}/kaleidoscopeparser" />
+    <delete dir="${basedir}/cs-kaleidoscopeparser" />
+  </target>
+  <target name="parser1-gen" unless="parser1.uptodate">
+    <mkdir dir="../../bin" />
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n ${basedir}/Kaleidoscope.ccc" />
+    </java>
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n -lang python ${basedir}/Kaleidoscope.ccc" />
+    </java>
+    <java jar="../../congocc.jar" fork="true" failonerror="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line=" -n -lang csharp ${basedir}/Kaleidoscope.ccc" />
+    </java>
+  </target>
+  <target name="compile" depends="parser1-gen">
+    <javac classpath="." srcdir="." includeantruntime="off" failonerror="true" debug="on" release="8" fork="true" />
+    <echo>
+      test harness via: java KaleidoscopeTest &lt;filename&gt; 
+    </echo>
+  </target>
+  <target name="test" depends="compile">
+    <echo>
+      Now test a few files from the LLVM MyFirstLanguageFrontend tutorial 
+    </echo>
+    <java classname="KaleidoscopeParse" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <!--<arg value="${basedir}/testfiles/Page10.lsp" />
+      <arg value="${basedir}/testfiles/Page15.lsp" />
+      <arg value="${basedir}/testfiles/Page27.lsp" /> -->
+      <arg value="${basedir}/testfiles/fibonacci.kal" />
+    </java>
+    <echo>
+      Now test the LLVM code generator on a file.
+    </echo>
+    <java classname="KaleidoscopeCompiler" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="${basedir}/testfiles/fibonacci.kal" />
+    </java>
+    <echo>
+      Now test the Kaleidoscope parser on a file with errors
+    </echo>
+    <java classname="KaleidoscopeParse" classpath="." failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="${basedir}/testfiles/invalid.kal" />
+    </java>
+  </target>
+</project>
