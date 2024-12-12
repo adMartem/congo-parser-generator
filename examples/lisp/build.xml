@@ -1,4 +1,4 @@
-<project name="JSONParser" default="compile" basedir=".">
+<project name="LISPParser" default="compile" basedir=".">
   <uptodate property="parser1.uptodate" srcfile="LISP.ccc" targetfile="${basedir}/org/parsers/lisp/LISPParser.java" />
   <target name="clean">
     <delete>
