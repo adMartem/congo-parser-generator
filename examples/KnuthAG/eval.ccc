@@ -1,0 +1,181 @@
+
+PARSER_PACKAGE="org.parsers.knuth";
+NODE_PACKAGE="org.parsers.knuth.ast";
+DEFAULT_LEXICAL_STATE=KNUTH;
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+SKIP : <WHITESPACE : (" "| "\t"| "\n"| "\r")+ >;
+
+/**
+ * A meta-congo version of the attribute grammar with left-recursion removed and the semantic
+ * actions refactored.  This imagines that semantic actions are attribute expressions and that
+ * productions can occur multiple times and form a Choice that is the lexically 
+ * sequential concatenation of them in order to bridge the gap to the refactored CongoCC version
+ * below. Note that the refactored attributes still have no circular dependencies, so it is still
+ * unambiguous.
+ *
+ * Each B has a "value" v(B) which is a rational number. 
+ * Each B has a "scale" s(B) which is an integer.
+ * Each L has a "value" v(L) which is a rational number. 
+ * Each L has a "length" l(L) which is an integer.
+ * Each L has a "scale" s(L) which is an integer.
+ * Each N has a "value" v(N) which is a rational number.
+
+N : L { 
+    v(N) = v(L);
+};
+
+N : L1=L(s(L1)) = 0} • L2=L { 
+    v(N) = v(L1){} + v(L2), 
+    , 
+     
+};
+
+L : B L' { 
+    v(L) = v(B) + v(L'), 
+    s(B) = s(L), 
+    l(L) = 1 + l(L') 
+};
+
+L' : B {} L1' {  
+    l(L1') = 1 + l(L1')
+    s(B) = s(L'), 
+    v(L') = v(B) + v(L1'), 
+};
+
+L' : ε { 
+    v(L') = 0, 
+    l(L') = 0 
+};
+
+B : "0" { v(B) = 0 };
+B : "1" { v(B) = 2^s(B) };
+
+*/
+
+/**
+ * Here is a refactoring of the grammar as LL(2) EBNF (with actions commented out).  
+ * This is a step closer to where we need to be with CongoCC. Again, no attribute cycles.
+ 
+B =   "0"    (* v(B) = 0 *) 
+    | "1"    (* v(B) = 2^s(B) *)
+;
+
+L = B { B } 
+(* 
+  Initialize: v(L) = v(B), s(B) = s(L), l(L) = 1; // s(B) = s(L)?
+  Repeat: For each additional B, update:
+           
+          v(L) += v(B), 
+          l(L) += 1, 
+          s(L) = s(L) (unchanged for all B). //not true!
+*)
+;
+
+N = L ("." L)? 
+(* 
+  If "." is present: 
+    v(N) = v(L1) + v(L2), 
+    s(L1) = 0, 
+    s(L2) = -l(L2); 
+  Otherwise: 
+    v(N) = v(L), 
+    s(L) = 0.
+*)
+;
+
+ */
+ 
+ /**
+  * An actual CongoCC grammar that is functionally equivalent. Now, how to we implement the attributes?
+  */
+
+B : "0" | "1" ;
+
+L : B (B)* ;
+
+N : L [ "." L ] ; 
+ 
+ /**
+  * An actual CongoCC grammar that is functionally equivalent including an attributed AST.  This uses the CongoCC ability
+  * to pass arguments from the production method to its non-terminals and the ability to inject code into the tree nodes.  
+  * Attributes whose values flow from ancestors of a node (so called "inherited" attributes are passed as positional production 
+  * method arguments and captured in variables declared in the production, and those that flow from the bottom up ("synthetic" attributes)
+  * are set using normal code block actions setting declared variables in the receiving production.
+  */
+
+B(int s) : "0" { THIS_PRODUCTION.setV(0); } | "1" { THIS_PRODUCTION.setV(1); };
+
+INJECT B :
+{
+    public B(int s) {
+        this.s = s;
+    }
+
+    @Property double v;
+    @Property int s = 0;
+    
+    public double getV() {
+        return Math.scalb(v, s);
+    }
+}
+
+L : 
+{
+    L l = THIS_PRODUCTION;
+    B b;
+}
+    
+    b=B(l.getS()) { 
+        l.setV(b.getV());
+    } 
+    (
+        b=B(((l.isF()) ? l.setS() : l.getS())) { 
+            l.setV(l.getV()+b.getV());
+            l.setL(l.getL()+1);
+        }
+    )*
+;
+
+INJECT L :
+{
+    public L(int s) {
+        this.s = s;
+    }
+    
+    @Property double v;
+    @Property int s;
+    @Property int l = 1;
+}
+
+double N : 
+{
+    L l1;
+    L l2;
+    N n = THIS_PRODUCTION;
+    
+    double v;
+    
+    
+}
+    l1=L(s(L)=0) {
+        v(L1)=v(L);
+    }
+    [ 
+        "." l2=L(-1) {
+            n.setV(l1.getV()+l2.getV());
+        }
+    ]
+;
+
+INJECT N :
+{
+    @Property double v;
+}
+
+
+  
