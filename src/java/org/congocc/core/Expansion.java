@@ -160,6 +160,10 @@ abstract public class Expansion extends BaseNode {
     public boolean isInsideAssertion() {
         return firstAncestorOfType(Assertion.class) != null;
     }
+    
+    public boolean isCardinalityConstrained() {
+    	return false;
+    }
 
     public boolean getHasNumericalLookahead() {
         return false;

@@ -1,0 +1,289 @@
+
+PARSER_PACKAGE=org.parsers.test;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+TERMINATING_STRING="";
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+
+
+UNPARSED : 
+    < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > |
+    < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > |
+    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR> > 
+;
+
+#Root :
+    (
+        "(" Letters ")"
+        |
+        "<" OnesToFives ">" 
+        |
+        "[" Modifiers "]"
+    )*
+    ("!end" | <EOF> ) {return CURRENT_NODE;}
+;
+
+Letters :
+    LTest1 | LTest2 | LTest3
+;
+
+LTest1 :
+    ((ASSERT {&0:1&}# "a" =>|| )+ #ZeroOrOneA [ "a" ]) #Variant1
+    | 
+    ((&1&"b")* #OneB [ "b" ] "a") =>|| #Variant2
+;
+
+LTest2 :
+    (&"c")* "a" #Variant3
+;
+
+LTest3 :
+    (
+        "d"
+        |
+        (
+            "e"
+            |
+            &(
+                &"f" | "g"
+            )+
+        )+
+        |
+        (((((&"h" | &"i")))))+
+    )+
+; 
+
+OnesToFives :
+    (
+        &1& One #AOne
+        |
+        & (
+            &1&Two
+            |
+            &(Three | Four)
+        )+ =>|| #TwoThreeFour
+        |
+        SCAN {false} => &0:2&Two #Never
+        |
+        &0:5&Five #SomeFives
+    )+ =>||
+; 
+
+One: "1"("x")*;
+Two: "2"("y")*;
+Three: "3"("z")*;
+Four: "4";
+Five: "5";
+
+OneToFiveSet :
+    (
+        &1& "1"
+        |
+        &(
+            &1& "2"
+            |
+            & "3"
+        )+
+        |
+        ( & "4" )
+        |
+        &1& "5"
+    )+
+; 
+
+Foos :
+    "foo"  ( "," "foo" )+ =>||
+    {System.out.println("Several foos accepted.");}
+;
+
+OneOrTwoFoos :
+    (
+            "foo" ( & "," "foo" )* // this one works because the constraint is "no more than one", so the post-loop check passes
+        |
+            "foo" [( &1& "," "foo" )+] // This also works because the ZeroOrOne is determined by the predicate of the nested loop, which does not find the ",".
+        |
+            "foo" (ASSERT {&1&} "," "foo" )* // This fails for one foo because the cardinality constraint is not met at the end of the loop.
+        |
+            "foo" ( "," "foo" &1& )* =>|| // This also fails because the position of the assertion does not affect the checking of the minimum cardinality.
+    ) =>||
+    {System.out.println("One or two foos accepted.");}
+;
+
+TwoFoos :
+  "foo"  ( &1& "," "foo" )+ =>||
+    {System.out.println("Exactly two foos accepted.");}
+;
+
+FiveFoos : 
+    "foo" (&4& "," "foo")+ =>||
+    {System.out.println("Exactly five foos accepted.");}
+;
+
+NotFiveFoos :
+    ASSERT ~(FiveFoos) =>|| Foos
+    {System.out.println("Other than five foos accepted.");}
+;
+
+TryFiveFoos1 :
+  "foo"  (
+      try {
+        &4& "," "foo" 
+      } catch (ParseException e) {
+        e.printStackTrace();
+        System.out.println("Not 5 foos!");
+      }
+  )+ =>||
+  {System.out.println("Five foos tried and accepted.");}
+;
+
+TryFiveFoos2 :
+  "foo"  (
+      try {
+        &4& "," "foo" 
+      } catch (ParseException e) {
+        e.printStackTrace();
+        System.out.println("Not 5 foos!");
+      }
+  )+
+;
+
+TOKEN #KeyWord :
+  <UNDERSCORE : "_">
+|  < ABSTRACT: "abstract" >
+| < _ASSERT: "assert" >
+| < BOOLEAN: "boolean" > #Primitive
+| < BREAK: "break" >
+| < BYTE: "byte" > #Primitive
+| < CASE: "case" >
+| < CATCH: "catch" >
+| < CHAR: "char" > #Primitive
+| < CLASS: "class" >
+| < CONST: "const" >
+| < CONTINUE: "continue" >
+| < _DEFAULT: "default" >
+| < DO: "do" >
+| < DOUBLE: "double" > #Primitive
+| < ELSE: "else" >
+| < ENUM: "enum" >
+| < EXTENDS: "extends" >
+| < FALSE: "false" > #BooleanLiteral
+| < FINAL: "final" >
+| < FINALLY: "finally" >
+| < FLOAT: "float" > #Primitive
+| < FOR: "for" >
+| < GOTO: "goto" >
+| < IF: "if" >
+| < IMPLEMENTS: "implements" >
+| < _IMPORT: "import" >
+| < INSTANCEOF: "instanceof" >
+| < INT: "int" > #Primitive
+| < INTERFACE: "interface" >
+| < LONG: "long" > #Primitive
+| < NATIVE: "native" >
+| < NEW: "new" >
+| < NULL: "null" > #NullLiteral
+| < PACKAGE: "package">
+| < PRIVATE: "private" >
+| < PROTECTED: "protected" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < RECORD : "record" >
+| < SHORT: "short" > #Primitive
+| < STATIC: "static" >
+| < STRICTFP: "strictfp" >
+| < SUPER: "super" >
+| < SWITCH: "switch" >
+| < SYNCHRONIZED: "synchronized" >
+| < THIS: "this" > #ThisLiteral
+| < THROW: "throw" >
+| < THROWS: "throws" >
+| < TRANSIENT: "transient" >
+| < TRUE: "true" > #BooleanLiteral
+| < TRY: "try" >
+| < VAR: "var" >
+| < VOID: "void" >
+| < VOLATILE: "volatile" >
+| < WHILE: "while" >
+| < YIELD : "yield" >
+| < SEALED : "sealed">
+| < NON_SEALED : "non-sealed">
+| < PERMITS : "permits">
+| < WHEN : "when" >
+// Soft keywords used only in the module-info
+| <MODULE : "module">
+| <EXPORTS : "exports">
+| <OPEN : "open">
+| <OPENS : "opens">
+| <PROVIDES : "provides">
+| <REQUIRES : "requires">
+| <TO : "to">
+| <TRANSITIVE : "transitive">
+| <USES : "uses">
+| <WITH : "with">
+;
+ 
+INJECT PARSER_CLASS : {
+  private EnumSet<TokenType> permissibleModifiers;
+}
+
+// Alternative to Modifiers using repetition cardinality constraints.
+Modifiers :
+ (
+    (
+       SCAN {allows(ABSTRACT,FINAL)}# =>          & (<ABSTRACT>|<FINAL>) =>||// Note the "&" is the short form for "ENSURE ASSERT {&0:1&}".
+       |  
+       SCAN {allows(PRIVATE,PROTECTED,PUBLIC)}# =>& (<PRIVATE>|<PROTECTED>|<PUBLIC>) =>||
+       |
+       SCAN {allows(STATIC)}# =>                  & <STATIC> =>||
+       |
+       SCAN {allows(SYNCHRONIZED)}# =>            & <SYNCHRONIZED> =>||
+       |
+       SCAN {allows(NATIVE)}# =>                  & <NATIVE> =>||
+       |
+       SCAN {allows(TRANSIENT)}# =>               & <TRANSIENT> =>||
+       |
+       SCAN {allows(VOLATILE)}# =>                & <VOLATILE> =>||
+       |
+       SCAN {allows(STRICTFP)}# =>                & <STRICTFP> =>||
+       |
+       SCAN {allows(_DEFAULT)}# =>                & <_DEFAULT> =>||
+    ) =>||
+    |
+    SCAN {
+        allows(SEALED) 
+        &&
+        (
+          checkNextTokenImage("sealed","non-sealed")
+          ||
+          checkNextTokenImage("non")
+              && "-".equals(tokenImage(2))
+              && "sealed".equals(tokenImage(3))
+              && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
+        )
+    }# =>
+    & ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
+ )* =>||
+ {permissibleModifiers = null;}#
+;
+
+INJECT PARSER_CLASS :
+{
+    boolean allows(TokenType... types) {
+        //System.out.println("permissible types=" + permissibleModifiers);
+        //System.out.println("allows=" + Arrays.toString(types));
+        if (isParserTolerant() || permissibleModifiers == null) return true;
+        for (TokenType type : types) {
+            if (permissibleModifiers.contains(type)) {
+                //System.out.println("allowed=" + type);
+                return true;
+            }
+        }
+        //System.out.println("disallowed!");
+        return false;
+    }
+}
