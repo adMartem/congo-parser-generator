@@ -33,34 +33,34 @@ public class ${settings.baseTokenClassName} ${implements} {
        implements Node.NodeType
     #endif
     {
-       #list lexerData.regularExpressions as regexp
+        #list lexerData.regularExpressions as regexp
           ${regexp.label}
           #if regexp.class.simpleName == "RegexpStringLiteral" && !regexp.ignoreCase
             ("${regexp.literalString?j_string}")
           #endif
           ,
-       #endlist
-       #list settings.extraTokenNames as extraToken
+        #endlist
+        #list settings.extraTokenNames as extraToken
           ${extraToken},
-       #endlist
-       DUMMY,
-       INVALID;
+        #endlist
+        DUMMY,
+        INVALID;
 
        TokenType() {}
 
-       TokenType(String literalString) {
-          this.literalString = literalString;
-       }
+        TokenType(String literalString) {
+            this.literalString = literalString;
+        }
 
        private String literalString;
 
-       public String getLiteralString() {
-           return literalString;
-       }
+        public String getLiteralString() {
+          return literalString;
+        }
 
-       public boolean isUndefined() {return this == DUMMY;}
-       public boolean isInvalid() {return this == INVALID;}
-       public boolean isEOF() {return this == EOF;}
+        public boolean isUndefined() {return this == DUMMY;}
+        public boolean isInvalid() {return this == INVALID;}
+        public boolean isEOF() {return this == EOF;}
     }
 
     private ${settings.lexerClassName} tokenSource;
