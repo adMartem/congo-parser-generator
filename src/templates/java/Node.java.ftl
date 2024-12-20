@@ -843,7 +843,7 @@ public interface Node extends List<Node> {
 
     static abstract public class Visitor {
         private static Map<Class<? extends Node.Visitor>, Map<Class<? extends Node>, Method>> mapLookup;
-        private static final Method DUMMY_METHOD;
+        protected static final Method DUMMY_METHOD;
         static {
             try {
                 // Use this just to represent no method found, since ConcurrentHashMap cannot contain nulls
@@ -861,7 +861,7 @@ public interface Node extends List<Node> {
         }
         protected boolean visitUnparsedTokens;
 
-        private Method getVisitMethod(Node node) {
+        protected final Method getVisitMethod(Node node) {
             Class<? extends Node> nodeClass = node.getClass();
             Method method = methodCache.get(nodeClass);
             if (method == null) {
