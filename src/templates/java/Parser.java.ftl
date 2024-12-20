@@ -48,7 +48,44 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
   #endlist
 #endif
 
-public ${isFinal ?: "final"} class ${settings.parserClassName} {
+public ${isFinal ?: "final"} class ${settings.parserClassName} {  
+
+#if grammar.usingCardinality
+private final class ChoiceCardinality {
+    final int[][] choiceCardinalities;
+    int[] choiceChosen;
+    final boolean isParsing;
+    ChoiceCardinality(int[][] choiceCardinalities, boolean isParsing) {
+      this.choiceCardinalities = choiceCardinalities;
+      this.choiceChosen = new int[choiceCardinalities.length];
+      this.isParsing = isParsing;
+    }
+    public boolean choose(int choiceNo, boolean isPredicate) {
+        boolean result = canChoose(choiceNo);
+        if (result && !(isParsing && isPredicate)) { //!!! is this really correct? JB
+            ++choiceChosen[choiceNo];
+        } 
+        return result;
+    }
+    public boolean canChoose(int choiceNo) {
+        if (choiceNo < choiceChosen.length) {
+            if (choiceChosen[choiceNo] == choiceCardinalities[choiceNo][1]) return false;
+        }
+        return true;
+    }
+    public boolean checkCardinality() {
+      for (int i=0; i<choiceChosen.length; i++) {
+          if(choiceChosen[i] < choiceCardinalities[i][0]) return false;
+      }
+      return true;
+    }
+    public void reset() {
+      choiceChosen = new int[choiceCardinalities[0].length];
+    }
+}
+#else
+  // Suppressing ChoiceCardinality class; cardinality not used in this parser. 
+#endif
 
 static final int UNLIMITED = Integer.MAX_VALUE;
 // The last token successfully "consumed"
