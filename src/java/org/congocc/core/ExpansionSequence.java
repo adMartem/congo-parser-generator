@@ -106,6 +106,16 @@ public class ExpansionSequence extends Expansion {
         Lookahead la = getLookahead();
         return la != null && la.getRequiresScanAhead();
     }
+    
+    private boolean minimalMember = false;
+
+	public boolean isMinimalMember() {
+		return minimalMember;
+	}
+
+	public void setMinimalMember(boolean minimalMember) {
+		this.minimalMember = minimalMember;
+	}
 
     private Lookahead lookahead;
 

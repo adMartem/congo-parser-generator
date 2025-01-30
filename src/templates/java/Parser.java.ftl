@@ -50,8 +50,22 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
 
 public
 [#if isFinal]final[/#if]
-class ${settings.parserClassName} {
+class ${settings.parserClassName} {   
 
+#-- TODO: suppress this if no set expansions used.
+static final class Choices extends BitSet {
+    public boolean choose(int bitNo) {
+        if (get(bitNo)) return false;
+        set(bitNo);
+        return true;
+    }
+    public boolean chosen(Integer... expected) {
+        for (int choice : expected) {
+            if(!get(choice)) return false;
+        }
+        return true;
+    }
+}
 
 static final int UNLIMITED = Integer.MAX_VALUE;
 // The last token successfully "consumed"

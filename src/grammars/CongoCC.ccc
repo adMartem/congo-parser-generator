@@ -844,9 +844,8 @@ INJECT TreeBuildingAnnotation :
     }
 }
 
-
 ExpansionChoice :
-  ExpansionSequence ( "|" ExpansionSequence)*
+  ExpansionSequence ("|" ExpansionSequence)*
 ;
 
 INJECT ExpansionChoice :
@@ -857,6 +856,10 @@ INJECT ExpansionChoice :
 {
     public List<ExpansionSequence> getChoices() {
         return childrenOfType(ExpansionSequence.class);
+    }
+    
+    public boolean isChoiceSet() {
+        return false;
     }
 
     @Override
@@ -931,6 +934,35 @@ INJECT ExpansionChoice :
     }
 }
 
+ExpansionSet : 
+  ExpansionSequence =>|+1 ("," ExpansionSequence)+
+;
+
+INJECT ExpansionSet : 
+   import org.congocc.core.*;
+   import org.congocc.core.ExpansionSequence.*;
+    extends ExpansionChoice
+{
+    @Override
+    public boolean isChoiceSet() {
+        return true;
+    }
+    
+    public String getChosenArgs() {
+        List<ExpansionSequence> choices = getChoices();
+        StringBuilder argList = new StringBuilder();
+        for (int i = 0; i < choices.size(); i++) {
+            if (choices.get(i).isMinimalMember()) {
+                argList.append(String.valueOf(i)).append(",");
+            }
+        }
+        if (argList.length() > 0) {
+            return argList.substring(0, argList.length() - 1).toString();
+        }
+        return "";
+    }
+}
+
 Assignment :
     @name :=$ Name "=" =>||
     |
@@ -973,7 +1005,7 @@ ExpansionWithParentheses :
    [
        assignment = Assignment =>||
    ]
-   lparen ="(" =>|| ExpansionChoice {Expansion nested = (Expansion) peekNode();} ")"
+   lparen ="(" =>|| (ExpansionSet | ExpansionChoice) {Expansion nested = (Expansion) peekNode();} ")"
    [
        "*" {CURRENT_NODE = new ZeroOrMore();}
        |
@@ -1042,6 +1074,9 @@ ExpansionSequence #org.congocc.core.ExpansionSequence :
        la.setExpansion(CURRENT_NODE);
        CURRENT_NODE.setLookahead(la);
     }
+  ]
+  [
+    SCAN \ExpansionSet => "&" {CURRENT_NODE.setMinimalMember(true);}
   ]
   (
      ExpansionUnit
