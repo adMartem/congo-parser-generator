@@ -918,7 +918,7 @@
       #if expansion.enteredUnconditionally
         {
          #if expansion.parent.simpleName = "ExpansionSet"
-           ${choicesVarName}.choose(${expansion_index});
+           if(!${choicesVarName}.choose(${expansion_index})) break;
          #endif
          ${BuildCode(expansion)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
@@ -935,7 +935,7 @@
       #endif
       if (${ExpansionCondition(expansion)}) {
          #if expansion.parent.simpleName = "ExpansionSet"
-           ${choicesVarName}.choose(${expansion_index});
+           if(!${choicesVarName}.choose(${expansion_index})) break;
          #endif
          ${BuildCode(expansion)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)

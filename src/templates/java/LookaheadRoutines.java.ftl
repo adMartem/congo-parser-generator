@@ -357,7 +357,7 @@
       ${ScanCodeNonTerminal(expansion)}
    #elif classname = "TryBlock" || classname = "AttemptBlock"
       ${BuildScanCode(expansion.nestedExpansion)}
-   #elif classname = "ExpansionChoice"
+   #elif classname = "ExpansionChoice" || classname = "ExpansionSet"
       ${ScanCodeChoice(expansion)}
    #elif classname = "CodeBlock"
       #if expansion.appliesInLookahead || expansion.insideLookahead || expansion.containingProduction.onlyForLookahead
