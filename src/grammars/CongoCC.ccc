@@ -138,6 +138,27 @@ INJECT PARSER_CLASS :
         BitSet lineMarkers = parser.PP_Root();
         token_source.setParsedLines(lineMarkers);
     }
+    
+    // TODO: suppress this if no set expansions used.
+    static final class ChoiceCardinality {
+        final int[][] choiceConstraints;
+        final int[] choiceChosen;
+        ChoiceCardinality(int[][] choiceConstraints) {
+          this.choiceConstraints = choiceConstraints;
+          this.choiceChosen = new int[choiceConstraints[0].length];
+        }
+        public boolean choose(int choiceNo) {
+            if (choiceChosen[choiceNo] == choiceConstraints[choiceNo][1]) return false;
+            ++choiceChosen[choiceNo];
+            return true;
+        }
+        public boolean checkCardinality() {
+            for (int i=0; i<choiceChosen.length; i++) {
+                if(choiceChosen[i] < choiceConstraints[i][0]) return false;
+            }
+            return true;
+        }
+    }
 
     static public CompilationUnit parseJavaFile(String inputSource, CharSequence content) {
         PARSER_CLASS parser = new PARSER_CLASS(inputSource, content);
@@ -858,7 +879,10 @@ INJECT ExpansionChoice :
         return childrenOfType(ExpansionSequence.class);
     }
     
-    public boolean isChoiceSet() {
+    public boolean isCardinalityConstrained() {
+        for (ExpansionSequence sequence : getChoices()) {
+            if (sequence.isCardinalityConstrained()) return true;
+        }
         return false;
     }
 
@@ -934,35 +958,6 @@ INJECT ExpansionChoice :
     }
 }
 
-ExpansionSet : 
-  ExpansionSequence =>|+1 ("," ExpansionSequence)+
-;
-
-INJECT ExpansionSet : 
-   import org.congocc.core.*;
-   import org.congocc.core.ExpansionSequence.*;
-    extends ExpansionChoice
-{
-    @Override
-    public boolean isChoiceSet() {
-        return true;
-    }
-    
-    public String getChosenArgs() {
-        List<ExpansionSequence> choices = getChoices();
-        StringBuilder argList = new StringBuilder();
-        for (int i = 0; i < choices.size(); i++) {
-            if (choices.get(i).isMinimalMember()) {
-                argList.append(String.valueOf(i)).append(",");
-            }
-        }
-        if (argList.length() > 0) {
-            return argList.substring(0, argList.length() - 1).toString();
-        }
-        return "";
-    }
-}
-
 Assignment :
     @name :=$ Name "=" =>||
     |
@@ -1005,7 +1000,7 @@ ExpansionWithParentheses :
    [
        assignment = Assignment =>||
    ]
-   lparen ="(" =>|| (ExpansionSet | ExpansionChoice) {Expansion nested = (Expansion) peekNode();} ")"
+   lparen ="(" =>|| ExpansionChoice {Expansion nested = (Expansion) peekNode();} ")"
    [
        "*" {CURRENT_NODE = new ZeroOrMore();}
        |
@@ -1043,6 +1038,11 @@ INJECT ExpansionWithParentheses :
 {
     @Property Assignment assignment;
 
+    public boolean isCardinalityConstrained() {
+        ExpansionChoice choice = firstChildOfType(ExpansionChoice.class);
+        return choice != null ? choice.isCardinalityConstrained() : false;
+    }
+    
     @Override
     public String getSpecifiedLexicalState() {
         LexicalStateSwitch lss = firstChildOfType(LexicalStateSwitch.class);
@@ -1061,11 +1061,21 @@ INJECT ExpansionWithParentheses :
     }
 }
 
+IteratingExpansion#interface : FAIL;
+    
+
 ExpansionSequence #org.congocc.core.ExpansionSequence :
 {
    Expansion sub;
    Lookahead la = null;
+   int[] cardinality = null;
 }
+  [
+    SCAN \ExpansionChoice\ExpansionWithParentheses => cardinality=CardinalityConstraint
+    { 
+       THIS_PRODUCTION.setCardinalityConstraint(cardinality);
+    }
+  ]
   [
     SCAN ~\...\Lookahead
     =>
@@ -1074,9 +1084,6 @@ ExpansionSequence #org.congocc.core.ExpansionSequence :
        la.setExpansion(CURRENT_NODE);
        CURRENT_NODE.setLookahead(la);
     }
-  ]
-  [
-    SCAN \ExpansionSet => "&" {CURRENT_NODE.setMinimalMember(true);}
   ]
   (
      ExpansionUnit
@@ -1107,6 +1114,22 @@ INJECT Assertion :
                || getContainingProduction().isOnlyForLookahead();
     }
 }
+
+int[] CardinalityConstraint#void :
+ {
+    int[] cardinality = new int[]{0,1};
+    Token literal;
+ }
+    "&"
+   [
+        literal=<INTEGER_LITERAL> {cardinality[0]=Integer.valueOf(literal.toString());}
+        [
+            "-"
+            literal=<INTEGER_LITERAL> {cardinality[1]=Integer.valueOf(literal.toString());}
+        ]
+   ]
+   {return cardinality;}
+;
 
 Assertion :
    {boolean assertKeywordPresent = false;}
@@ -1522,6 +1545,7 @@ INJECT ZeroOrMore :
      import org.congocc.core.TokenSet;
      import java.util.Set;
      extends ExpansionWithParentheses
+     implements IteratingExpansion
 {
     @Override
     protected int getMinimumSize(Set<String> unused) {return 0;}
@@ -1535,6 +1559,7 @@ INJECT OneOrMore :
      import org.congocc.core.Expansion;
      import org.congocc.core.TokenSet;
      extends ExpansionWithParentheses
+     implements IteratingExpansion
 {
     @Override
     protected int getMaximumSize(java.util.Set<String> unused) {return Integer.MAX_VALUE;}

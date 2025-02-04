@@ -52,7 +52,20 @@ public class ExpansionSequence extends Expansion {
         }
         return null;
     }
-
+    
+    int[] cardinalityConstraint = null;
+    
+    public void setCardinalityConstraint(int[] constraint) {
+    	cardinalityConstraint = constraint;
+    }
+    
+    public int[] getCardinalityConstraint() {
+    	return cardinalityConstraint;
+    }
+    
+    public boolean isCardinalityConstrained() {
+    	return cardinalityConstraint != null;
+    }
 
     @Override
     public TokenSet getFirstSet() {
@@ -106,16 +119,6 @@ public class ExpansionSequence extends Expansion {
         Lookahead la = getLookahead();
         return la != null && la.getRequiresScanAhead();
     }
-    
-    private boolean minimalMember = false;
-
-	public boolean isMinimalMember() {
-		return minimalMember;
-	}
-
-	public void setMinimalMember(boolean minimalMember) {
-		this.minimalMember = minimalMember;
-	}
 
     private Lookahead lookahead;
 

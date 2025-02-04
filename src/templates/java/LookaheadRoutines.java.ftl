@@ -309,7 +309,7 @@
    This macro just delegates to the various sub-macros
    based on the Expansion's class name.
 --]
-#macro BuildScanCode expansion
+#macro BuildScanCode expansion choicesVar
   #var classname = expansion.simpleName
   #var skipCheck = classname == "ExpansionSequence" || 
                   #-- We can skip the check if this is a semantically meaningless
@@ -357,8 +357,8 @@
       ${ScanCodeNonTerminal(expansion)}
    #elif classname = "TryBlock" || classname = "AttemptBlock"
       ${BuildScanCode(expansion.nestedExpansion)}
-   #elif classname = "ExpansionChoice" || classname = "ExpansionSet"
-      ${ScanCodeChoice(expansion)}
+   #elif classname = "ExpansionChoice"
+      ${ScanCodeChoice(expansion choicesVar!null)}
    #elif classname = "CodeBlock"
       #if expansion.appliesInLookahead || expansion.insideLookahead || expansion.containingProduction.onlyForLookahead
          ${expansion}
@@ -449,7 +449,7 @@
     }
 #endmacro
 
-#macro ScanCodeChoice choice
+#macro ScanCodeChoice choice [#-- choices --] choicesVar
    ${CU.newVar(settings.baseTokenClassName, "currentLookaheadToken")}
    int remainingLookahead${CU.newVarIndex} = remainingLookahead;
    boolean hitFailure${CU.newVarIndex} = hitFailure;
@@ -467,8 +467,17 @@
         if (passedPredicate && !legacyGlitchyLookahead) return false;
      #endif
   #endlist
-  [#list choice.choices as unused] } [/#list]
-   } finally {passedPredicate = passedPredicate${CU.newVarIndex};}
+  [#list choice.choices as unused] }
+     #if !choicesVar?is_null
+       //!!!${choicesVar}.choose(unused?index)
+     #endif
+  [/#list]
+   } finally {
+      passedPredicate = passedPredicate${CU.newVarIndex};
+   }
+   #if !choicesVar?is_null
+     //!!!if(!${choicesVar}.checkCardinality()) return false;
+   #endif
 #endmacro
 
 #macro ScanCodeZeroOrOne zoo
@@ -487,14 +496,20 @@
 [#--
   Generates lookahead code for a ZeroOrMore construct]
 --]
-#macro ScanCodeZeroOrMore zom
+#macro ScanCodeZeroOrMore zom choicesVar
    #var prevPassPredicateVarName = "passedPredicate" + CU.newID()
+   #var zomChoicesVar = choicesVar!null
     boolean ${prevPassPredicateVarName} = passedPredicate;
+    #if zom.cardinalityConstrained & !zomChoicesVar?is_null
+      #set zomChoices = "choices"
+      // instantiating the choice cardinality container for the nested ExpansionChoice
+      //!!! ${CU.newVar("ChoiceCardinality", zomChoicesVar)}
+    #endif
     try {
       while (remainingLookahead > 0 && !hitFailure) {
       ${CU.newVar(type = settings.baseTokenClassName init = "currentLookaheadToken")}
         passedPredicate = false;
-        if (!${CheckExpansion(zom.nestedExpansion)}) {
+        if (!${CheckExpansion(zom.nestedExpansion zomChoicesVar)}) {
             if (passedPredicate && !legacyGlitchyLookahead) return false;
             currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
             break;
@@ -510,12 +525,18 @@
    and then the same code as a ZeroOrMore
 --]
 #macro ScanCodeOneOrMore oom
-   ${BuildScanCode(oom.nestedExpansion)}
-   ${ScanCodeZeroOrMore(oom)}
+    #var oomChoicesVar = null
+    #if oom.cardinalityConstrained
+      #set oomChoicesVar = "choices"
+      // instantiating the choice cardinality container for the nested ExpansionChoice 
+      //!!!${CU.newVar("ChoiceCardinality", oomChoicesVar)}
+    #endif
+   ${BuildScanCode(oom.nestedExpansion oomChoicesVar)}
+   ${ScanCodeZeroOrMore(oom oomChoicesVar)}
 #endmacro
 
 
-#macro CheckExpansion expansion
+#macro CheckExpansion expansion choiceVar
    #if expansion.singleTokenLookahead
      #if expansion.firstSet.tokenNames?size < CU.USE_FIRST_SET_THRESHOLD
       scanToken(

@@ -423,8 +423,7 @@
          #return classname
       #elif jtbParseTree && classname = "Terminal"
          #return classname
-      #elif classname = "ExpansionChoice" || 
-            classname = "ExpansionSet"
+      #elif classname = "ExpansionChoice"
          #return "Choice"
       #elif classname = "ExpansionWithParentheses" || classname = "BNFProduction"
          #-- the () will be skipped and the nested expansion processed, so built the tree node for it rather than this --
@@ -438,8 +437,7 @@
                      expansion.parent.simpleName == "ZeroOrOne" ||
                      expansion.parent.simpleName == "OneOrMore" ||
                      expansion.parent.simpleName == "ZeroOrMore" ||
-                     expansion.parent.simpleName == "ExpansionChoice" || 
-                     expansion.parent.simpleName == "ExpansionSet"
+                     expansion.parent.simpleName == "ExpansionChoice"
                   ) && expansion.essentialSequence
                )
          #return "Sequence"
@@ -659,8 +657,7 @@
                   ${BuildCodeZeroOrMore(expansion)}
                #elif classname = "OneOrMore"
                   ${BuildCodeOneOrMore(expansion)}
-               #elif classname = "ExpansionChoice" || 
-                     classname = "ExpansionSet"
+               #elif classname = "ExpansionChoice"
                   ${BuildCodeChoice(expansion)}
                #elif classname = "ExpansionWithParentheses"
                   #-- Recurse; the real expansion is nested within this one (but the LHS, if any, is on the parent)
@@ -827,8 +824,7 @@
 #endmacro
 
 #macro BuildCodeZeroOrOne zoo
-    #if zoo.nestedExpansion.class.simpleName = "ExpansionChoice" || 
-        zoo.nestedExpansion.class.simpleName = "ExpansionSet"
+    #if zoo.nestedExpansion.class.simpleName = "ExpansionChoice"
        ${BuildCode(zoo.nestedExpansion)}
     #else
        if (${ExpansionCondition(zoo.nestedExpansion)}) {
@@ -837,58 +833,32 @@
     #endif
 #endmacro
 
+#var inFirstIndex = 0
+
 #macro BuildCodeOneOrMore oom
-   #var nestedExp = oom.nestedExpansion, 
-        prevInFirstVarName = inFirstVarName,
-        prevChoicesVarName = choicesVarName
-   #if nestedExp.simpleName = "ExpansionChoice" || 
-       nestedExp.simpleName = "ExpansionSet"
-     #set inFirstVarName = "inFirst" + inFirstChoicesIndex,
-          choicesVarName = "choices" + inFirstChoicesIndex, 
-          inFirstChoicesIndex = inFirstChoicesIndex + 1
+   #var nestedExp = oom.nestedExpansion, prevInFirstVarName = inFirstVarName
+   #if nestedExp.simpleName = "ExpansionChoice"
+     #set inFirstVarName = "inFirst" + inFirstIndex, inFirstIndex = inFirstIndex + 1
      boolean ${inFirstVarName} = true;
-     #if nestedExp.simpleName = "ExpansionSet"
-       Choices ${choicesVarName} = new Choices();
-     #endif
    #endif
    while (true) {
      ${RecoveryLoop(oom)}
-     #if nestedExp.simpleName = "ExpansionChoice" || 
-       nestedExp.simpleName = "ExpansionSet"
+     #if nestedExp.simpleName = "ExpansionChoice"
        ${inFirstVarName} = false;
      #else
        if (!(${ExpansionCondition(oom.nestedExpansion)})) break;
      #endif
    }
-   #if nestedExp.simpleName = "ExpansionSet"
-      #-- TODO: The following needs to determine the firstSet of only legal tokens base on what was NOT chosen.
-     if (!${choicesVarName}.chosen(${nestedExp.chosenArgs})) throw new ParseException(lastConsumedToken, ${nestedExp.firstSetVarName}, parsingStack);
-   #endif
-   #set inFirstVarName = prevInFirstVarName,
-        choicesVarName = prevChoicesVarName
+   #set inFirstVarName = prevInFirstVarName
 #endmacro
 
 #macro BuildCodeZeroOrMore zom
-   #var nestedExp = zom.nestedExpansion,
-        prevChoicesVarName = choicesVarName
-    #if nestedExp.simpleName = "ExpansionSet"
-       #set prevChoicesVarName = choicesVarName,
-            choicesVarName = "choices" + inFirstChoicesIndex, 
-            inFirstChoicesIndex = inFirstChoicesIndex + 1
-       Choices ${choicesVarName} = new Choices();
-    #endif
     while (true) {
-       #if nestedExp.simpleName != "ExpansionChoice" && 
-           nestedExp.simpleName != "ExpansionSet"
+       #if zom.nestedExpansion.class.simpleName != "ExpansionChoice"
          if (!(${ExpansionCondition(zom.nestedExpansion)})) break;
        #endif
        ${RecoveryLoop(zom)}
     }
-    #if nestedExp.simpleName = "ExpansionSet"
-      #-- TODO: The following needs to determine the firstSet of only legal tokens base on what was NOT chosen.
-       if (!${choicesVarName}.chosen(${nestedExp.chosenArgs})) throw new ParseException(lastConsumedToken, ${nestedExp.firstSetVarName}, parsingStack);
-       #set choicesVarName = prevChoicesVarName
-    #endif
 #endmacro
 
 #macro RecoveryLoop loopExpansion
@@ -917,9 +887,6 @@
    #list choice.choices as expansion
       #if expansion.enteredUnconditionally
         {
-         #if expansion.parent.simpleName = "ExpansionSet"
-           if(!${choicesVarName}.choose(${expansion_index})) break;
-         #endif
          ${BuildCode(expansion)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
             ${globals.currentNodeVariableName}.setChoice(${expansion_index});
@@ -934,9 +901,6 @@
         #return
       #endif
       if (${ExpansionCondition(expansion)}) {
-         #if expansion.parent.simpleName = "ExpansionSet"
-           if(!${choicesVarName}.choose(${expansion_index})) break;
-         #endif
          ${BuildCode(expansion)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
             ${globals.currentNodeVariableName}.setChoice(${expansion_index});

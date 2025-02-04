@@ -142,6 +142,8 @@ INJECT PackageDeclaration :
 }
 
 ImportDeclaration : <_IMPORT> [ <STATIC> ] Name [ <DOT> <STAR> ] <SEMICOLON> ;
+
+/* Alternative Modifiers using set-based choice
 Modifiers :
  (
   (Annotation)* ENSURE {allows(ABSTRACT,FINAL)}           (<ABSTRACT>|<FINAL>) =>||,
@@ -170,6 +172,47 @@ Modifiers :
  {permissibleModifiers = null;}#
 ;
 
+// Alternative to Modifiers using cardinality-based choice.
+Modifiers :
+ (
+  & ENSURE {allows(ABSTRACT,FINAL)}           (<ABSTRACT>|<FINAL>) =>|| // Note the "&" is the short form for "&0-1".
+  |  
+  & ENSURE {allows(PRIVATE,PROTECTED,PUBLIC)} (<PRIVATE>|<PROTECTED>|<PUBLIC>) =>||
+  |
+  & ENSURE {allows(STATIC)}                   <STATIC> =>||
+  |
+  & ENSURE {allows(SYNCHRONIZED)}             <SYNCHRONIZED> =>||
+  |
+  & ENSURE {allows(NATIVE)}                   <NATIVE> =>||
+  |
+  & ENSURE {allows(TRANSIENT)}                <TRANSIENT> =>||
+  |
+  & ENSURE {allows(VOLATILE)}                 <VOLATILE> =>||
+  |
+  & ENSURE {allows(STRICTFP)}                 <STRICTFP> =>||
+  |
+  & ENSURE {allows(_DEFAULT)}                 <_DEFAULT> =>||
+  |
+  & ENSURE {
+        allows(SEALED) 
+        &&
+        (
+           checkNextTokenImage("sealed","non-sealed")
+           ||
+           checkNextTokenImage("non")
+             && "-".equals(tokenImage(2))
+             && "sealed".equals(tokenImage(3))
+             && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
+        )
+        } 
+        ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
+  |
+  Annotation // Note no "&", so no cardinality limit here.
+ )*
+ {permissibleModifiers = null;}#
+;
+
+
 INJECT PARSER_CLASS :
 {
     boolean allows(TokenType... types) {
@@ -180,7 +223,7 @@ INJECT PARSER_CLASS :
         return false;
     }
 }
-/* 
+*/
 Modifiers :
  (
   SCAN {isParserTolerant() || permissibleModifiers == null
@@ -238,7 +281,6 @@ Modifiers :
  )*
  {permissibleModifiers = null;}#
 ;
-*/
  
 INJECT PARSER_CLASS : {
   private EnumSet<TokenType> permissibleModifiers;
