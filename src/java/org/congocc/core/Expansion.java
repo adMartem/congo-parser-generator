@@ -160,6 +160,15 @@ abstract public class Expansion extends BaseNode {
     public boolean isInsideAssertion() {
         return firstAncestorOfType(Assertion.class) != null;
     }
+    
+    public boolean isCheckingCardinality() {
+    	if (this.getClass() == ExpansionSequence.class) {
+    		for (ExpansionWithParentheses expansionWithParentheses : childrenOfType(ExpansionWithParentheses.class)) {
+    			if (expansionWithParentheses.isCardinalityConstrained()) return true;
+    		}
+    	}
+    	return false;
+    }
 
     public boolean getHasNumericalLookahead() {
         return false;

@@ -878,10 +878,15 @@ INJECT ExpansionChoice :
     public List<ExpansionSequence> getChoices() {
         return childrenOfType(ExpansionSequence.class);
     }
-    
+
     public boolean isCardinalityConstrained() {
-        for (ExpansionSequence sequence : getChoices()) {
-            if (sequence.isCardinalityConstrained()) return true;
+        List<ExpansionSequence> choices = getChoices();
+        if (choices.size() > 1) {
+            for (ExpansionSequence choice : choices) {
+                for (Assertion assertion : choice.childrenOfType(Assertion.class)) {
+                    if (assertion.isCardinalityConstrained()) return true;
+                }
+            }
         }
         return false;
     }
@@ -1039,6 +1044,7 @@ INJECT ExpansionWithParentheses :
     @Property Assignment assignment;
 
     public boolean isCardinalityConstrained() {
+        //return true; //!!!
         ExpansionChoice choice = firstChildOfType(ExpansionChoice.class);
         return choice != null ? choice.isCardinalityConstrained() : false;
     }
@@ -1068,14 +1074,15 @@ ExpansionSequence #org.congocc.core.ExpansionSequence :
 {
    Expansion sub;
    Lookahead la = null;
-   int[] cardinality = null;
 }
+  /***
   [
     SCAN \ExpansionChoice\ExpansionWithParentheses => cardinality=CardinalityConstraint
     { 
        THIS_PRODUCTION.setCardinalityConstraint(cardinality);
     }
   ]
+  ***/
   [
     SCAN ~\...\Lookahead
     =>
@@ -1089,31 +1096,6 @@ ExpansionSequence #org.congocc.core.ExpansionSequence :
      ExpansionUnit
   )+!
 ;
-
-INJECT Assertion :
-   import org.congocc.core.Expansion;
-   extends org.congocc.core.EmptyExpansion
-{
-    @Property Expansion expansion;
-
-    @Override
-    public boolean startsWithGlobalCodeAction(boolean stopAtScanLimit) {
-        return getAppliesInLookahead();
-    }
-
-    public boolean getAppliesInRegularParsing() {
-        return firstChildOfType(__ASSERT) != null
-              || firstChildOfType(HASH) != null;
-    }
-
-    public boolean getAppliesInLookahead() {
-         return get(0).getType() == _ENSURE 
-               || firstChildOfType(Expansion.class) != null && getAppSettings().getAssertAppliesInLookahead()
-               || firstChildOfType(HASH) != null
-               || firstAncestorOfType(Lookahead.class) !=null
-               || getContainingProduction().isOnlyForLookahead();
-    }
-}
 
 int[] CardinalityConstraint#void :
  {
@@ -1131,29 +1113,86 @@ int[] CardinalityConstraint#void :
    {return cardinality;}
 ;
 
-Assertion :
-   {boolean assertKeywordPresent = false;}
+INJECT Assertion :
+   import org.congocc.core.Expansion;
+   extends org.congocc.core.EmptyExpansion
+{
+    @Property Expansion expansion;    
+    int[] cardinalityConstraint = null;
+
+    @Override
+    public boolean startsWithGlobalCodeAction(boolean stopAtScanLimit) {
+        return getAppliesInLookahead();
+    }
+
+    public boolean getAppliesInRegularParsing() {
+        return firstChildOfType(__ASSERT) != null
+              || firstChildOfType(HASH) != null;
+    }
+
+    public boolean getAppliesInLookahead() {
+         return get(0).getType() == _ENSURE 
+               || firstChildOfType(Expansion.class) != null && getAppSettings().getAssertAppliesInLookahead()
+               || firstChildOfType(HASH) != null
+               || firstAncestorOfType(Lookahead.class) !=null
+               || getContainingProduction().isOnlyForLookahead()
+               || isCardinalityConstrained();
+    }
+    
+    public void setCardinalityConstraint(int[] constraint) {
+        cardinalityConstraint = constraint;
+        System.out.println("cardinalityConstraint is " + cardinalityConstraint);
+    }
+    
+    public int[] getCardinalityConstraint() {
+        return cardinalityConstraint;
+    }
+    
+    public boolean isCardinalityConstrained() {
+        System.out.println("cardinality constrained is " + String.valueOf(cardinalityConstraint != null));
+        return cardinalityConstraint != null; //!!!
+    }
+}
+
+Assertion# :
+   {boolean assertKeywordPresent = false; int[] cardinality = null;}
    (
-      "ASSERT" {assertKeywordPresent = true;} ["ENSURE"]
-      |
-      "ENSURE" ["ASSERT" {assertKeywordPresent = true;}]
+       (
+          "ASSERT" {assertKeywordPresent = true;} ["ENSURE"]
+          |
+          "ENSURE" ["ASSERT" {assertKeywordPresent = true;}]
+       )
+       /** with cardinality, for example
+       (
+        &"ASSERT" {assertKeywordPresent = true;}
+        |
+        &"ENSURE"
+       )+
+       **/
+       (
+        "{"
+           @assertionExpression := Expression
+        "}"
+        [ SCAN {assertKeywordPresent} => @semanticLookaheadNested :=? "#" ]
+        |
+        [ @expansionNegated :=? "~" ]
+        "("
+            ExpansionChoice {CURRENT_NODE.setExpansion((Expansion) peekNode());}
+        ")"
+       )
+       [
+          SCAN {assertKeywordPresent} =>
+           ":" @messageExpression := Expression
+           [":"]
+       ]
+       |
+       (
+          /*SCAN \ExpansionSequence\ExpansionChoice\ExpansionWithParentheses => */ cardinality=CardinalityConstraint
+          {
+           CURRENT_NODE.setCardinalityConstraint(cardinality);
+          }
+       ) =>||
    )
-   (
-    "{"
-       @assertionExpression := Expression
-    "}"
-    [ SCAN {assertKeywordPresent} => @semanticLookaheadNested :=? "#" ]
-    |
-    [ @expansionNegated :=? "~" ]
-    "("
-        ExpansionChoice {CURRENT_NODE.setExpansion((Expansion) peekNode());}
-    ")"
-   )
-   [
-      SCAN {assertKeywordPresent} =>
-       ":" @messageExpression := Expression
-       [":"]
-   ]
    [UpToHere(CURRENT_NODE)]
 ;
 

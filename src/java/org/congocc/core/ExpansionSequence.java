@@ -52,20 +52,6 @@ public class ExpansionSequence extends Expansion {
         }
         return null;
     }
-    
-    int[] cardinalityConstraint = null;
-    
-    public void setCardinalityConstraint(int[] constraint) {
-    	cardinalityConstraint = constraint;
-    }
-    
-    public int[] getCardinalityConstraint() {
-    	return cardinalityConstraint;
-    }
-    
-    public boolean isCardinalityConstrained() {
-    	return cardinalityConstraint != null;
-    }
 
     @Override
     public TokenSet getFirstSet() {

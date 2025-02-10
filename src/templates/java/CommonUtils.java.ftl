@@ -68,7 +68,7 @@
    #return val ?: "true" : "false"
 #endfunction
 
-#macro HandleLexicalStateChange expansion inLookahead
+#macro HandleLexicalStateChange expansion inLookahead cardinalitiesVar 
    #var resetToken = inLookahead ?: "currentLookaheadToken" : "lastConsumedToken"
    #var prevLexicalStateVar = newVarName("previousLexicalState")
    #if expansion.specifiedLexicalState??
