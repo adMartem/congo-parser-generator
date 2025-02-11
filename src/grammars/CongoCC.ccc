@@ -879,12 +879,17 @@ INJECT ExpansionChoice :
         return childrenOfType(ExpansionSequence.class);
     }
 
+    /**
+     * Indicates one or more choices are constrained by a cardinality assertion.
+     * @return {@code true} iff this expansion's parent {@link ExpansionWithParentheses} should 
+     * provide a cardinality container and perform a final check of each cardinality assertion
+     */
     public boolean isCardinalityConstrained() {
         List<ExpansionSequence> choices = getChoices();
         if (choices.size() > 1) {
             for (ExpansionSequence choice : choices) {
                 for (Assertion assertion : choice.childrenOfType(Assertion.class)) {
-                    if (assertion.isCardinalityConstrained()) return true;
+                    if (assertion.isCardinalityConstraint()) return true;
                 }
             }
         }
@@ -1043,8 +1048,12 @@ INJECT ExpansionWithParentheses :
 {
     @Property Assignment assignment;
 
+    /**
+     * Indicates that the {@link ExpansionChoice} contained in this iterating expansion includes cardinality assertion(s).
+     * @return {@code true} iff a cardinality container should be initially instantiated and a final check performed
+     * at upon satisfaction of the loop's exit conditions
+     */
     public boolean isCardinalityConstrained() {
-        //return true; //!!!
         ExpansionChoice choice = firstChildOfType(ExpansionChoice.class);
         return choice != null ? choice.isCardinalityConstrained() : false;
     }
@@ -1075,14 +1084,6 @@ ExpansionSequence #org.congocc.core.ExpansionSequence :
    Expansion sub;
    Lookahead la = null;
 }
-  /***
-  [
-    SCAN \ExpansionChoice\ExpansionWithParentheses => cardinality=CardinalityConstraint
-    { 
-       THIS_PRODUCTION.setCardinalityConstraint(cardinality);
-    }
-  ]
-  ***/
   [
     SCAN ~\...\Lookahead
     =>
@@ -1136,20 +1137,20 @@ INJECT Assertion :
                || firstChildOfType(HASH) != null
                || firstAncestorOfType(Lookahead.class) !=null
                || getContainingProduction().isOnlyForLookahead()
-               || isCardinalityConstrained();
+               || isCardinalityConstraint();
     }
     
     public void setCardinalityConstraint(int[] constraint) {
         cardinalityConstraint = constraint;
-        System.out.println("cardinalityConstraint is " + cardinalityConstraint);
+        //!!!System.out.println("cardinalityConstraint is " + cardinalityConstraint);
     }
     
     public int[] getCardinalityConstraint() {
         return cardinalityConstraint;
     }
     
-    public boolean isCardinalityConstrained() {
-        System.out.println("cardinality constrained is " + String.valueOf(cardinalityConstraint != null));
+    public boolean isCardinalityConstraint() {
+        //!!!System.out.println("cardinality constraint is " + String.valueOf(cardinalityConstraint != null));
         return cardinalityConstraint != null; //!!!
     }
 }
