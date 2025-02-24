@@ -55,7 +55,7 @@ class ${settings.parserClassName} {
 #-- TODO: suppress this if no set expansions used.
 static final class ChoiceCardinality {
     final int[][] choiceCardinalities;
-    final int[] choiceChosen;
+    int[] choiceChosen;
     ChoiceCardinality() {
       this.choiceCardinalities = new int[0][0];
       this.choiceChosen = new int[0];
@@ -64,18 +64,23 @@ static final class ChoiceCardinality {
       this.choiceCardinalities = choiceCardinalities;
       this.choiceChosen = new int[choiceCardinalities[0].length];
     }
-    public boolean choose(int choiceNo) {
+    public boolean choose(int choiceNo, boolean isPredicate) {
       if (choiceNo < choiceChosen.length) {
         if (choiceChosen[choiceNo] == choiceCardinalities[choiceNo][1]) return false;
-        ++choiceChosen[choiceNo];
+        if (!isPredicate) {
+          ++choiceChosen[choiceNo];
+        }
       }
       return true;
     }
     public boolean checkCardinality() {
-        for (int i=0; i<choiceChosen.length; i++) {
-            if(choiceChosen[i] < choiceCardinalities[i][0]) return false;
-        }
-        return true;
+      for (int i=0; i<choiceChosen.length; i++) {
+          if(choiceChosen[i] < choiceCardinalities[i][0]) return false;
+      }
+      return true;
+    }
+    public void reset() {
+      choiceChosen = new int[choiceCardinalities[0].length];
     }
 }
 

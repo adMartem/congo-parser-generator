@@ -39,6 +39,24 @@ public class ExpansionSequence extends Expansion {
     public boolean isEssentialSequence() {
     	return getNumberOfSyntaxElements() > 1;
     }
+    
+    @Override
+    public boolean isCardinalityConstrained() { 
+		for (Assertion assertion : childrenOfType(Assertion.class)) {
+			if (assertion.isCardinalityConstraint()) return true;
+		}
+		return false;
+    }
+    
+    public int getCardinalityIndex() {
+    	List<Assertion> cardinalityAssertions = childrenOfType(Assertion.class);
+        for (Assertion assertion : cardinalityAssertions) {
+            if (assertion.isCardinalityConstraint()) {
+            	return assertion.getAssertionIndex();
+            }
+        }
+        return -1;
+    }
 
     Expansion firstNonEmpty() {
         for (Expansion unit : childrenOfType(Expansion.class)) {

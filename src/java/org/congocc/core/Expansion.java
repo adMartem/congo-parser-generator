@@ -162,14 +162,6 @@ abstract public class Expansion extends BaseNode {
     }
     
     public boolean isCardinalityConstrained() {
-    	if (this.getClass() == ExpansionSequence.class) {
-    		for (ExpansionWithParentheses expansionWithParentheses : childrenOfType(ExpansionWithParentheses.class)) {
-    			if (expansionWithParentheses.isCardinalityConstrained()) return true;
-    		}
-    		for (Assertion assertion : childrenOfType(Assertion.class)) {
-    			if (assertion.isCardinalityConstraint()) return true;
-    		}
-    	}
     	return false;
     }
 
