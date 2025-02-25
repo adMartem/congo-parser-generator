@@ -48,9 +48,7 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
   #endlist
 #endif
 
-public
-[#if isFinal]final[/#if]
-class ${settings.parserClassName} {   
+public ${isFinal ?: "final"} class ${settings.parserClassName} {  
 
 #-- TODO: suppress this if no set expansions used.
 static final class ChoiceCardinality {
@@ -246,9 +244,10 @@ public boolean isCancelled() {return cancelled;}
 
   private boolean checkNextTokenImage(String img, String... additionalImages) {
       String nextImage = getToken(1).toString();
-      if (nextImage.equals(img)) return true;
+      #var EQUALS = settings.ignoreCase ?: "equalsIgnoreCase" : "equals"
+      if (nextImage.${EQUALS}(img)) return true;
       for (String image : additionalImages) {
-         if (nextImage.equals(image)) return true;
+         if (nextImage.${EQUALS}(image)) return true;
       }
       return false;
   }
