@@ -916,7 +916,7 @@
    #list choice.choices as expansion
       #if expansion.enteredUnconditionally
         {
-         ${BuildCode(expansion)}
+         ${BuildCode(expansion cardinalitiesVar)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
             ${globals.currentNodeVariableName}.setChoice(${expansion_index});
          #endif
