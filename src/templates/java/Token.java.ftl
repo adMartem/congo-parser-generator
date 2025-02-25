@@ -33,34 +33,50 @@ public class ${settings.baseTokenClassName} ${implements} {
        implements Node.NodeType
     #endif
     {
-       #list lexerData.regularExpressions as regexp
+        #list lexerData.regularExpressions as regexp
           ${regexp.label}
           #if regexp.class.simpleName == "RegexpStringLiteral" && !regexp.ignoreCase
             ("${regexp.literalString?j_string}")
+          [#-- #elseif lexerData.lazy(regexp)
+            (true) --]
           #endif
           ,
-       #endlist
-       #list settings.extraTokenNames as extraToken
+        #endlist
+        #list settings.extraTokenNames as extraToken
           ${extraToken},
-       #endlist
-       DUMMY,
-       INVALID;
+        #endlist
+        DUMMY,
+        INVALID;
 
-       TokenType() {}
+        TokenType() {
+            this.isLazy = false;
+            this.literalString = null;
+        }
 
-       TokenType(String literalString) {
-          this.literalString = literalString;
-       }
+        TokenType(String literalString) {
+            this.literalString = literalString;
+            this.isLazy = false;
+        }
 
-       private String literalString;
+        TokenType(boolean isLazy) {
+            this.literalString = null;
+            this.isLazy = isLazy;
+        }
 
-       public String getLiteralString() {
-           return literalString;
-       }
+        private final String literalString;
+        private final boolean isLazy;
 
-       public boolean isUndefined() {return this == DUMMY;}
-       public boolean isInvalid() {return this == INVALID;}
-       public boolean isEOF() {return this == EOF;}
+        public boolean isLazy() {
+            return isLazy;
+        }
+
+        public String getLiteralString() {
+          return literalString;
+        }
+
+        public boolean isUndefined() {return this == DUMMY;}
+        public boolean isInvalid() {return this == INVALID;}
+        public boolean isEOF() {return this == EOF;}
     }
 
     private ${settings.lexerClassName} tokenSource;
