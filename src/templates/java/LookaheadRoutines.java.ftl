@@ -131,7 +131,7 @@
   // ${expansion.location}
   // BuildScanRoutine macro
   #set newVarIndex = 0 in CU
-  private boolean ${expansion.scanRoutineName}(boolean scanToEnd[#if expansion.cardinalityConstrained], ChoiceCardinality cardinalities[/#if]) {  [#-- !!! --]
+  private boolean ${expansion.scanRoutineName}(boolean scanToEnd[#if expansion.cardinalityConstrained], ChoiceCardinality cardinalities[/#if]) { 
     #if expansion.hasScanLimit
        int prevPassedPredicateThreshold = this.passedPredicateThreshold;
        this.passedPredicateThreshold = -1;
@@ -457,10 +457,14 @@
       }
    #endif
    #if assertion.cardinalityConstraint
-      if (!${cardinalitiesVar}.choose(${assertion.assertionIndex}, false)) {
+      [#-- We aren't doing the following here; it is done at the successful termination
+           of the current choice sequence so as to not screw up the cardinality if the scan fails later.
+      if (!${cardinalitiesVar}.choose(!${assertion.assertionIndex}, false)) {
          hitFailure = true;
          return false;
       }
+      --]
+      // Cardinality constraint check is deferred until entire sequence passes.
    #endif
 #endmacro
 
@@ -490,8 +494,15 @@
      #endif
   #endlist
   #var maxAssertionIndex = choice.assertionIndex
-  [#list choice.choices as chosen] 
+  [#list choice.choices as unused] 
      }
+     #if cardinalitiesVar??
+         // Deferred cardinality constraint assertion applied here.
+         if (!${cardinalitiesVar}.choose(${maxAssertionIndex - unused_index}, false)) {
+            hitFailure = true;
+            return false;
+         }
+     #endif
   [/#list]
    } finally {
       passedPredicate = passedPredicate${CU.newVarIndex};
@@ -535,7 +546,7 @@
         }
       }
       #if zom.cardinalityContainer
-         if(!${zomCardVar}.checkCardinality()) return false; //!!!
+         if(!${zomCardVar}.checkCardinality()) return false;
       #endif
     } finally {
       passedPredicate = ${prevPassPredicateVarName};

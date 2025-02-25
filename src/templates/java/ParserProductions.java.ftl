@@ -51,6 +51,7 @@
 
 #macro ParserProduction production
     #set nodeNumbering = 0,
+         repetitionIndex = 0,
          nodeFieldOrdinal = {},
          injectedFields = {}
     #set newVarIndex = 0 in CU
@@ -698,8 +699,7 @@
          fail("${assertionMessage}"${optionalPart}, getToken(1));
       }  
    #elseif assertion.cardinalityConstraint??
-   #-- FIXME:JB why can't the cardinalityVar make it to this point? --
-      if (${cardinalitiesVar!"cardinalities"}.choose(${assertion.assertionIndex}, false)) {
+      if (!${cardinalitiesVar!"cardinalities"}.choose(${assertion.assertionIndex}, false)) {
          fail("${assertionMessage}"${optionalPart}, getToken(1));
       }
    #endif
@@ -858,7 +858,6 @@
      #if nestedExp.simpleName = "ExpansionChoice"
        ${inFirstVarName} = false;
      #else
-       /* BuildOneOrMore cardinalitiesVar = ${cardinalitiesVar!"none"} !!!*/
        if (!(${ExpansionCondition(oom.nestedExpansion cardinalitiesVar)})) break;
      #endif
    }
@@ -972,7 +971,6 @@
      including the default single-token lookahead
 --]
 #macro ExpansionCondition expansion cardinalitiesVar
-    /* ExpansionCondition cardinalitiesVar = ${cardinalitiesVar!"none"} !!!*/
     #if expansion.requiresPredicateMethod
        ${ScanAheadCondition(expansion cardinalitiesVar!null)}
     #else
@@ -982,7 +980,6 @@
 
 #-- Generates code for when we need a scanahead --
 #macro ScanAheadCondition expansion cardinalitiesVar
-    /* ScanAheadCondition cardinalitiesVar = ${cardinalitiesVar!"none"} !!!*/
    #if expansion.lookahead?? && expansion.lookahead.assignment??
       (${expansion.lookahead.assignment.name} =
    #endif
