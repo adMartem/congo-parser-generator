@@ -494,11 +494,11 @@
      #endif
   #endlist
   #var maxAssertionIndex = choice.assertionIndex
-  [#list choice.choices as unused] 
+  [#list (choice.choices)?reverse as chosen] 
      }
-     #if cardinalitiesVar??
+    #if chosen.cardinalityConstrained
          // Deferred cardinality constraint assertion applied here.
-         if (!${cardinalitiesVar}.choose(${maxAssertionIndex - unused_index}, false)) {
+         if (!${cardinalitiesVar}.choose(${maxAssertionIndex - chosen_index}, false)) {
             hitFailure = true;
             return false;
          }
