@@ -519,7 +519,13 @@ public class Grammar extends BaseNode {
         }
         return undefinedNTs.isEmpty();
     }
-
+    
+    public boolean isUsingCardinality() {
+    	for (Assertion assertion : descendants(Assertion.class)) {
+    		if (assertion.isCardinalityConstraint()) return true;
+    	}
+    	return false;
+    }
 
     /**
      * Run over the tree and do some sanity checks
@@ -677,7 +683,80 @@ public class Grammar extends BaseNode {
                    && t.firstAncestorOfType(Lookahead.class) != null)) { 
             errors.addWarning(tok, "ASSERT keyword inside a lookahead, should really be ENSURE");
         }
+        
+        
+//        new Node.Visitor((Node)this) {
+//        	// check repetition cardinality constraints (depth first)
+//        	public void visit(ExpansionWithParentheses n) {
+//        		if (n.isCardinalityContainer()) {
+//        			if (n.firstDescendantOfType(ExpansionWithParentheses.class) == null) {
+//        				// no nested repetitions with cardinality
+//        				Grammar.this.checkCardinality(n);
+//        				return;
+//        			}
+//        		}
+//        		recurse(n);
+//        	}        	
+//        }.visit(this);
 
+    }
+    
+    class CardinalityVisitor extends Visitor {
+    	private final Grammar g;
+    	CardinalityVisitor(Grammar g) {
+    		this.g = g;
+    		visit(g);
+    	}
+    	// check repetition cardinality constraints (depth first)
+    	public void visit(ExpansionWithParentheses n) {
+    		if (n.isCardinalityContainer()) {
+    			if (n.firstDescendantOfType(ExpansionWithParentheses.class) == null) {
+    				// no nested repetitions with cardinality
+    				g.checkCardinality(n);
+    				return;
+    			}
+    		}
+    		recurse(n);
+    	}
+    }
+        
+    private void checkCardinality(ExpansionWithParentheses expWithParens) {
+		if (expWithParens instanceof ZeroOrOne) {
+			errors.addWarning(expWithParens, "Repetition cardinality assertion(s) within a ZeroOrOne expansion; it will be ignored.");
+			return;
+		} 
+		//N.B., ZeroOrMore, OneOrMore, and "superfluous" parentheses may be examined here.
+		int minCardinality = expWithParens.getMinCardinality();
+		int	maxCardinality = expWithParens.getMaxCardinality();
+		for (ExpansionChoice choice : expWithParens.childrenOfType(ExpansionChoice.class)) {
+			for (ExpansionSequence expSeq : choice.childrenOfType(ExpansionSequence.class)) {
+        		if (expSeq.isCardinalityConstrained()) {
+        			int numberOfConstraints = 0;
+        			List<Assertion> assertions = expSeq.childrenOfType(Assertion.class);
+        			if (assertions != null) {
+        				for (Assertion a : assertions) {
+        					if (a.isCardinalityConstraint()) {
+        						//this should be the only one in the sequence
+        						if (++numberOfConstraints > 1) {
+        							errors.addError(a, "More than one repetition cardinality assertion in a single alternative.");
+        						}
+        						int[] constraint = a.getCardinalityConstraint();
+        						if (constraint[1] == 0) errors.addWarning(a, "Maximum cardinality is 0; this is likely an error.");
+        						if (constraint[0] > constraint[1]) errors.addError(a, "Maximum cardinality is less than the minimum.");
+        						minCardinality = Math.max(constraint[0], minCardinality);
+        						maxCardinality = Math.min(constraint[1], maxCardinality);
+        					}
+        				}
+        			}
+	        		// For this ExpansionSequence we know the range of minimum and the lowest permissible maximum repetitions required.
+        		}
+        	}
+			
+		}
+		// For this repetition, we know the actual range of minimum and lowest permissible maximum number of repetitions here.
+    	expWithParens.setMinCardinality(minCardinality);
+		expWithParens.setMaxCardinality(maxCardinality);
+		System.out.println("[" + minCardinality + ":" + maxCardinality + "] for " + expWithParens);
     }
 
     public void reportDeadCode() {

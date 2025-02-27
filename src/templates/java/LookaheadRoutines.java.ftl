@@ -459,7 +459,7 @@
    #if assertion.cardinalityConstraint
       [#-- We aren't doing the following here; it is done at the successful termination
            of the current choice sequence so as to not screw up the cardinality if the scan fails later.
-      if (!${cardinalitiesVar}.choose(!${assertion.assertionIndex}, false)) {
+      if (!${cardinalitiesVar}.choose(!${assertion.assertionIndex})) {
          hitFailure = true;
          return false;
       }
@@ -496,12 +496,14 @@
   #var maxAssertionIndex = choice.assertionIndex
   [#list (choice.choices)?reverse as chosen] 
      }
-    #if chosen.cardinalityConstrained
+     #if chosen.cardinalityConstrained && cardinalitiesVar??
          // Deferred cardinality constraint assertion applied here.
-         if (!${cardinalitiesVar}.choose(${maxAssertionIndex - chosen_index}, false)) {
+         else if (!${cardinalitiesVar}.choose(${maxAssertionIndex - chosen_index})) {
             hitFailure = true;
             return false;
          }
+     #elseif chosen.cardinalityConstrained
+         // Cardinality constrained but no cardinality variable for ${chosen}!!!
      #endif
   [/#list]
    } finally {
@@ -588,6 +590,6 @@
       scanToken(${expansion.firstSetVarName})
      #endif
    #else
-      ${expansion.scanRoutineName}(false[#if expansion.cardinalityConstrained], ${cardinalitiesVar}[/#if])
+      ${expansion.scanRoutineName}(false[#if expansion.cardinalityConstrained && cardinalitiesVar??], ${cardinalitiesVar}[/#if])
    #endif
 #endmacro

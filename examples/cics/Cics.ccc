@@ -364,10 +364,12 @@ Command :
         Address                 |
         AddressSet              |
         AllocateAPPC            |
-        SyncpointRollback =>||  |
+        SCAN 2 => 
+        SyncpointRollback       |
         Syncpoint               |
         Xctl                    |
         Return                  |
+        SCAN 2 =>
         ReceiveMap              |
         SendMap                 |
         SendText                |
@@ -386,16 +388,18 @@ Command :
         Delete                  |
         Rewrite 
     )
-;
+; 
 
 Abend :
     <ABEND>
     (
         &<ABCODE> "(" DataValue ")"
         |
-        & <CANCEL>  
-        |
-        & <NODUMP>  
+        &(
+            <CANCEL>  
+            |
+            <NODUMP>
+        )+  
         |
         & <NOHANDLE>
         |
@@ -430,7 +434,7 @@ Acquire :
         (
             &1& <PROCESS> "(" DataValue ")"
             |
-            ASSERT {&1&} <PROCESSTYPE> "(" DataValue ")"
+            ASSERT {&1&} <PROCESSTYPE> "(" DataValue ")" // this should only check in parsing, not lookahead
             |
             & <NOHANDLE>
             |
@@ -439,6 +443,7 @@ Acquire :
             & <RESP2> "(" Name ")"
         )+ =>||
         |
+        // !!! & here gets freemarker null variable error !!!
         <ACTIVITYID> "(" DataValue ")"
     ) =>||
 ;
@@ -480,6 +485,7 @@ Address :
 ;
     
 AddressSet :
+    <ADDRESS>
     (
         <SET> "(" DataArea =>|| ")" <USING> "(" PtrRef ")"
         |
@@ -540,7 +546,7 @@ SyncpointRollback :
         &<RESP> "(" Name ")"
         |
         &<RESP2> "(" Name ")"
-    )+ =>||
+    )+ =>|| // Note: this will warn with a sanity check as "probably not intended"!!!
 ;
 
 Xctl :
@@ -554,7 +560,7 @@ Xctl :
                 |
                 & <LENGTH> "(" DataArea ")"
             )+
-        ) & // should warn with sanity check!!!
+        ) 
         |
         & (
             &1& <INPUTMSG> "(" DataArea ")"
@@ -648,7 +654,7 @@ SendMap : //minimum at this point
     <SEND> <MAP> =>|| "(" Name ")"
     (
         &<MAPSET> "(" Name ")"
-        
+        |
         &(
             &<MAPONLY>
             |
@@ -661,7 +667,7 @@ SendMap : //minimum at this point
             )+
         )+
         |
-        &<CURSOR> [ "(" DataValue ")" ]
+        &<CURSOR> [ "(" DataValue ")" ] // !!! & in the ZeroOrOne gives Java error !!!
         |
         &<FORMFEED>
         |

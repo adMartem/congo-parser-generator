@@ -137,32 +137,7 @@ INJECT PARSER_CLASS :
         parser.setSymbols(grammar.getPreprocessorSymbols());
         BitSet lineMarkers = parser.PP_Root();
         token_source.setParsedLines(lineMarkers);
-    }
-    
-    // TODO: suppress this if no set expansions used.
-    static final class ChoiceCardinality {
-        final int[][] choiceConstraints;
-        final int[] choiceChosen;
-        ChoiceCardinality(int[][] choiceConstraints) {
-          this.choiceConstraints = choiceConstraints;
-          this.choiceChosen = new int[choiceConstraints[0].length];
-        }
-        public boolean choose(int choiceNo) {
-            if (choiceChosen[choiceNo] == choiceConstraints[choiceNo][1]) return false;
-            ++choiceChosen[choiceNo];
-            return true;
-        }
-        public boolean checkCardinality() {
-            for (int i=0; i<choiceChosen.length; i++) {
-                if(choiceChosen[i] < choiceConstraints[i][0]) return false;
-            }
-            return true;
-        }
-    }
-    
-    private int interationIndex = -1;
-    @Property ChoiceCardinality[] choiceCardinalities = new ChoiceCardinality[0]; 
-    // end TODO   
+    } 
 
     static public CompilationUnit parseJavaFile(String inputSource, CharSequence content) {
         PARSER_CLASS parser = new PARSER_CLASS(inputSource, content);
@@ -892,7 +867,6 @@ INJECT ExpansionChoice :
         for (Assertion assertion : getCardinalityAssertions()) {
             if (assertion.isCardinalityConstraint()) {
                 assertion.setAssertionIndex(++assertionIndex);
-                System.out.println("assertionIndex for " + assertion + " is now " + assertionIndex);
             }
         }
     }
@@ -1059,6 +1033,9 @@ ExpansionWithParentheses :
        "?" {CURRENT_NODE = new ZeroOrOne();}
        |
        "+" {CURRENT_NODE = new OneOrMore();}
+       // REVISIT: There could be a 4th alternative pertaining to when cardinality constraints
+       // are controlling this expansion.  It could be inferred repetition I.e., neither "*", "+", nor "?". 
+       // So "+" or "*" is inferred from ancestor repetition in a sanity check, perhaps.
    ]
    {
         CURRENT_NODE.setAssignment(assignment);
@@ -1088,6 +1065,8 @@ INJECT ExpansionWithParentheses :
    implements SyntaxElement
 {
     @Property Assignment assignment;
+    @Property int minCardinality = 0;
+    @Property int maxCardinality = 1;
 
     /**
      * Indicates that the {@link ExpansionChoice} contained in this iterating expansion includes cardinality assertion(s).
@@ -1200,8 +1179,7 @@ INJECT Assertion :
     }
     
     public boolean isCardinalityConstraint() {
-        //!!!System.out.println("cardinality constraint is " + String.valueOf(cardinalityConstraint != null));
-        return cardinalityConstraint != null; //!!!
+        return cardinalityConstraint != null; 
     }
 }
 

@@ -50,7 +50,7 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
 
 public ${isFinal ?: "final"} class ${settings.parserClassName} {  
 
-#-- TODO: suppress this if no set expansions used.
+#if grammar.usingCardinality
 static final class ChoiceCardinality {
     final int[][] choiceCardinalities;
     int[] choiceChosen;
@@ -60,14 +60,12 @@ static final class ChoiceCardinality {
     }
     ChoiceCardinality(int[][] choiceCardinalities) {
       this.choiceCardinalities = choiceCardinalities;
-      this.choiceChosen = new int[choiceCardinalities[0].length];
+      this.choiceChosen = new int[choiceCardinalities.length];
     }
-    public boolean choose(int choiceNo, boolean isPredicate) {
+    public boolean choose(int choiceNo) {
       if (choiceNo < choiceChosen.length) {
         if (choiceChosen[choiceNo] == choiceCardinalities[choiceNo][1]) return false;
-        if (!isPredicate) {
-          ++choiceChosen[choiceNo];
-        }
+        ++choiceChosen[choiceNo];
       }
       return true;
     }
@@ -81,6 +79,9 @@ static final class ChoiceCardinality {
       choiceChosen = new int[choiceCardinalities[0].length];
     }
 }
+#else
+  // Suppressing ChoiceCardinality class; cardinality not used in this parser. 
+#endif
 
 static final int UNLIMITED = Integer.MAX_VALUE;
 // The last token successfully "consumed"

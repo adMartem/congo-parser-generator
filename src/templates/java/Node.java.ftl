@@ -756,6 +756,14 @@ public interface Node extends List<Node> {
             }
         }
         protected boolean visitUnparsedTokens;
+        
+        /**
+         * Convenience constructor for anonymous {@link Visitor} subclasses.
+         * @param rootNode is the initial node to visit
+         */
+        public Visitor(Node rootNode) {
+        	visit(rootNode);
+        }
 
         protected final Method getVisitMethod(Node node) {
             Class<? extends Node> nodeClass = node.getClass();

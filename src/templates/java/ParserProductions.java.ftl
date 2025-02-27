@@ -699,7 +699,7 @@
          fail("${assertionMessage}"${optionalPart}, getToken(1));
       }  
    #elseif assertion.cardinalityConstraint??
-      if (!${cardinalitiesVar!"cardinalities"}.choose(${assertion.assertionIndex}, false)) {
+      if (!${cardinalitiesVar!"cardinalities"}.choose(${assertion.assertionIndex})) {
          fail("${assertionMessage}"${optionalPart}, getToken(1));
       }
    #endif
