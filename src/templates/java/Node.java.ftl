@@ -756,12 +756,15 @@ public interface Node extends List<Node> {
             }
         }
         protected boolean visitUnparsedTokens;
+
+        public Visitor() {}
         
         /**
          * Convenience constructor for anonymous {@link Visitor} subclasses.
          * @param rootNode is the initial node to visit
          */
         public Visitor(Node rootNode) {
+            this();
         	visit(rootNode);
         }
 
