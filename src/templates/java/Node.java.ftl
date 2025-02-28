@@ -471,6 +471,15 @@ public interface Node extends List<Node> {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    default <T extends Node> T firstAncestorOfType(Class<T> clazz, Predicate<? super T> pred) {
+        Node ancestor = this;
+        do  {
+            ancestor = ancestor.firstAncestorOfType(clazz);
+        } while (ancestor != null && pred != null && !pred.test((T) ancestor));
+        return (T) ancestor;
+    }
+
     /**
      * Copy the location info from another Node
      * @param from the Node to copy the info from
