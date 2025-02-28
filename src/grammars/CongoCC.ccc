@@ -1139,7 +1139,8 @@ int[] CardinalityConstraint#void :
  }
    "&"
    [
-        literal=<INTEGER_LITERAL> {cardinality[0]=Integer.valueOf(literal.toString());}
+        literal=<INTEGER_LITERAL> 
+            {cardinality[0]=cardinality[1]=Integer.valueOf(literal.toString());}
         [
             ":"
             literal=<INTEGER_LITERAL> {cardinality[1]=Integer.valueOf(literal.toString());}

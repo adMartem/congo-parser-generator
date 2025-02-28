@@ -143,7 +143,7 @@ public class Grammar extends BaseNode {
         addCommandLineOverrides(settings);
         appSettings.setSettings((settings));
         if (appSettings.getSyntheticNodesEnabled() && appSettings.getCodeLang().equals("java")) {
-        	addNodeType(null, appSettings.getBaseNodeClassName());
+            addNodeType(null, appSettings.getBaseNodeClassName());
         }
 
     }
@@ -346,7 +346,7 @@ public class Grammar extends BaseNode {
         Set<String> usedNames = new LinkedHashSet<>();
         List<Expansion> result = new ArrayList<>();
         for (Expansion expansion : descendants(Expansion.class)) { // | is this one necessary now that BNFProduction is an Expansion? [jb]
-        														  //  V
+                                                                  //  V
             if ((expansion instanceof BNFProduction) || (expansion.getParent() instanceof BNFProduction)) continue; // Handle these separately
             if (type == 0 || type == 2) {   // follow sets
                 if (expansion instanceof CodeBlock) {
@@ -504,7 +504,7 @@ public class Grammar extends BaseNode {
      * @param fieldName is the name of the field to be injected
      */
     public void addFieldInjection(String nodeName, String modifiers, String typeName, String fieldName) {
-    	CodeInjection.inject(this, nodeName, "{" + modifiers + " " + typeName + " " + fieldName + ";}");
+        CodeInjection.inject(this, nodeName, "{" + modifiers + " " + typeName + " " + fieldName + ";}");
     }
 
     public boolean isInInclude() {
@@ -521,10 +521,10 @@ public class Grammar extends BaseNode {
     }
     
     public boolean isUsingCardinality() {
-    	for (Assertion assertion : descendants(Assertion.class)) {
-    		if (assertion.isCardinalityConstraint()) return true;
-    	}
-    	return false;
+        for (Assertion assertion : descendants(Assertion.class)) {
+            if (assertion.isCardinalityConstraint()) return true;
+        }
+        return false;
     }
 
     /**
@@ -625,6 +625,8 @@ public class Grammar extends BaseNode {
                 }
             }
         }
+        
+        new CardinalityChecker(this);
 
         if (errors.getErrorCount() >0) return;
 
@@ -683,80 +685,62 @@ public class Grammar extends BaseNode {
                    && t.firstAncestorOfType(Lookahead.class) != null)) { 
             errors.addWarning(tok, "ASSERT keyword inside a lookahead, should really be ENSURE");
         }
-        
-        
-//        new Node.Visitor((Node)this) {
-//        	// check repetition cardinality constraints (depth first)
-//        	public void visit(ExpansionWithParentheses n) {
-//        		if (n.isCardinalityContainer()) {
-//        			if (n.firstDescendantOfType(ExpansionWithParentheses.class) == null) {
-//        				// no nested repetitions with cardinality
-//        				Grammar.this.checkCardinality(n);
-//        				return;
-//        			}
-//        		}
-//        		recurse(n);
-//        	}        	
-//        }.visit(this);
 
     }
     
-    class CardinalityVisitor extends Visitor {
-    	private final Grammar g;
-    	CardinalityVisitor(Grammar g) {
-    		this.g = g;
-    		visit(g);
-    	}
-    	// check repetition cardinality constraints (depth first)
-    	public void visit(ExpansionWithParentheses n) {
-    		if (n.isCardinalityContainer()) {
-    			if (n.firstDescendantOfType(ExpansionWithParentheses.class) == null) {
-    				// no nested repetitions with cardinality
-    				g.checkCardinality(n);
-    				return;
-    			}
-    		}
-    		recurse(n);
-    	}
-    }
+    public class CardinalityChecker extends Visitor {
+        private final Grammar context;
+        CardinalityChecker(Grammar context) {
+            this.context = context;
+            visit(context);
+        }
         
-    private void checkCardinality(ExpansionWithParentheses expWithParens) {
-		if (expWithParens instanceof ZeroOrOne) {
-			errors.addWarning(expWithParens, "Repetition cardinality assertion(s) within a ZeroOrOne expansion; it will be ignored.");
-			return;
-		} 
-		//N.B., ZeroOrMore, OneOrMore, and "superfluous" parentheses may be examined here.
-		int minCardinality = expWithParens.getMinCardinality();
-		int	maxCardinality = expWithParens.getMaxCardinality();
-		for (ExpansionChoice choice : expWithParens.childrenOfType(ExpansionChoice.class)) {
-			for (ExpansionSequence expSeq : choice.childrenOfType(ExpansionSequence.class)) {
-        		if (expSeq.isCardinalityConstrained()) {
-        			int numberOfConstraints = 0;
-        			List<Assertion> assertions = expSeq.childrenOfType(Assertion.class);
-        			if (assertions != null) {
-        				for (Assertion a : assertions) {
-        					if (a.isCardinalityConstraint()) {
-        						//this should be the only one in the sequence
-        						if (++numberOfConstraints > 1) {
-        							errors.addError(a, "More than one repetition cardinality assertion in a single alternative.");
-        						}
-        						int[] constraint = a.getCardinalityConstraint();
-        						if (constraint[1] == 0) errors.addWarning(a, "Maximum cardinality is 0; this is likely an error.");
-        						if (constraint[0] > constraint[1]) errors.addError(a, "Maximum cardinality is less than the minimum.");
-        						minCardinality = Math.max(constraint[0], minCardinality);
-        						maxCardinality = Math.min(constraint[1], maxCardinality);
-        					}
-        				}
-        			}
-	        		// For this ExpansionSequence we know the range of minimum and the lowest permissible maximum repetitions required.
-        		}
-        	}
-			
-		}
-		// For this repetition, we know the actual range of minimum and lowest permissible maximum number of repetitions here.
-    	expWithParens.setMinCardinality(minCardinality);
-		expWithParens.setMaxCardinality(maxCardinality);
-		System.out.println("[" + minCardinality + ":" + maxCardinality + "] for " + expWithParens);
+        Stack<int[]> rangeStack = new Stack<>();
+        
+        // check repetition cardinality constraints (depth first)
+        public void visit(ExpansionWithParentheses n) {
+            if (n.isCardinalityContainer()) {
+                rangeStack.push(new int[] {0,Integer.MAX_VALUE});
+            }
+            recurse(n);
+            if (n.isCardinalityContainer()) {
+                int[] choiceRange = rangeStack.pop();
+                if (choiceRange[0] == 1 && (n instanceof ZeroOrMore)) {
+                    context.errors.addInfo(n, "This ZeroOrMore expansion has a element with a minimum cardinality of > 0; make sure this is intended in this production");
+                }
+                if (!(n instanceof ZeroOrMore) && !(n instanceof OneOrMore)) {
+                    context.errors.addError(n, "Cardinality constraints only allowed in ZeroOrMore and OneOrMore expansions.");
+                }
+            }
+        }
+        
+        public void visit(ExpansionSequence s) {
+            recurse(s);
+            if (s.isCardinalityConstrained()) {
+                int[] choiceRange = rangeStack.peek();
+                int minCardinality = choiceRange[0];
+                int maxCardinality = choiceRange[1];
+                int numberOfConstraints = 0;
+                List<Assertion> assertions = s.childrenOfType(Assertion.class);
+                if (assertions != null) {
+                    for (Assertion a : assertions) {
+                        if (a.isCardinalityConstraint()) {
+                            //this should be the only one in the sequence
+                            if (++numberOfConstraints > 1) {
+                                errors.addError(a, "More than one repetition cardinality assertion in a single alternative.");
+                            }
+                            int[] constraint = a.getCardinalityConstraint();
+                            if (constraint[1] == 0) errors.addWarning(a, "Maximum cardinality is 0; this is likely an error.");
+                            if (constraint[0] > constraint[1]) errors.addError(a, "Maximum cardinality is less than the minimum.");
+                            minCardinality = Math.max(constraint[0], minCardinality);
+                            maxCardinality = Math.min(constraint[1], maxCardinality);
+                        }
+                    }
+                }
+                choiceRange[0] = minCardinality;
+                choiceRange[1] = maxCardinality;
+            }
+        }
     }
 
     public void reportDeadCode() {

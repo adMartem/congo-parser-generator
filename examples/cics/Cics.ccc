@@ -273,6 +273,13 @@ TOKEN [IGNORE_CASE] #CicsKeyword :
 |   <ASSIGN: "assign">
 |   <DELETE: "delete">
 |   <NUMREC: "numrec">
+|   <MAXLENGTH: "maxlength">
+|   <MAXFLENGTH: "maxflength">
+|   <NOTRUNCATE: "notruncate">
+|   <BUFFER: "buffer">
+|   <LINK: "link">
+|   <DATALENGTH: "datalength">
+|   <SYNCONRETURN: "synconreturn">
 ;
 
 <CICS_STATE,COBOL_STATE> TOKEN [IGNORE_CASE]:
@@ -352,7 +359,7 @@ Cvda :
 
 FileName :
     LEXICAL_STATE COBOL_STATE 
-    (<COBOL_NAME>)
+    (<COBOL_NAME>|<LITERAL>)
 ;
 
 Command :
@@ -369,8 +376,10 @@ Command :
         Syncpoint               |
         Xctl                    |
         Return                  |
+        Link                    |
         SCAN 2 =>
         ReceiveMap              |
+        Receive3270             |
         SendMap                 |
         SendText                |
         Send3270                |
@@ -537,16 +546,14 @@ Syncpoint :
 ;
 
 SyncpointRollback :
-    <SYNCPOINT>
+    <SYNCPOINT> <ROLLBACK>
     (
-        &<ROLLBACK>
-        |
         &<NOHANDLE>
         |
         &<RESP> "(" Name ")"
         |
         &<RESP2> "(" Name ")"
-    )+ =>|| // Note: this will warn with a sanity check as "probably not intended"!!!
+    )* =>|| // Note: this will warn with a sanity check as "probably not intended"!!!
 ;
 
 Xctl :
@@ -576,11 +583,46 @@ Xctl :
     )* =>||
 ;
 
+Link :
+    <LINK> <PROGRAM> "(" Name ")"
+    (
+        &(
+            &<CHANNEL> "(" Name ")"
+            |
+            &<COMMAREA> "(" DataArea ")"
+            (    
+                &<LENGTH> "(" DataValue ")"
+                |
+                &<DATALENGTH> "(" DataValue ")"
+            )+
+        )+
+        |
+        &(
+            &<INPUTMSG> "(" DataArea ")"
+            [ <INPUTMSGLEN> "(" DataArea ")" ]
+            |
+            &(
+                &<SYSID> "(" SystemName ")"
+                |
+                &<SYNCONRETURN>
+                |
+                &<TRANSID> "(" Name ")"
+            )+
+        )+
+        |
+        & <NOHANDLE>
+        |
+        & <RESP> "(" Name ")"
+        |
+        & <RESP2> "(" Name ")"
+    )* =>||
+;
+
 Return :
     <RETURN>
     (
         &(
-            &1& <TRANSID> "("Name")"
+            &1& <TRANSID> "(" Name ")"
             |
             &(
                 &<IMMEDIATE>
@@ -613,11 +655,44 @@ Return :
     )* =>||
 ;
 
-ReceiveMap :
+Receive3270 :
     <RECEIVE> 
     (
-        &1& <MAP> "(" Name ")"
+        &(
+            <INTO> "(" DataArea ")"
+            |
+            <SET> "(" PtrRef ")"
+        )
         |
+        &1&(
+            <LENGTH> "(" DataArea ")"
+            |
+            <FLENGTH> "(" DataArea ")"
+        )+
+        |
+        &(
+            <MAXLENGTH> "(" DataArea ")"
+            |
+            <MAXFLENGTH> "(" DataArea ")"
+        )+
+        |
+        &<NOTRUNCATE>
+        |
+        &<BUFFER>
+        |
+        &<ASIS>
+        |
+        &<NOHANDLE>
+        |
+        &<RESP> "(" Name ")"
+        |
+        &<RESP2> "(" Name ")"
+    )+ =>||
+;
+
+ReceiveMap :
+    <RECEIVE> <MAP> "(" Name ")"
+    (
         &(
             <INTO> "(" DataArea ")"
             |
@@ -647,7 +722,7 @@ ReceiveMap :
         &<RESP> "(" Name ")"
         |
         &<RESP2> "(" Name ")"
-    )+ =>||
+    )* =>||
 ;
 
 SendMap : //minimum at this point
