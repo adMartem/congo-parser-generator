@@ -37,8 +37,6 @@ public class ${settings.baseTokenClassName} ${implements} {
           ${regexp.label}
           #if regexp.class.simpleName == "RegexpStringLiteral" && !regexp.ignoreCase
             ("${regexp.literalString?j_string}")
-          [#-- #elseif lexerData.lazy(regexp)
-            (true) --]
           #endif
           ,
         #endlist
@@ -48,27 +46,13 @@ public class ${settings.baseTokenClassName} ${implements} {
         DUMMY,
         INVALID;
 
-        TokenType() {
-            this.isLazy = false;
-            this.literalString = null;
-        }
+       TokenType() {}
 
         TokenType(String literalString) {
             this.literalString = literalString;
-            this.isLazy = false;
         }
 
-        TokenType(boolean isLazy) {
-            this.literalString = null;
-            this.isLazy = isLazy;
-        }
-
-        private final String literalString;
-        private final boolean isLazy;
-
-        public boolean isLazy() {
-            return isLazy;
-        }
+       private String literalString;
 
         public String getLiteralString() {
           return literalString;
