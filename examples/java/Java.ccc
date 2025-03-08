@@ -143,87 +143,67 @@ INJECT PackageDeclaration :
 
 ImportDeclaration : <_IMPORT> [ <STATIC> ] Name [ <DOT> <STAR> ] <SEMICOLON> ;
 
-/* Alternative Modifiers using set-based choice
+/* 
+// Alternative to Modifiers using repetition cardinality constraints.
 Modifiers :
  (
-  (Annotation)* ENSURE {allows(ABSTRACT,FINAL)}           (<ABSTRACT>|<FINAL>) =>||,
-  (Annotation)* ENSURE {allows(PRIVATE,PROTECTED,PUBLIC)} (<PRIVATE>|<PROTECTED>|<PUBLIC>) =>||,
-  (Annotation)* ENSURE {allows(STATIC)}                   <STATIC> =>||,
-  (Annotation)* ENSURE {allows(SYNCHRONIZED)}             <SYNCHRONIZED> =>||,
-  (Annotation)* ENSURE {allows(NATIVE)}                   <NATIVE> =>||,
-  (Annotation)* ENSURE {allows(TRANSIENT)}                <TRANSIENT> =>||,
-  (Annotation)* ENSURE {allows(VOLATILE)}                 <VOLATILE> =>||,
-  (Annotation)* ENSURE {allows(STRICTFP)}                 <STRICTFP> =>||,
-  (Annotation)* ENSURE {allows(_DEFAULT)}                 <_DEFAULT> =>||,
-  (Annotation)* ENSURE {
-    allows(SEALED) 
-    &&
     (
-       checkNextTokenImage("sealed","non-sealed")
-       ||
-       checkNextTokenImage("non")
-         && "-".equals(tokenImage(2))
-         && "sealed".equals(tokenImage(3))
-         && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
-    )
-  } ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
- )*
- (Annotation =>||)*
- {permissibleModifiers = null;}#
-;
-
-// Alternative to Modifiers using cardinality-based choice.
-Modifiers :
- (
-  & ENSURE {allows(ABSTRACT,FINAL)}           (<ABSTRACT>|<FINAL>) =>|| // Note the "&" is the short form for "&0-1".
-  |  
-  & ENSURE {allows(PRIVATE,PROTECTED,PUBLIC)} (<PRIVATE>|<PROTECTED>|<PUBLIC>) =>||
-  |
-  & ENSURE {allows(STATIC)}                   <STATIC> =>||
-  |
-  & ENSURE {allows(SYNCHRONIZED)}             <SYNCHRONIZED> =>||
-  |
-  & ENSURE {allows(NATIVE)}                   <NATIVE> =>||
-  |
-  & ENSURE {allows(TRANSIENT)}                <TRANSIENT> =>||
-  |
-  & ENSURE {allows(VOLATILE)}                 <VOLATILE> =>||
-  |
-  & ENSURE {allows(STRICTFP)}                 <STRICTFP> =>||
-  |
-  & ENSURE {allows(_DEFAULT)}                 <_DEFAULT> =>||
-  |
-  & ENSURE {
+       SCAN {allows(ABSTRACT,FINAL)}# =>          &(<ABSTRACT>|<FINAL>) // Note the "&" is the short form for "ENSURE ASSERT {&0:1&}".
+       |  
+       SCAN {allows(PRIVATE,PROTECTED,PUBLIC)}# =>&(<PRIVATE>|<PROTECTED>|<PUBLIC>)
+       |
+       SCAN {allows(STATIC)}# =>                  &<STATIC> 
+       |
+       SCAN {allows(SYNCHRONIZED)}# =>            &<SYNCHRONIZED>
+       |
+       SCAN {allows(NATIVE)}# =>                  &<NATIVE>
+       |
+       SCAN {allows(TRANSIENT)}# =>               &<TRANSIENT>
+       |
+       SCAN {allows(VOLATILE)}# =>                &<VOLATILE>
+       |
+       SCAN {allows(STRICTFP)}# =>                &<STRICTFP>
+       |
+       SCAN {allows(_DEFAULT)}# =>                &<_DEFAULT>
+    ) =>||
+    |
+    SCAN {
         allows(SEALED) 
         &&
         (
-           checkNextTokenImage("sealed","non-sealed")
-           ||
-           checkNextTokenImage("non")
-             && "-".equals(tokenImage(2))
-             && "sealed".equals(tokenImage(3))
-             && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
+          checkNextTokenImage("sealed","non-sealed")
+          ||
+          checkNextTokenImage("non")
+              && "-".equals(tokenImage(2))
+              && "sealed".equals(tokenImage(3))
+              && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
         )
-        } 
-        ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
-  |
-  Annotation // Note no "&", so no cardinality limit here.
+    }# =>
+    & ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
+    |
+    Annotation // Note no "&", so no cardinality limit here.
  )*
  {permissibleModifiers = null;}#
 ;
-
 
 INJECT PARSER_CLASS :
 {
     boolean allows(TokenType... types) {
+        System.out.println("permissible types=" + permissibleModifiers);
+        System.out.println("allows=" + types);
         if (isParserTolerant() || permissibleModifiers == null) return true;
         for (TokenType type : types) {
-            if (permissibleModifiers.contains(type)) return true;
+            if (permissibleModifiers.contains(type)) {
+                System.out.println("allowed=" + type);
+                return true;
+            }
         }
+        System.out.println("disallowed!");
         return false;
     }
 }
 */
+
 Modifiers :
  (
   SCAN {isParserTolerant() || permissibleModifiers == null

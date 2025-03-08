@@ -700,7 +700,7 @@
       }  
    #elseif assertion.cardinalityConstraint??
       if (!${cardinalitiesVar!"cardinalities"}.choose(${assertion.assertionIndex}, false)) {
-         fail("${assertionMessage}"${optionalPart}, getToken(1));
+         fail("Maximum cardinality constraint at: ${assertion.location?j_string} exceeded.", getToken(1));
       }
    #endif
    #if assertion.expansion??
@@ -867,8 +867,8 @@
      #endif
    }
    #if oom.cardinalityContainer
-      if (!${cardinalitiesVar}.checkCardinality())  {
-         throw new ParseException(lastConsumedToken, ${oom.firstSetVarName}, parsingStack);
+      if (!${cardinalitiesVar}.checkCardinality(false))  {
+         fail("Minimum cardinality constraint(s) for: ${oom.location?j_string} not met.", getToken(1));
       } 
    #endif
    #set inFirstVarName = prevInFirstVarName
@@ -888,11 +888,10 @@
       ${RecoveryLoop(zom cardinalitiesVar)}
    }
    #if zom.cardinalityContainer
-      if (!${cardinalitiesVar}.checkCardinality())  {
-         throw new ParseException(lastConsumedToken, ${zom.firstSetVarName}, parsingStack);
+      if (!${cardinalitiesVar}.checkCardinality(false))  {
+         fail("Minimum cardinality constraint(s) for: ${zom.location?j_string} not met.", getToken(1));
       } 
    #endif
-   [#-- REVISIT:JB does this need to check minimum cardinality here, or is lookahead sufficient? --]
 #endmacro
 
 #macro RecoveryLoop loopExpansion cardinalitiesVar

@@ -721,6 +721,7 @@ public class Grammar extends BaseNode {
                     context.errors.addInfo(n, "This ZeroOrMore expansion contains a minimum cardinality assertion of > 0; this might not behave as intended.");
                 }
                 if (!(n instanceof IteratingExpansion)) {
+                    //FIXME: warn on constraints within ZeroOrOne (below does not work)
                     context.errors.addError(n, "Cardinality constraints may only allowed be contained in ZeroOrMore and OneOrMore expansions.");
                 }
             }
@@ -747,6 +748,7 @@ public class Grammar extends BaseNode {
                     int minCardinality = repetitionRange[0];
                     int maxCardinality = repetitionRange[1];
                     int numberOfConstraints = 0;
+                    //TODO: warn on improperly telescoped constraints in single sequence (i.e., shrinking the min or expanding the max)
                     List<Assertion> assertions = s.getCardinalityAssertions();
                     if (assertions != null) {
                         for (Assertion a : assertions) {
@@ -754,6 +756,7 @@ public class Grammar extends BaseNode {
                                 int[] constraint = a.getCardinalityConstraint();
                                 if (constraint[1] == 0) errors.addWarning(a, "Maximum cardinality is 0; this is likely an error.");
                                 if (constraint[0] > constraint[1]) errors.addError(a, "Maximum cardinality is less than the minimum.");
+                                
                                 minCardinality = Math.max(constraint[0], minCardinality);
                                 maxCardinality = Math.min(constraint[1], maxCardinality);
                             }

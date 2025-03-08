@@ -1,0 +1,115 @@
+
+PARSER_PACKAGE=org.parsers.test;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+TERMINATING_STRING="";
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+
+
+UNPARSED : 
+    < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > |
+    < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > |
+    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR> > 
+;
+
+#Root :
+    ( "<" OnesToFives ">" )+ <EOF> {return CURRENT_NODE;}
+;
+     
+
+OnesToFives :
+    (
+        &1& One
+        |
+        & (
+            &1&Two
+            |
+            &(Three | Four) =>||
+        )+ =>||
+        |
+        Five
+    )+ =>||
+; 
+
+One: "1"("x")*;
+Two: "2"("y")*;
+Three: "3"("z")*;
+Four: "4";
+Five: "5";
+
+OneToFiveSet :
+    (
+        &1& "1"
+        |
+        &(
+            &1& "2"
+            |
+            & "3"
+        )+
+        |
+        ( & "4" )
+        |
+        &1& "5"
+    )+
+; 
+
+Foos :
+    "foo"  ( "," "foo" )+ =>||
+    {System.out.println("Several foos accepted.");}
+;
+
+OneOrTwoFoos :
+    (
+            "foo" ( & "," "foo" )* // this one works because the constraint is "no more than one", so the post-loop check passes
+        |
+            "foo" [( &1& "," "foo" )+] // This also works because the ZeroOrOne is determined by the predicate of the nested loop, which does not find the ",".
+        |
+            "foo" (ASSERT {&1&} "," "foo" )* // This fails for one foo because the cardinality constraint is not met at the end of the loop.
+        |
+            "foo" ( "," "foo" &1& )* =>|| // This also fails because the position of the assertion does not affect the checking of the minimum cardinality.
+    ) =>||
+    {System.out.println("One or two foos accepted.");}
+;
+
+TwoFoos :
+  "foo"  ( &1& "," "foo" )+ =>||
+    {System.out.println("Exactly two foos accepted.");}
+;
+
+FiveFoos : 
+    "foo" (&4& "," "foo")+ =>||
+    {System.out.println("Exactly five foos accepted.");}
+;
+
+NotFiveFoos :
+    ASSERT ~(FiveFoos) =>|| Foos
+    {System.out.println("Other than five foos accepted.");}
+;
+
+TryFiveFoos1 :
+  "foo"  (
+      try {
+        &4& "," "foo" 
+      } catch (ParseException e) {
+        e.printStackTrace();
+        System.out.println("Not 5 foos!");
+      }
+  )+ =>||
+  {System.out.println("Five foos tried and accepted.");}
+;
+
+TryFiveFoos2 :
+  "foo"  (
+      try {
+        &4& "," "foo" 
+      } catch (ParseException e) {
+        e.printStackTrace();
+        System.out.println("Not 5 foos!");
+      }
+  )+
+;

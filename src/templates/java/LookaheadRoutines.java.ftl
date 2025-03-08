@@ -53,7 +53,7 @@
             break;
          }
        }
-       if (!matched) return false;
+       if (!matched) ${returnFalse(cardinalitiesVar!null)};
      }
      --remainingLookahead;
      currentLookaheadToken = peekedToken;
@@ -63,10 +63,10 @@
   private boolean scanToken(EnumSet<TokenType> types) {
      ${settings.baseTokenClassName} peekedToken = nextToken(currentLookaheadToken);
      TokenType type = peekedToken.getType();
-     if (!types.contains(type)) return false;
+     if (!types.contains(type)) ${returnFalse(cardinalitiesVar!null)};
      --remainingLookahead;
      currentLookaheadToken = peekedToken;
-     return true;
+     return true; [#-- commit never needed here; no cardinality effect --]
   }
 
 //====================================
@@ -96,6 +96,42 @@
    #endlist
 #endmacro
 
+#function returnFalse cardinalitiesVar parentCardVar
+   #if cardinalitiesVar??
+      #if parentCardVar??
+         #return "return ${parentCardVar}.commit(false)" 
+      #else
+         #return "return ${cardinalitiesVar}.commit(false)"
+      #endif
+   #else
+      #return "return false"
+   #endif
+#endfunction
+
+#function returnTrue cardinalitiesVar parentCardVar
+   #if cardinalitiesVar??
+      #if parentCardVar??
+         #return "return ${parentCardVar}.commit(true)" 
+      #else
+         #return "return ${cardinalitiesVar}.commit(true)"
+      #endif
+   #else
+      #return "return true"
+   #endif
+#endfunction
+
+#function return retVal cardinalitiesVar parentCardVar
+   #if cardinalitiesVar??
+      #if parentCardVar??
+         #return "return ${parentCardVar}.commit(${retVal})" 
+      #else
+         #return "return ${cardinalitiesVar}.commit(${retVal})"
+      #endif
+   #else
+      #return "return ${retVal}"
+   #endif
+#endfunction
+
 #macro BuildPredicateRoutine expansion
   #var lookaheadAmount = expansion.lookaheadAmount == 2147483647 ?: "UNLIMITED" : expansion.lookaheadAmount
   #set CU.newVarIndex = 0
@@ -109,12 +145,16 @@
       ${BuildPredicateCode(expansion)}
       #if !expansion.hasSeparateSyntacticLookahead && expansion.lookaheadAmount > 0
         #if expansion.cardinalityConstrained
-          ${BuildScanCode(expansion "cardinalities", true)}
+          ${BuildScanCode(expansion "cardinalities", null, true)}
         #else
           ${BuildScanCode(expansion)}
         #endif
       #endif
+      #if takesCardinality
+         ${returnTrue("cardinalities")};
+      #else
          return true;
+      #endif
       }
       finally {
          lookaheadRoutineNesting = 0;
@@ -131,6 +171,10 @@
   // ${expansion.location}
   // BuildScanRoutine macro
   #set newVarIndex = 0 in CU
+  #var cardinalitiesVar = null
+  #if expansion.cardinalityConstrained
+    #set cardinalitiesVar = "cardinalities"
+  #endif
   private boolean ${expansion.scanRoutineName}(boolean scanToEnd[#if expansion.cardinalityConstrained], ChoiceCardinality cardinalities[/#if]) { 
     #if expansion.hasScanLimit
        int prevPassedPredicateThreshold = this.passedPredicateThreshold;
@@ -141,12 +185,12 @@
     /#if
     try {
        lookaheadRoutineNesting++;
-       ${BuildPredicateCode(expansion)}
+       ${BuildPredicateCode(expansion cardinalitiesVar)}
       #if !expansion.hasScanLimit
        reachedScanCode = true;
       #endif
       #if expansion.cardinalityConstrained
-       ${BuildScanCode(expansion "cardinalities")}
+       ${BuildScanCode(expansion cardinalitiesVar)}
       #else
        ${BuildScanCode(expansion)}
       #endif 
@@ -165,7 +209,7 @@
    #endif
     }
     passedPredicate = false;
-    return true;
+    ${returnTrue(cardinalitiesVar)};
   }
  #endif
 #endmacro
@@ -201,26 +245,26 @@
 #endmacro
 
 [#-- Build the code for checking semantic lookahead, lookbehind, and/or syntactic lookahead --]
-#macro BuildPredicateCode expansion
+#macro BuildPredicateCode expansion cardinalitiesVar
     // BuildPredicateCode macro
   #if expansion.hasSemanticLookahead && (expansion.lookahead.semanticLookaheadNested || expansion.containingProduction.onlyForLookahead)
-       if (!(${expansion.semanticLookahead})) return false;
+       if (!(${expansion.semanticLookahead})) ${returnFalse(cardinalitiesVar!null)};
   #endif
   #if expansion.hasLookBehind
        if (
          ${!expansion.lookBehind.negated ?: "!"}
          ${expansion.lookBehind.routineName}()
-       ) return false;
+       ) ${returnFalse(cardinalitiesVar!null)};
   #endif
   #if expansion.hasSeparateSyntacticLookahead
        if (remainingLookahead <= 0) {
         passedPredicate = true;
-        return !hitFailure;
+        ${return("!hitFailure", cardinalitiesVar!null)};
        }
        if (
          ${!expansion.lookahead.negated ?: "!"}
          ${expansion.lookaheadExpansion.scanRoutineName}(true)
-       ) return false;
+       ) ${returnFalse(cardinalitiesVar!null)};
   #endif
   #if expansion.lookaheadAmount == 0
        passedPredicate = true;
@@ -255,6 +299,9 @@
            currentLookaheadToken = prevScanAheadToken;
            remainingLookahead = prevRemainingLookahead;
            hitFailure = prevHitFailure;
+           #if lookahead.nestedExpansion.cardinalityConstrained
+               cardinalities.pop();
+           #endif
         }
      }
 #endmacro
@@ -269,7 +316,7 @@
           [#if elementNegated][#set element = element?substring(1)][/#if]
           #if element = "."
               if (!stackIterator.hasNext()) {
-                 return false;
+                 ${returnFalse(cardinalitiesVar!null)};
               }
               stackIterator.next();
           #elif element = "..."
@@ -290,14 +337,14 @@
                        stackIterator.previous();
                        break;
                     }
-                    if (!stackIterator.hasNext()) return false;
+                    if (!stackIterator.hasNext()) ${returnFalse(cardinalitiesVar!null)};
                  }
              #endif
           #else
-             if (!stackIterator.hasNext()) return false;
+             if (!stackIterator.hasNext()) ${returnFalse(cardinalitiesVar!null)};
              ntc = stackIterator.next();
              #var equalityOp = elementNegated?string("==", "!=")
-               if (ntc.productionName ${equalityOp} "${element}") return false;
+               if (ntc.productionName ${equalityOp} "${element}") ${returnFalse(cardinalitiesVar!null)};
           #endif
        #endlist
        #if lookBehind.hasEndingSlash
@@ -325,15 +372,15 @@
    This macro just delegates to the various sub-macros
    based on the Expansion's class name.
 --]
-#macro BuildScanCode expansion cardVar isPredicate 
+#macro BuildScanCode expansion cardVar parentCardVar isPredicate 
   #var classname = expansion.simpleName
   #var skipCheck = classname == "ExpansionSequence" || 
                   #-- We can skip the check if this is a semantically meaningless
                   #-- parentheses, only there for grouping or readability
                    classname == "ExpansionWithParentheses" && !expansion::startsWithLexicalChange()
   #if !skipCheck
-      if (hitFailure) return false;
-      if (remainingLookahead <= 0 ) return true;
+      if (hitFailure) ${returnFalse(cardVar!null)};
+      if (remainingLookahead <= 0 ) ${returnTrue(cardVar!null)};
     // Lookahead Code for ${classname} specified at ${expansion.location}
   #else
     // skipping check
@@ -342,39 +389,39 @@
    // Building scan code for: ${classname}
    // at: ${expansion.location}
    #if classname = "ExpansionWithParentheses"
-      ${BuildScanCode(expansion.nestedExpansion cardVar!null isPredicate!false)}
+      ${BuildScanCode(expansion.nestedExpansion cardVar!null parentCardVar!null isPredicate!false)}
    #elif expansion.singleTokenLookahead
-      ${ScanSingleToken(expansion)}
+      ${ScanSingleToken(expansion cardVar!null)}
    #elif expansion.terminal
       [#-- This is actually dead code since this is
       caught by the previous case. I have it here because
       sometimes I like to comment out the previous condition
       for testing purposes.--]
-      ${ScanSingleToken(expansion)}
+      ${ScanSingleToken(expansion cardVar!null)}
    #elif classname = "Assertion" 
       #if expansion.appliesInLookahead
-         ${ScanCodeAssertion(expansion cardVar!null isPredicate!false)}
+         ${ScanCodeAssertion(expansion cardVar!null parentCardVar!null isPredicate!false)}
       #else
          // No code generated since this assertion does not apply in lookahead
       #endif
    #elif classname = "Failure"
-         ${ScanCodeError(expansion)}
+         ${ScanCodeError(expansion cardVar!null)}
    #elif classname = "UncacheTokens"
          uncacheTokens();
    #elif classname = "ExpansionSequence"
-      ${ScanCodeSequence(expansion cardVar!null isPredicate!false)}
+      ${ScanCodeSequence(expansion cardVar!null parentCardVar!null isPredicate!false)}
    #elif classname = "ZeroOrOne"
-      ${ScanCodeZeroOrOne(expansion)}
+      ${ScanCodeZeroOrOne(expansion cardVar!null)}
    #elif classname = "ZeroOrMore"
-      ${ScanCodeZeroOrMore(expansion)}
+      ${ScanCodeZeroOrMore(expansion cardVar!null)}
    #elif classname = "OneOrMore"
-      ${ScanCodeOneOrMore(expansion)}
+      ${ScanCodeOneOrMore(expansion cardVar!null)}
    #elif classname = "NonTerminal"
-      ${ScanCodeNonTerminal(expansion)}
+      ${ScanCodeNonTerminal(expansion cardVar!null)}
    #elif classname = "TryBlock" || classname = "AttemptBlock"
-      ${BuildScanCode(expansion.nestedExpansion cardVar!null isPredicate!false)}
+      ${BuildScanCode(expansion.nestedExpansion cardVar!null parentCardVar!null isPredicate!false)}
    #elif classname = "ExpansionChoice"
-      ${ScanCodeChoice(expansion cardVar!null isPredicate!false)}
+      ${ScanCodeChoice(expansion cardVar!null parentCardVar!null isPredicate!false)}
    #elif classname = "CodeBlock"
       #if expansion.appliesInLookahead || expansion.insideLookahead || expansion.containingProduction.onlyForLookahead
          ${expansion}
@@ -393,9 +440,9 @@
    to scan to the end of an expansion strike me as quite useful in general,
    particularly for fault-tolerant.
 --]
-#macro ScanCodeSequence sequence cardVar isPredicate
+#macro ScanCodeSequence sequence cardVar parentCardVar isPredicate
    #list sequence.units as sub
-       ${BuildScanCode(sub cardVar!null isPredicate!false)}
+       ${BuildScanCode(sub cardVar!null parentCardVar!null isPredicate!false)}
        #if sub.scanLimit
          if (!scanToEnd && lookaheadStack.size() <= 1) {
             if (lookaheadRoutineNesting == 0) {
@@ -414,19 +461,19 @@
   It (trivially) just delegates to the code for
   checking the production's nested expansion
 --]
-#macro ScanCodeNonTerminal nt
+#macro ScanCodeNonTerminal nt cardinalitiesVar
       // NonTerminal ${nt.name} at ${nt.location}
       pushOntoLookaheadStack("${nt.containingProduction.name}", "${nt.inputSource?j_string}", ${nt.beginLine}, ${nt.beginColumn});
       currentLookaheadProduction = "${nt.production.name}";
       try {
-          if (!${nt.production.lookaheadMethodName}(${CU.bool(nt.scanToEnd)})) return false;
+          if (!${nt.production.lookaheadMethodName}(${CU.bool(nt.scanToEnd)})) ${returnFalse(cardinalitiesVar!null)};
       }
       finally {
           popLookaheadStack();
       }
 #endmacro
 
-#macro ScanSingleToken expansion
+#macro ScanSingleToken expansion cardinalitiesVar
     #var firstSet = expansion.firstSet.tokenNames
     #if firstSet?size < CU.USE_FIRST_SET_THRESHOLD
       if (!scanToken(
@@ -434,17 +481,17 @@
           ${name}
           [#if name_has_next],[/#if]
         #endlist
-      )) return false;
+      )) ${returnFalse(cardinalitiesVar!null)};
     #else
-      if (!scanToken(${expansion.firstSetVarName})) return false;
+      if (!scanToken(${expansion.firstSetVarName})) ${returnFalse(cardinalitiesVar!null)};
     #endif
 #endmacro
 
-#macro ScanCodeAssertion assertion cardinalitiesVar isPredicate
+#macro ScanCodeAssertion assertion cardinalitiesVar patentCardVar isPredicate
    #if assertion.assertionExpression??
       if (!(${assertion.assertionExpression})) {
          hitFailure = true;
-         return false;
+         ${returnFalse(cardinalitiesVar, parentCardVar!null)};
       }
    #endif
    #if assertion.expansion??
@@ -453,7 +500,7 @@
          ${assertion.expansion.scanRoutineName}()
       ) {
         hitFailure = true;
-        return false;
+        ${returnFalse(cardinalitiesVar, parentCardVar!null)};
       }
    #endif
    #if assertion.cardinalityConstraint
@@ -462,19 +509,19 @@
          #if !(isPredicate!false) [#-- JB: HACK, see other one too !!! --]
             hitFailure = true;
          #endif
-         return false;
+         ${returnFalse(cardinalitiesVar, parentCardVar!null)};
       }
    #endif
 #endmacro
 
-#macro ScanCodeError expansion
+#macro ScanCodeError expansion cardinalitiesVar
     if (true) {
       hitFailure = true;
-      return false;
+      ${returnFalse(cardinalitiesVar!null)};
     }
 #endmacro
 
-#macro ScanCodeChoice choice [#-- choices --] cardinalitiesVar isPredicate
+#macro ScanCodeChoice choice [#-- choices --] cardinalitiesVar parentCardVar isPredicate
    ${CU.newVar(settings.baseTokenClassName, "currentLookaheadToken")}
    int remainingLookahead${CU.newVarIndex} = remainingLookahead;
    boolean hitFailure${CU.newVarIndex} = hitFailure;
@@ -482,14 +529,14 @@
    try {
   #list choice.choices as subseq
      passedPredicate = false;
-     if (!${CheckExpansion(subseq cardinalitiesVar isPredicate!false)}) {
+     if (!${CheckExpansion(subseq cardinalitiesVar!null parentCardVar!null isPredicate!false)}) {
      currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
      remainingLookahead = remainingLookahead${CU.newVarIndex};
      hitFailure = hitFailure${CU.newVarIndex};
      #if !subseq_has_next
-        return false;
+        ${returnFalse(cardinalitiesVar!null, parentCardVar!null)};
      #else
-        if (passedPredicate && !legacyGlitchyLookahead) return false;
+        if (passedPredicate && !legacyGlitchyLookahead) ${returnFalse(cardinalitiesVar!null, parentCardVar!null)};
      #endif
   #endlist
   [#list choice.choices as unused] 
@@ -500,13 +547,13 @@
    }
 #endmacro
 
-#macro ScanCodeZeroOrOne zoo cardVar isPredicate
+#macro ScanCodeZeroOrOne zoo cardVar parentCardVar isPredicate
    ${CU.newVar(settings.baseTokenClassName"currentLookaheadToken")}
    boolean passedPredicate${CU.newVarIndex} = passedPredicate;
    passedPredicate = false;
    try {
-      if (!${CheckExpansion(zoo.nestedExpansion cardVar!null isPredicate!false)}) {
-         if (passedPredicate && !legacyGlitchyLookahead) return false;
+      if (!${CheckExpansion(zoo.nestedExpansion cardVar!null parentCardVar!null isPredicate!false)}) {
+         if (passedPredicate && !legacyGlitchyLookahead) ${returnFalse(cardVar!null)};
          currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
          hitFailure = false;
       }
@@ -516,7 +563,7 @@
 [#--
   Generates lookahead code for a ZeroOrMore construct]
 --]
-#macro ScanCodeZeroOrMore zom cardVar
+#macro ScanCodeZeroOrMore zom cardVar cardinalitiesVar
    #var prevPassPredicateVarName = "passedPredicate" + CU.newID()
     #var zomCardVar = cardVar!null
     #if zom.cardinalityContainer & zomCardVar?is_null
@@ -530,19 +577,19 @@
       while (remainingLookahead > 0 && !hitFailure) {
       ${CU.newVar(type = settings.baseTokenClassName init = "currentLookaheadToken")}
         passedPredicate = false;
-        if (!${CheckExpansion(zom.nestedExpansion zomCardVar)}) {
-            if (passedPredicate && !legacyGlitchyLookahead) return false;
+        if (!${CheckExpansion(zom.nestedExpansion zomCardVar cardinalitiesVar!null)}) {
+            if (passedPredicate && !legacyGlitchyLookahead) ${returnFalse(zomCardVar, cardinalitiesVar!null)};
             currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
             break;
         }
       }
       #if zom.cardinalityContainer
-         if(!${zomCardVar}.checkCardinality()) return false;
+         if(!${zomCardVar}.checkCardinality(true)) ${returnFalse(zomCardVar, cardinalitiesVar!null)};
       #endif
     } finally {
       passedPredicate = ${prevPassPredicateVarName};
       #if zom.cardinalityContainer
-         ${zomCardVar}.reset();
+         ${zomCardVar}.reset(); //REVISIT: Not needed, I believe [JB].
       #endif
     }
     hitFailure = false;
@@ -553,7 +600,7 @@
    It generates the code for checking a single occurrence
    and then the same code as a ZeroOrMore
 --]
-#macro ScanCodeOneOrMore oom
+#macro ScanCodeOneOrMore oom cardinalitiesVar[#-- Note, incoming cardinalities here imply a direct outer iteration (affects commit returns) --]
     #var oomCardVar = null
     #if oom.cardinalityContainer
       #set oomCardVar = "cardinality" + repetitionIndex
@@ -561,12 +608,11 @@
       // instantiating the OneOrMore choice cardinality container for its ExpansionChoices 
       ChoiceCardinality ${oomCardVar} = new ChoiceCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, false); 
     #endif
-   ${BuildScanCode(oom.nestedExpansion oomCardVar)}
-   ${ScanCodeZeroOrMore(oom oomCardVar)}
+   ${BuildScanCode(oom.nestedExpansion oomCardVar cardinalitiesVar!null)}
+   ${ScanCodeZeroOrMore(oom oomCardVar cardinalitiesVar!null)}
 #endmacro
 
-
-#macro CheckExpansion expansion cardinalitiesVar isPredicate
+#macro CheckExpansion expansion cardinalitiesVar parentCardVar isPredicate
    #if expansion.singleTokenLookahead
      #if expansion.firstSet.tokenNames?size < CU.USE_FIRST_SET_THRESHOLD
       scanToken(

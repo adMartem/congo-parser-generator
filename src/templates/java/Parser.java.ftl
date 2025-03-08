@@ -19,6 +19,10 @@ import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+#if grammar.usingCardinality
+  import java.util.Stack;
+  import java.util.concurrent.atomic.AtomicInteger;
+#endif
 import java.util.concurrent.CancellationException;
 import ${settings.parserPackage}.${settings.lexerClassName}.LexicalState;
 import ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType;
@@ -48,41 +52,113 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
   #endlist
 #endif
 
-public ${isFinal ?: "final"} class ${settings.parserClassName} {  
+public ${isFinal ?: "final"} class ${settings.parserClassName} { 
 
 #if grammar.usingCardinality
-private final class ChoiceCardinality {
-    final int[][] choiceCardinalities;
-    int[] choiceChosen;
-    final boolean isParsing;
-    ChoiceCardinality(int[][] choiceCardinalities, boolean isParsing) {
-      this.choiceCardinalities = choiceCardinalities;
-      this.choiceChosen = new int[choiceCardinalities.length];
-      this.isParsing = isParsing;
-    }
-    public boolean choose(int choiceNo, boolean isPredicate) {
-        boolean result = canChoose(choiceNo);
-        if (result && !(isParsing && isPredicate)) { //!!! is this really correct? JB
-            ++choiceChosen[choiceNo];
-        } 
-        return result;
-    }
-    public boolean canChoose(int choiceNo) {
-        if (choiceNo < choiceChosen.length) {
-            if (choiceChosen[choiceNo] == choiceCardinalities[choiceNo][1]) return false;
+    private final class ChoiceCardinality {
+
+        private static final AtomicInteger id = new AtomicInteger(0);
+
+        //TODO: remove this at some point.  In the meantime, no bytecodes are generated if TRACE=false.
+        private static final boolean TRACE = false;
+        private static final PrintStream TRACE_STREAM = System.out;
+
+        final int[][] choiceCardinalities;
+        Stack<int[]> cardinalitiesStack = new Stack<>();
+        final int[] cardinalities;
+        final boolean isParsing;
+        boolean isUncommitted = false;
+        int myId = -1;
+
+        ChoiceCardinality(int[][] choiceCardinalities, boolean isParsing) {
+            this.choiceCardinalities = choiceCardinalities;
+            cardinalitiesStack.push(new int[choiceCardinalities.length]);
+            cardinalities = new int[choiceCardinalities.length];
+            this.isParsing = isParsing;
+            myId = id.incrementAndGet();
         }
-        return true;
+
+        public final boolean choose(int choiceNo, boolean isPredicate) {
+          if (isPredicate || !isParsing) {
+            // scanning
+            if (cardinalitiesStack.peek()[choiceNo] < choiceCardinalities[choiceNo][1]) {
+              if (!isUncommitted) {
+                  push();
+                  isUncommitted = true;
+              }
+              ++cardinalitiesStack.peek()[choiceNo];
+              return true;
+            }
+          } else {
+            // the real thing
+            if (cardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
+              ++cardinalities[choiceNo];
+              return true;
+            }
+          }
+          return false;
+        }
+        
+        private void push() {
+            if (cardinalitiesStack.size() == 0) {
+                if (TRACE) TRACE_STREAM.println("PUSH: <empty>!");
+                throw new IllegalStateException();
+            } else {
+                cardinalitiesStack.push(cardinalitiesStack.peek().clone());
+                if (TRACE) TRACE_STREAM.println("PUSHED: " + Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
+            }
+        }
+
+        public boolean checkCardinality(boolean isPredicate) {
+          if (isPredicate || !isParsing) {
+            for (int i = 0; i < choiceCardinalities.length; i++) {
+              if (cardinalitiesStack.peek()[i] < choiceCardinalities[i][0]) {
+                if (TRACE) TRACE_STREAM.println("REJECTED: " + Arrays.toString(cardinalitiesStack.peek()) + "ref=" + i + " id=" + myId);
+                return false;
+              }
+            }
+            if (TRACE) TRACE_STREAM.println("ACCEPTED: " + Arrays.toString(cardinalitiesStack.peek()) + " id=" + myId);
+            return true;
+          } else {
+            for (int i = 0; i < choiceCardinalities.length; i++) {
+              if (cardinalities[i] < choiceCardinalities[i][0]) {
+                return false;
+              }
+            }
+            return true;
+          }
+        }
+
+        public boolean commit(boolean isSuccess) {
+            if (isUncommitted) {
+                int[] uncommitted = cardinalitiesStack.pop();
+                if (isSuccess) {
+                    // commit changes
+                    int[] old = cardinalitiesStack.pop();
+                    cardinalitiesStack.push(uncommitted);
+                    if (TRACE) TRACE_STREAM.print("COMMIT: cardinalities were: " + Arrays.toString(old) + " are now: ");
+                    if (cardinalitiesStack.size() == 0) {
+                        if (TRACE) TRACE_STREAM.println("<empty>" + " id=" + myId);
+                    } else {
+                        if (TRACE) TRACE_STREAM.println(Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
+                    }
+                } else {
+                    if (TRACE) TRACE_STREAM.println("ROLLBACK: discard " + Arrays.toString(uncommitted) + ", tx=" + cardinalitiesStack.size() + " id=" + myId); 
+                }
+                isUncommitted = false;
+            }
+            return isSuccess;
+        }
+
+        public void reset() {
+          assert (cardinalitiesStack.size() >= 1) : "Predicate cardinalities stack not at bottom.";
+          int[] uncommitted = (cardinalitiesStack.size() > 1) ? cardinalitiesStack.peek() : new int[0];
+          if (TRACE) TRACE_STREAM.println("id=" + myId + " RESET: was " + Arrays.toString(uncommitted) + " uncommitted, " + Arrays.toString(cardinalities) + "committed");
+          for (int i = 0; i < choiceCardinalities.length; i++) {
+            cardinalities[i] = 0;
+          }
+        }
     }
-    public boolean checkCardinality() {
-      for (int i=0; i<choiceChosen.length; i++) {
-          if(choiceChosen[i] < choiceCardinalities[i][0]) return false;
-      }
-      return true;
-    }
-    public void reset() {
-      choiceChosen = new int[choiceCardinalities[0].length];
-    }
-}
 #else
   // Suppressing ChoiceCardinality class; cardinality not used in this parser. 
 #endif

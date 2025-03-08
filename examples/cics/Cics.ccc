@@ -11,7 +11,7 @@ TAB_SIZE=4;
 ENSURE_FINAL_EOL;
 TERMINATING_STRING="";
 DEFAULT_LEXICAL_STATE=CICS_STATE;
-#define FT
+//#define FT
 #if FT
 FAULT_TOLERANT;
 FAULT_TOLERANT_DEFAULT=true;
@@ -396,66 +396,8 @@ Command :
         WriteQTs                |
         Assign                  |
         Delete                  |
-        Rewrite                 |
-        TwoFoos                 |
-        OneOrTwoFoos            |
-        NotFiveFoos             |
-        TryFiveFoos1            |
-        FiveFoos                |
-        Foos                    |
-        TryFiveFoos2
+        Rewrite
     )
-;  
-
-Foos :
-    "foo"  ( "," "foo" )* =>||
-    {System.out.println("Many foos.");}
-;
-
-OneOrTwoFoos :
-    (
-            "foo" ( & "," "foo" )* // this one works because the constraint is "no more than one", so the post-loop check passes
-        |
-            "foo" [( &1& "," "foo" )+] // This also works because the ZeroOrOne is determined by the predicate of the nested loop, which does not find the ",".
-        |
-            "foo" (ASSERT {&1&} "," "foo" )* // This fails for one foo because the cardinality constraint is not met at the end of the loop.
-        |
-            "foo" ( "," "foo" &1& )* =>|| // This also fails because the position of the assertion does not affect the checking of the minimum cardinality.
-    )
-;
-
-TwoFoos :
-  "foo"  ( &1& "," "foo" )+ =>||
-;
-
-FiveFoos : 
-    "foo" (&4& "," "foo")+
-;
-
-NotFiveFoos :
-    ASSERT ~(FiveFoos) =>|| Foos
-;
-
-TryFiveFoos1 :
-  "foo"  (
-      try {
-        &4& "," "foo" 
-      } catch (ParseException e) {
-        e.printStackTrace();
-        System.out.println("Not 5 foos!");
-      }
-  )+ =>||
-;
-
-TryFiveFoos2 :
-  "foo"  (
-      try {
-        &4& "," "foo" 
-      } catch (ParseException e) {
-        e.printStackTrace();
-        System.out.println("Not 5 foos!");
-      }
-  )+
 ;
 
 Abend :
@@ -1357,27 +1299,27 @@ Send3270 :
 SendText :
     <SEND> <TEXT> =>||
     (
-        &1&<FROM> "(" DataArea ")"
+        &1& (<FROM> "(" DataArea ")") #FromPhrase
         |
-        &<CURSOR> "(" DataValue ")"
+        & (<CURSOR> "(" DataValue ")") #CursorPhrase
         |
-        &<FORMFEED>
+        & @withFF :=? <FORMFEED>
         |
         &(
-            &1&<ERASE>
+            &1& <ERASE>
             | 
-            &( <_DEFAULT> | <ALTERNATE> )
-        )+
+            &( <_DEFAULT> | <ALTERNATE> ) =>||
+        )+ =>|| #ErasePhrase
         |
-        &<LENGTH> "(" DataValue ")"
+        & (<LENGTH> "(" DataValue ")") #LengthPhrase
         |
-        &<PRINT>
+        & @forPrinting :=? <PRINT>
         |
         &<FREEKB>
         |
         &<ALARM>
         |
-        &<NLEOM>
+        & <NLEOM>
         |
         &<FMHPARM> "(" Name ")"
         |
@@ -1396,9 +1338,9 @@ SendText :
         (
             & @noHandle :=? <NOHANDLE>
             |
-            & <RESP> "(" Name #ResponseName(1) ")"
+            & <RESP> "(" Name #ResponseName ")"
             |
-            & <RESP2> "(" Name #Response2Name(1) ")"
+            & <RESP2> "(" Name #Response2Name ")"
         ) #CommonOptions
     )+ =>||
 ;
