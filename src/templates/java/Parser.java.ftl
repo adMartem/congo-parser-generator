@@ -54,13 +54,14 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
 
 public ${isFinal ?: "final"} class ${settings.parserClassName} { 
 
-    private static final AtomicInteger id = new AtomicInteger(0);
-
-
 #if grammar.usingCardinality
-    //TODO: remove this at some point.  In the meantime, no bytecodes are generated if TRACE=false.
-    private static final boolean TRACE = false;
-    private static final PrintStream TRACE_STREAM = System.out;
+
+    #-- TODO: remove this TRACE at some point.  In the meantime, no bytecodes are generated if TRACE=false. --
+      int cardinalitiesId = 0;
+      static final boolean TRACE = true;
+      static final PrintStream TRACE_STREAM = System.out;
+    #-- end TODO --
+
     private final class ChoiceCardinality {
 
         final int[][] choiceCardinalities;
@@ -75,7 +76,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
             cardinalitiesStack.push(new int[choiceCardinalities.length]);
             cardinalities = new int[choiceCardinalities.length];
             this.isParsing = isParsing;
-            myId = id.incrementAndGet();
+            myId = ++cardinalitiesId;
         }
 
         public final boolean choose(int choiceNo, boolean isPredicate) {
