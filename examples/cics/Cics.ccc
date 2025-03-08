@@ -1308,7 +1308,7 @@ SendText :
         &(
             &1& <ERASE>
             | 
-            &( <_DEFAULT> | <ALTERNATE> ) =>||
+            &( <_DEFAULT> | <ALTERNATE> )
         )+ =>|| #ErasePhrase
         |
         & (<LENGTH> "(" DataValue ")") #LengthPhrase
@@ -1332,8 +1332,8 @@ SendText :
                 &<ACTPARTN> "(" Name ")"
                 |
                 &<OUTPARTN> "(" Name ")"
-            )+
-        )+
+            )+ =>||
+        )+ =>||
         |
         (
             & @noHandle :=? <NOHANDLE>
@@ -1377,7 +1377,7 @@ Formattime :
             &<STRINGZONE> "(" Cvda ")"
             |
             &1&<DATESTRING> "(" DataArea ")"
-        )+
+        )+ =>||
         |
         &<DAYOFMONTH> "(" DataArea ")"
         |
@@ -1403,7 +1403,7 @@ Formattime :
             &1&<TIME> "(" DataArea ")"
             |
             &<TIMESEP> [ "(" DataValue ")" ]
-        )+
+        )+ =>||
         |
         &<YYDDD> "(" DataArea ")"
         |

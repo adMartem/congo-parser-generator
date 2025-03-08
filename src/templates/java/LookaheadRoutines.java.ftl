@@ -53,7 +53,7 @@
             break;
          }
        }
-       if (!matched) ${returnFalse(cardinalitiesVar!null)};
+       if (!matched) return false;
      }
      --remainingLookahead;
      currentLookaheadToken = peekedToken;
@@ -63,10 +63,10 @@
   private boolean scanToken(EnumSet<TokenType> types) {
      ${settings.baseTokenClassName} peekedToken = nextToken(currentLookaheadToken);
      TokenType type = peekedToken.getType();
-     if (!types.contains(type)) ${returnFalse(cardinalitiesVar!null)};
+     if (!types.contains(type)) return false;
      --remainingLookahead;
      currentLookaheadToken = peekedToken;
-     return true; [#-- commit never needed here; no cardinality effect --]
+     return true; 
   }
 
 //====================================
@@ -135,26 +135,25 @@
 #macro BuildPredicateRoutine expansion
   #var lookaheadAmount = expansion.lookaheadAmount == 2147483647 ?: "UNLIMITED" : expansion.lookaheadAmount
   #set CU.newVarIndex = 0
-  #var takesCardinality = expansion.cardinalityConstrained
+  #var cardinalitiesVar = null
+  #if expansion.cardinalityConstrained
+      #set cardinalitiesVar = "cardinalities"
+  #endif
   // BuildPredicateRoutine: ${expansion.simpleName} at ${expansion.location}
-   private boolean ${expansion.predicateMethodName}([#if takesCardinality]ChoiceCardinality cardinalities[/#if]) {
+   private boolean ${expansion.predicateMethodName}([#if cardinalitiesVar??]ChoiceCardinality ${cardinalitiesVar}[/#if]) {
      remainingLookahead = ${lookaheadAmount};
      currentLookaheadToken = lastConsumedToken;
      final boolean scanToEnd = false;
      try {
-      ${BuildPredicateCode(expansion)}
+      ${BuildPredicateCode(expansion cardinalitiesVar)}
       #if !expansion.hasSeparateSyntacticLookahead && expansion.lookaheadAmount > 0
         #if expansion.cardinalityConstrained
-          ${BuildScanCode(expansion "cardinalities", null, true)}
+          ${BuildScanCode(expansion cardinalitiesVar, null, true)}
         #else
           ${BuildScanCode(expansion)}
         #endif
       #endif
-      #if takesCardinality
-         ${returnTrue("cardinalities")};
-      #else
-         return true;
-      #endif
+      ${returnTrue(cardinalitiesVar)};
       }
       finally {
          lookaheadRoutineNesting = 0;
@@ -232,6 +231,7 @@
        }
        try {
           lookaheadRoutineNesting++;
+          #-- REVISIT: does this ever need a cardinalitiesVar arg? [JB] --
           ${BuildScanCode(expansion)}
           return true;
        }
@@ -281,27 +281,28 @@
      // lookahead routine for lookahead at:
      // ${lookahead.location}
   #set newVarIndex = 0 in CU
-     private boolean ${lookahead.nestedExpansion.scanRoutineName}(boolean scanToEnd[#if lookahead.nestedExpansion.cardinalityConstrained], ChoiceCardinality cardinalities[/#if]) {
+  #var cardinalitiesVar = null
+  #if lookahead.nestedExpansion.cardinalityConstrained
+   #set cardinalitiesVar = "cardinalities"
+  #endif
+     private boolean ${lookahead.nestedExpansion.scanRoutineName}(boolean scanToEnd[#if lookahead.nestedExpansion.cardinalityConstrained], ChoiceCardinality ${cardinalitiesVar}[/#if]) {
         int prevRemainingLookahead = remainingLookahead;
         boolean prevHitFailure = hitFailure;
         ${settings.baseTokenClassName} prevScanAheadToken = currentLookaheadToken;
         try {
           lookaheadRoutineNesting++;
           #if lookahead.nestedExpansion.cardinalityConstrained
-            ${BuildScanCode(lookahead.nestedExpansion "cardinalities")}
+            ${BuildScanCode(lookahead.nestedExpansion cardinalitiesVar)}
           #else
             ${BuildScanCode(lookahead.nestedExpansion)}
           #endif
-          return !hitFailure;
+          ${return("!hitFailure", cardinalitiesVar)};
         }
         finally {
            lookaheadRoutineNesting--;
            currentLookaheadToken = prevScanAheadToken;
            remainingLookahead = prevRemainingLookahead;
            hitFailure = prevHitFailure;
-           #if lookahead.nestedExpansion.cardinalityConstrained
-               cardinalities.pop();
-           #endif
         }
      }
 #endmacro
@@ -356,6 +357,7 @@
 #endmacro
 
 #macro BuildProductionLookaheadMethod production
+   #-- TODO: I think this will need a cardinalitiesVar arg if/when cardinality is transitive across productions.
    // BuildProductionLookaheadMethod macro
   #set CU.newVarIndex = 0 
    private boolean ${production.lookaheadMethodName}(boolean scanToEnd) {

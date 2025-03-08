@@ -18,7 +18,7 @@ UNPARSED :
 ;
 
 #Root :
-    ( "<" OnesToFives ">" )+ <EOF> {return CURRENT_NODE;}
+    ( "<" OnesToFives =>|| ">" )+ <EOF> {return CURRENT_NODE;}
 ;
      
 
@@ -29,8 +29,10 @@ OnesToFives :
         & (
             &1&Two
             |
-            &(Three | Four) =>||
+            &(Three | Four)
         )+ =>||
+        |
+        SCAN {false} => &Two
         |
         Five
     )+ =>||

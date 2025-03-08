@@ -58,7 +58,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
 
     #-- TODO: remove this TRACE at some point.  In the meantime, no bytecodes are generated if TRACE=false. --
       int cardinalitiesId = 0;
-      static final boolean TRACE = true;
+      static final boolean TRACE = false;
       static final PrintStream TRACE_STREAM = System.out;
     #-- end TODO --
 
