@@ -54,14 +54,14 @@ import static ${settings.parserPackage}.${settings.baseTokenClassName}.TokenType
 
 public ${isFinal ?: "final"} class ${settings.parserClassName} { 
 
+    private static final AtomicInteger id = new AtomicInteger(0);
+
+
 #if grammar.usingCardinality
+    //TODO: remove this at some point.  In the meantime, no bytecodes are generated if TRACE=false.
+    private static final boolean TRACE = false;
+    private static final PrintStream TRACE_STREAM = System.out;
     private final class ChoiceCardinality {
-
-        private static final AtomicInteger id = new AtomicInteger(0);
-
-        //TODO: remove this at some point.  In the meantime, no bytecodes are generated if TRACE=false.
-        private static final boolean TRACE = false;
-        private static final PrintStream TRACE_STREAM = System.out;
 
         final int[][] choiceCardinalities;
         Stack<int[]> cardinalitiesStack = new Stack<>();
