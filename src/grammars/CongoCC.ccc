@@ -1198,7 +1198,7 @@ Assertion# :
            cardinality=CardinalityConstraint =>|| 
            {
              CURRENT_NODE.setCardinalityConstraint(cardinality);
-             THIS_PRODUCTION.setAppliedUniversally(true);
+             //REVISIT: THIS_PRODUCTION.setAppliedUniversally(true);
            }
         )
         "}"

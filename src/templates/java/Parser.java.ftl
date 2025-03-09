@@ -77,18 +77,27 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
             cardinalities = new int[choiceCardinalities.length];
             this.isParsing = isParsing;
             myId = ++cardinalitiesId;
+            if (TRACE) TRACE_STREAM.println("********** " + myId + " **********");
+        }
+
+        private String indent(int level) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < level; i++) {
+                sb.append("  ");
+            }
+            return sb.toString();
         }
 
         public final boolean choose(int choiceNo, boolean isPredicate) {
           if (isPredicate || !isParsing) {
             // scanning
             if (cardinalitiesStack.peek()[choiceNo] < choiceCardinalities[choiceNo][1]) {
-              if (!isUncommitted) {
-                  push();
-                  isUncommitted = true;
-              }
-              ++cardinalitiesStack.peek()[choiceNo];
-              return true;
+                if (!isUncommitted) {
+                    push();
+                    isUncommitted = true;
+                }
+                ++cardinalitiesStack.peek()[choiceNo];
+                return true;
             }
           } else {
             // the real thing
@@ -97,28 +106,28 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
               return true;
             }
           }
-          return false;
+            return false;
         }
-        
+
         private void push() {
             if (cardinalitiesStack.size() == 0) {
                 if (TRACE) TRACE_STREAM.println("PUSH: <empty>!");
                 throw new IllegalStateException();
             } else {
                 cardinalitiesStack.push(cardinalitiesStack.peek().clone());
-                if (TRACE) TRACE_STREAM.println("PUSHED: " + Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
+                if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "PUSHED: " + Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
             }
         }
 
         public boolean checkCardinality(boolean isPredicate) {
-          if (isPredicate || !isParsing) {
+          if (isPredicate) {
             for (int i = 0; i < choiceCardinalities.length; i++) {
-              if (cardinalitiesStack.peek()[i] < choiceCardinalities[i][0]) {
-                if (TRACE) TRACE_STREAM.println("REJECTED: " + Arrays.toString(cardinalitiesStack.peek()) + "ref=" + i + " id=" + myId);
-                return false;
-              }
+                if (cardinalitiesStack.peek()[i] < choiceCardinalities[i][0]) {
+                    if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "REJECTED: " + Arrays.toString(cardinalitiesStack.peek()) + "ref=" + i + " id=" + myId);
+                    return false;
+                }
             }
-            if (TRACE) TRACE_STREAM.println("ACCEPTED: " + Arrays.toString(cardinalitiesStack.peek()) + " id=" + myId);
+            if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "ACCEPTED: " + Arrays.toString(cardinalitiesStack.peek()) + " id=" + myId);
             return true;
           } else {
             for (int i = 0; i < choiceCardinalities.length; i++) {
@@ -137,27 +146,18 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
                     // commit changes
                     int[] old = cardinalitiesStack.pop();
                     cardinalitiesStack.push(uncommitted);
-                    if (TRACE) TRACE_STREAM.print("COMMIT: cardinalities were: " + Arrays.toString(old) + " are now: ");
+                    if (TRACE) TRACE_STREAM.print(indent(cardinalitiesStack.size()) + "COMMIT: cardinalities were: " + Arrays.toString(old) + " are now: ");
                     if (cardinalitiesStack.size() == 0) {
                         if (TRACE) TRACE_STREAM.println("<empty>" + " id=" + myId);
                     } else {
                         if (TRACE) TRACE_STREAM.println(Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
                     }
                 } else {
-                    if (TRACE) TRACE_STREAM.println("ROLLBACK: discard " + Arrays.toString(uncommitted) + ", tx=" + cardinalitiesStack.size() + " id=" + myId); 
+                    if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "ROLLBACK: discard " + Arrays.toString(uncommitted) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
                 }
                 isUncommitted = false;
             }
             return isSuccess;
-        }
-
-        public void reset() {
-          assert (cardinalitiesStack.size() >= 1) : "Predicate cardinalities stack not at bottom.";
-          int[] uncommitted = (cardinalitiesStack.size() > 1) ? cardinalitiesStack.peek() : new int[0];
-          if (TRACE) TRACE_STREAM.println("id=" + myId + " RESET: was " + Arrays.toString(uncommitted) + " uncommitted, " + Arrays.toString(cardinalities) + "committed");
-          for (int i = 0; i < choiceCardinalities.length; i++) {
-            cardinalities[i] = 0;
-          }
         }
     }
 #else

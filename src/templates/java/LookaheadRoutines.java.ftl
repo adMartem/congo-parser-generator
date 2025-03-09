@@ -507,7 +507,7 @@
    #endif
    #if assertion.cardinalityConstraint
       // Cardinality constraint check to ensure maximum not reached.
-      if (!${cardinalitiesVar}.choose(${assertion.assertionIndex}, ${isPredicate!false})) {
+      if (!${cardinalitiesVar}.choose(${assertion.assertionIndex}, true)) {
          #if !(isPredicate!false) [#-- JB: HACK, see other one too !!! --]
             hitFailure = true;
          #endif
@@ -590,9 +590,6 @@
       #endif
     } finally {
       passedPredicate = ${prevPassPredicateVarName};
-      #if zom.cardinalityContainer
-         ${zomCardVar}.reset(); //REVISIT: Not needed, I believe [JB].
-      #endif
     }
     hitFailure = false;
 #endmacro
