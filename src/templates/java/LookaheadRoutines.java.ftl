@@ -120,6 +120,17 @@
    #endif
 #endfunction
 
+#function returnTruePredicate cardinalitiesVar parentCardVar
+   #if cardinalitiesVar??
+      #if parentCardVar??
+         #return "return ${parentCardVar}.rollback(true)" 
+      #else
+         #return "return ${cardinalitiesVar}.rollback(true)"
+      #endif
+   #endif
+   #return "return true"
+#endfunction
+
 #function return retVal cardinalitiesVar parentCardVar
    #if cardinalitiesVar??
       #if parentCardVar??
@@ -153,7 +164,7 @@
           ${BuildScanCode(expansion)}
         #endif
       #endif
-      ${returnTrue(cardinalitiesVar)};
+      ${returnTruePredicate(cardinalitiesVar)};
       }
       finally {
          lookaheadRoutineNesting = 0;
@@ -208,7 +219,7 @@
    #endif
     }
     passedPredicate = false;
-    ${returnTrue(cardinalitiesVar)};
+    ${returnTruePredicate(cardinalitiesVar!null)};
   }
  #endif
 #endmacro
@@ -231,7 +242,7 @@
        }
        try {
           lookaheadRoutineNesting++;
-          #-- REVISIT: does this ever need a cardinalitiesVar arg? [JB] --
+          #-- REVISIT: does this ever need a cardinalitiesVar arg? If so, the return true must rollback. [JB] --
           ${BuildScanCode(expansion)}
           return true;
        }

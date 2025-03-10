@@ -58,7 +58,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
 
     #-- TODO: remove this TRACE at some point.  In the meantime, no bytecodes are generated if TRACE=false. --
       int cardinalitiesId = 0;
-      static final boolean TRACE = false;
+      static final boolean TRACE = true;
       static final PrintStream TRACE_STREAM = System.out;
     #-- end TODO --
 
@@ -89,7 +89,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
         }
 
         public final boolean choose(int choiceNo, boolean isPredicate) {
-          if (isPredicate || !isParsing) {
+          if (isPredicate) {
             // scanning
             if (cardinalitiesStack.peek()[choiceNo] < choiceCardinalities[choiceNo][1]) {
                 if (!isUncommitted) {
@@ -155,6 +155,15 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
                 } else {
                     if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "ROLLBACK: discard " + Arrays.toString(uncommitted) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
                 }
+                isUncommitted = false;
+            }
+            return isSuccess;
+        }
+
+        public boolean rollback(boolean isSuccess) {
+            if (isUncommitted) {
+                if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "ROLLBACK: predicate " + Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
+                cardinalitiesStack.pop();
                 isUncommitted = false;
             }
             return isSuccess;
