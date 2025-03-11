@@ -584,6 +584,9 @@
             currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
             break;
         }
+        #if zom.cardinalityContainer
+           ${zomCardVar}.commit(true);
+        #endif
       }
       #if zom.cardinalityContainer
          if(!${zomCardVar}.checkCardinality(true)) ${returnFalse(zomCardVar, cardinalitiesVar!null)};
@@ -608,6 +611,9 @@
       ChoiceCardinality ${oomCardVar} = new ChoiceCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, false); 
     #endif
    ${BuildScanCode(oom.nestedExpansion oomCardVar cardinalitiesVar!null)}
+   #if oom.cardinalityContainer
+      ${oomCardVar}.commit(true);
+   #endif
    ${ScanCodeZeroOrMore(oom oomCardVar cardinalitiesVar!null)}
 #endmacro
 
