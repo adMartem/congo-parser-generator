@@ -18,7 +18,12 @@ UNPARSED :
 ;
 
 #Root :
-    ( "<" OnesToFives =>|| ">" )+ <EOF> {return CURRENT_NODE;}
+    (
+        ( "<" OnesToFives =>|| ">" )+ 
+        |
+        ( "[" Modifiers =>|| "]" )+
+    )*
+    <EOF> {return CURRENT_NODE;}
 ;
      
 
@@ -115,3 +120,139 @@ TryFiveFoos2 :
       }
   )+
 ;
+
+TOKEN #KeyWord :
+  <UNDERSCORE : "_">
+|  < ABSTRACT: "abstract" >
+| < _ASSERT: "assert" >
+| < BOOLEAN: "boolean" > #Primitive
+| < BREAK: "break" >
+| < BYTE: "byte" > #Primitive
+| < CASE: "case" >
+| < CATCH: "catch" >
+| < CHAR: "char" > #Primitive
+| < CLASS: "class" >
+| < CONST: "const" >
+| < CONTINUE: "continue" >
+| < _DEFAULT: "default" >
+| < DO: "do" >
+| < DOUBLE: "double" > #Primitive
+| < ELSE: "else" >
+| < ENUM: "enum" >
+| < EXTENDS: "extends" >
+| < FALSE: "false" > #BooleanLiteral
+| < FINAL: "final" >
+| < FINALLY: "finally" >
+| < FLOAT: "float" > #Primitive
+| < FOR: "for" >
+| < GOTO: "goto" >
+| < IF: "if" >
+| < IMPLEMENTS: "implements" >
+| < _IMPORT: "import" >
+| < INSTANCEOF: "instanceof" >
+| < INT: "int" > #Primitive
+| < INTERFACE: "interface" >
+| < LONG: "long" > #Primitive
+| < NATIVE: "native" >
+| < NEW: "new" >
+| < NULL: "null" > #NullLiteral
+| < PACKAGE: "package">
+| < PRIVATE: "private" >
+| < PROTECTED: "protected" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < RECORD : "record" >
+| < SHORT: "short" > #Primitive
+| < STATIC: "static" >
+| < STRICTFP: "strictfp" >
+| < SUPER: "super" >
+| < SWITCH: "switch" >
+| < SYNCHRONIZED: "synchronized" >
+| < THIS: "this" > #ThisLiteral
+| < THROW: "throw" >
+| < THROWS: "throws" >
+| < TRANSIENT: "transient" >
+| < TRUE: "true" > #BooleanLiteral
+| < TRY: "try" >
+| < VAR: "var" >
+| < VOID: "void" >
+| < VOLATILE: "volatile" >
+| < WHILE: "while" >
+| < YIELD : "yield" >
+| < SEALED : "sealed">
+| < NON_SEALED : "non-sealed">
+| < PERMITS : "permits">
+| < WHEN : "when" >
+// Soft keywords used only in the module-info
+| <MODULE : "module">
+| <EXPORTS : "exports">
+| <OPEN : "open">
+| <OPENS : "opens">
+| <PROVIDES : "provides">
+| <REQUIRES : "requires">
+| <TO : "to">
+| <TRANSITIVE : "transitive">
+| <USES : "uses">
+| <WITH : "with">
+;
+ 
+INJECT PARSER_CLASS : {
+  private EnumSet<TokenType> permissibleModifiers;
+}
+
+// Alternative to Modifiers using repetition cardinality constraints.
+Modifiers :
+ (
+    (
+       SCAN {allows(ABSTRACT,FINAL)}# =>          & (<ABSTRACT>|<FINAL>) =>||// Note the "&" is the short form for "ENSURE ASSERT {&0:1&}".
+       |  
+       SCAN {allows(PRIVATE,PROTECTED,PUBLIC)}# =>& (<PRIVATE>|<PROTECTED>|<PUBLIC>) =>||
+       |
+       SCAN {allows(STATIC)}# =>                  & <STATIC> =>||
+       |
+       SCAN {allows(SYNCHRONIZED)}# =>            & <SYNCHRONIZED> =>||
+       |
+       SCAN {allows(NATIVE)}# =>                  & <NATIVE> =>||
+       |
+       SCAN {allows(TRANSIENT)}# =>               & <TRANSIENT> =>||
+       |
+       SCAN {allows(VOLATILE)}# =>                & <VOLATILE> =>||
+       |
+       SCAN {allows(STRICTFP)}# =>                & <STRICTFP> =>||
+       |
+       SCAN {allows(_DEFAULT)}# =>                & <_DEFAULT> =>||
+    ) =>||
+    |
+    SCAN {
+        allows(SEALED) 
+        &&
+        (
+          checkNextTokenImage("sealed","non-sealed")
+          ||
+          checkNextTokenImage("non")
+              && "-".equals(tokenImage(2))
+              && "sealed".equals(tokenImage(3))
+              && getToken(3).getBeginOffset() == getToken(1).getEndOffset() + 1
+        )
+    }# =>
+    & ACTIVATE_TOKENS SEALED, NON_SEALED (<SEALED>|<NON_SEALED>) =>||
+ )* =>||
+ {permissibleModifiers = null;}#
+;
+
+INJECT PARSER_CLASS :
+{
+    boolean allows(TokenType... types) {
+        //System.out.println("permissible types=" + permissibleModifiers);
+        //System.out.println("allows=" + Arrays.toString(types));
+        if (isParserTolerant() || permissibleModifiers == null) return true;
+        for (TokenType type : types) {
+            if (permissibleModifiers.contains(type)) {
+                //System.out.println("allowed=" + type);
+                return true;
+            }
+        }
+        //System.out.println("disallowed!");
+        return false;
+    }
+}

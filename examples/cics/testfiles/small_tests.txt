@@ -1,4 +1,5 @@
 <123>
+<123555555>
 <321>
 <132>
 <21>
@@ -7,4 +8,8 @@
 <231>
 <1245>
 <5421>
-<123555555>
+[ public ]
+[final public]
+[static final public]
+[final static public]
+[final public static]
