@@ -860,6 +860,9 @@
    #endif
    while (true) {
      ${RecoveryLoop(oom cardinalitiesVar)} [#-- REVISIT: recovery of cardinalities!!! --]
+     #if oom.cardinalityContainer
+       ${cardinalitiesVar}.commitIteration();
+     #endif
      #if nestedExp.simpleName = "ExpansionChoice"
        ${inFirstVarName} = false;
      #else
@@ -886,6 +889,9 @@
          if (!(${ExpansionCondition(zom.nestedExpansion cardinalitiesVar)})) break;
       #endif
       ${RecoveryLoop(zom cardinalitiesVar)}
+      #if zom.cardinalityContainer
+         ${cardinalitiesVar}.commitIteration();
+      #endif
    }
    #if zom.cardinalityContainer
       if (!${cardinalitiesVar}.checkCardinality(false))  {

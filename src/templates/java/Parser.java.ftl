@@ -62,19 +62,69 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
       static final PrintStream TRACE_STREAM = System.out;
     #-- end TODO --
 
+    [#-- N.B., this class definition can be replaced by:
+      record CardinalityState (int[] cardinalities, boolean isProvisional) {}; 
+      in Java 17 --]
+    
+    private static final class CardinalityState {
+        private final int[] cardinalities;
+        private final boolean isProvisional;
+
+        public CardinalityState(int[] cardinalities, boolean isProvisional) {
+            this.cardinalities = cardinalities.clone(); // Defensive copy to ensure immutability
+            this.isProvisional = isProvisional;
+        }
+
+        public int[] cardinalities() {
+            return cardinalities.clone(); // Defensive copy to prevent modification
+        }
+
+        public boolean isProvisional() {
+            return isProvisional;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            CardinalityState that = (CardinalityState) o;
+            return isProvisional == that.isProvisional && Arrays.equals(cardinalities, that.cardinalities);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(cardinalities) + Boolean.hashCode(isProvisional);
+        }
+
+        @Override
+        public String toString() {
+            return "CardinalityState{" +
+                    "cardinalities=" + Arrays.toString(cardinalities) +
+                    ", isProvisional=" + isProvisional +
+                    '}';
+        }
+    }
+
     private final class ChoiceCardinality {
 
         final int[][] choiceCardinalities;
-        Stack<int[]> cardinalitiesStack = new Stack<>();
+        Stack<CardinalityState> cardinalitiesStack = new Stack<>();
         final int[] cardinalities;
         int myId = -1;
 
+        // TODO: use "record CardinalityState (int[] cardinalities, boolean isProvisional) {};" in Java 17 
+
         ChoiceCardinality(int[][] choiceCardinalities, boolean isParsing) {
             this.choiceCardinalities = choiceCardinalities;
-            cardinalitiesStack.push(new int[choiceCardinalities.length]);
+            // push an initialized, non-provisional frame to start a loop
+            cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], false));
+            // initialize the parse version of the cardinality state
             cardinalities = new int[choiceCardinalities.length];
-            myId = ++cardinalitiesId;
-            if (TRACE) TRACE_STREAM.println("********** " + myId + " **********");
+            // make a unique id for trace purposes only
+            if (TRACE) {
+              myId = ++cardinalitiesId;
+              TRACE_STREAM.println("********** " + myId + " **********");
+            }
         }
 
         private String indent(int level) {
@@ -85,45 +135,54 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
             return sb.toString();
         }
 
-        public final boolean choose(int choiceNo, boolean isPredicate) {
-          if (isPredicate) {
-              // open new provisional frame
-              push();
-              if (cardinalitiesStack.peek()[choiceNo] < choiceCardinalities[choiceNo][1]) {
-                  ++cardinalitiesStack.peek()[choiceNo];
-                  return true;
-              }
-          } else {
-            // the real thing
-            if (cardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
-              ++cardinalities[choiceNo];
-              return true;
-            }
-          }
-          // cardinality maximum exceeded
-          return false;
-        }
-
-        private void push() {
-            if (cardinalitiesStack.size() == 0) {
-                // create new provisional frame
-                cardinalitiesStack.push(new int[choiceCardinalities.length]);
+        public final boolean choose(int choiceNo, boolean isLookahead) {
+            if (isLookahead) {
+                CardinalityState currentState = cardinalitiesStack.peek();
+                if (!currentState.isProvisional()) {
+                    // open new provisional frame
+                    push(true);
+                }
+                int[] currentCardinalities = currentState.cardinalities();
+                int choiceCardinality = cardinalitiesStack.peek().cardinalities()[choiceNo];
+                if (currentCardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
+                    ++currentCardinalities[choiceNo];
+                    cardinalitiesStack.pop();
+                    cardinalitiesStack.push(new CardinalityState(currentCardinalities, true));
+                    return true;
+                }
             } else {
-                // create new provisional frame from current frame 
-                cardinalitiesStack.push(cardinalitiesStack.peek().clone());
-                if (TRACE) TRACE_STREAM.println(indent(cardinalitiesStack.size()) + "PUSHED: " + Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
+                // the real thing
+                if (cardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
+                  ++cardinalities[choiceNo];
+                  return true;
+                }
+            }
+            // cardinality maximum exceeded; indicate failure
+            return false;
+        }
+
+        public void push(boolean isProvisional) {
+            if (cardinalitiesStack.size() == 0) {
+                // create new initialized frame
+                cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], isProvisional));
+            } else {
+                // create new frame from current top frame 
+                cardinalitiesStack.push(new CardinalityState(cardinalitiesStack.peek().cardinalities(), isProvisional));
             }
         }
 
-        public boolean checkCardinality(boolean isPredicate) {
-          if (isPredicate) {
-              int[] finalized = new int[choiceCardinalities.length];
+        public void pop() {
+            cardinalitiesStack.pop();
+        }
+
+        public boolean checkCardinality(boolean isLookahead) {
+          if (isLookahead) {
+              CardinalityState finalized = new CardinalityState(new int[choiceCardinalities.length], false);
               if (cardinalitiesStack.size() == 1) {
                   finalized = cardinalitiesStack.pop(); 
               }
-              for (int i = 0; i < finalized.length; i++) {
-                  if (finalized[i] < choiceCardinalities[i][0]) {
-                      if (TRACE) TRACE_STREAM.println("REJECTED: " + Arrays.toString(finalized) + "ref=" + i + " id=" + myId);
+              for (int i = 0; i < finalized.cardinalities().length; i++) {
+                  if (finalized.cardinalities()[i] < choiceCardinalities[i][0]) {
                       return false;
                   }
               }
@@ -137,16 +196,22 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
           return true;
         }
 
+        public void commitIteration() {
+            if (cardinalitiesStack.peek().isProvisional()) {
+                CardinalityState current = cardinalitiesStack.pop();
+                // replace the penultimate frame with the current one
+                cardinalitiesStack.pop(); // pop the penultimate
+                cardinalitiesStack.push(new CardinalityState(current.cardinalities(), false));
+            }
+        }
+
         public boolean commit(boolean isSuccess) {
-            if (cardinalitiesStack.size() > 1) {
-                int[] provisional = cardinalitiesStack.pop();
-                if (isSuccess) {
-                    int[] previous = cardinalitiesStack.pop();
-                    // replace the previous frame with the uncommitted one
-                    cardinalitiesStack.push(provisional);
-                    if (TRACE) TRACE_STREAM.print(indent(cardinalitiesStack.size()) + "COMMIT: cardinalities were: " + Arrays.toString(previous) + " are now: ");
-                    if (TRACE) TRACE_STREAM.println(Arrays.toString(cardinalitiesStack.peek()) + ", tx=" + cardinalitiesStack.size() + " id=" + myId);
-                }
+            if (cardinalitiesStack.peek().isProvisional()) {
+              // discard the provisional frame if not successful
+              if (!isSuccess) {
+                  cardinalitiesStack.pop();
+                  assert (!cardinalitiesStack.peek().isProvisional()) : "provisional frames should always be on top of a non-provisional frame.";
+              }
             }
             return isSuccess;
         }

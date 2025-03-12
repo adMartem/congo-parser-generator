@@ -184,6 +184,7 @@
     /#if
     try {
        lookaheadRoutineNesting++;
+       //TODO: Clone the cardinalities here!!!
        ${BuildPredicateCode(expansion cardinalitiesVar)}
       #if !expansion.hasScanLimit
        reachedScanCode = true;
@@ -208,6 +209,7 @@
    #endif
     }
     passedPredicate = false;
+    //TODO: Pop the cloned cardinalities!!!
     ${returnTrue(cardinalitiesVar)};
   }
  #endif
@@ -585,7 +587,7 @@
             break;
         }
         #if zom.cardinalityContainer
-           ${zomCardVar}.commit(true);
+           ${zomCardVar}.commitIteration();
         #endif
       }
       #if zom.cardinalityContainer
@@ -612,7 +614,7 @@
     #endif
    ${BuildScanCode(oom.nestedExpansion oomCardVar cardinalitiesVar!null)}
    #if oom.cardinalityContainer
-      ${oomCardVar}.commit(true);
+      ${oomCardVar}.commitIteration();
    #endif
    ${ScanCodeZeroOrMore(oom oomCardVar cardinalitiesVar!null)}
 #endmacro

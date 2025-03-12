@@ -23,7 +23,7 @@ UNPARSED :
         |
         ( "[" Modifiers =>|| "]" )+
     )*
-    <EOF> {return CURRENT_NODE;}
+    ("!end" | <EOF> ) {return CURRENT_NODE;}
 ;
      
 
