@@ -143,8 +143,10 @@ INJECT PackageDeclaration :
 
 ImportDeclaration : <_IMPORT> [ <STATIC> ] Name [ <DOT> <STAR> ] <SEMICOLON> ;
 
-/* 
+#if CARD
+
 // Alternative to Modifiers using repetition cardinality constraints.
+
 Modifiers :
  (
     (
@@ -189,20 +191,17 @@ Modifiers :
 INJECT PARSER_CLASS :
 {
     boolean allows(TokenType... types) {
-        System.out.println("permissible types=" + permissibleModifiers);
-        System.out.println("allows=" + types);
         if (isParserTolerant() || permissibleModifiers == null) return true;
         for (TokenType type : types) {
             if (permissibleModifiers.contains(type)) {
-                System.out.println("allowed=" + type);
                 return true;
             }
         }
-        System.out.println("disallowed!");
         return false;
     }
 }
-*/
+
+#else
 
 Modifiers :
  (
@@ -261,6 +260,8 @@ Modifiers :
  )*
  {permissibleModifiers = null;}#
 ;
+
+#endif
  
 INJECT PARSER_CLASS : {
   private EnumSet<TokenType> permissibleModifiers;

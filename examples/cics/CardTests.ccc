@@ -25,21 +25,20 @@ UNPARSED :
     )*
     ("!end" | <EOF> ) {return CURRENT_NODE;}
 ;
-     
 
 OnesToFives :
     (
-        &1& One
+        &1& One #AOne
         |
         & (
             &1&Two
             |
             &(Three | Four)
-        )+ =>||
+        )+ =>|| #TwoThreeFour
         |
-        SCAN {false} => &Two
+        SCAN {false} => &0:2&Two #Never
         |
-        Five
+        &0:5&Five #SomeFives
     )+ =>||
 ; 
 
