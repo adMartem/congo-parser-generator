@@ -138,16 +138,28 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
         public final boolean choose(int choiceNo, boolean isLookahead) {
             if (isLookahead) {
                 CardinalityState currentState = cardinalitiesStack.peek();
+                CardinalityState priorState = currentState;
                 if (!currentState.isProvisional()) {
                     // open new provisional frame
                     push(true);
+                } else {
+                    priorState = cardinalitiesStack.get(cardinalitiesStack.size() - 2);
                 }
+                // at this point current is a provisional frame 
                 int[] currentCardinalities = currentState.cardinalities();
-                int choiceCardinality = cardinalitiesStack.peek().cardinalities()[choiceNo];
-                if (currentCardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
-                    ++currentCardinalities[choiceNo];
-                    cardinalitiesStack.pop();
-                    cardinalitiesStack.push(new CardinalityState(currentCardinalities, true));
+                int[] priorCardinalities = priorState.cardinalities();
+                // N.B., there can never be more than one increment per interation, hence this check
+                // allowing the detection of multiple chooses during the lookahead process.  In
+                // other words, the first increment is necessary and sufficient for accuracy.
+                if (currentCardinalities[choiceNo] == priorCardinalities[choiceNo]) {
+                    if (currentCardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
+                        ++currentCardinalities[choiceNo];
+                        // replace the provisional frame at tos with incremented one
+                        cardinalitiesStack.pop();
+                        cardinalitiesStack.push(new CardinalityState(currentCardinalities, true));
+                        return true;
+                    }
+                } else {
                     return true;
                 }
             } else {
@@ -161,18 +173,22 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
             return false;
         }
 
-        public void push(boolean isProvisional) {
+        public CardinalityState push(boolean isProvisional) {
             if (cardinalitiesStack.size() == 0) {
                 // create new initialized frame
-                cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], isProvisional));
+                return cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], isProvisional));
             } else {
                 // create new frame from current top frame 
-                cardinalitiesStack.push(new CardinalityState(cardinalitiesStack.peek().cardinalities(), isProvisional));
+                return cardinalitiesStack.push(new CardinalityState(cardinalitiesStack.peek().cardinalities(), isProvisional));
             }
         }
 
         public void pop() {
-            cardinalitiesStack.pop();
+            CardinalityState popped = cardinalitiesStack.pop();
+            if (popped.isProvisional()) {
+                popped = cardinalitiesStack.pop();
+                assert (!popped.isProvisional()) : "Unexpected provisional stack entry!";
+            }
         }
 
         public boolean checkCardinality(boolean isLookahead) {

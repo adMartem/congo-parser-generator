@@ -184,7 +184,6 @@
     /#if
     try {
        lookaheadRoutineNesting++;
-       //TODO: Clone the cardinalities here!!!
        ${BuildPredicateCode(expansion cardinalitiesVar)}
       #if !expansion.hasScanLimit
        reachedScanCode = true;
@@ -209,7 +208,6 @@
    #endif
     }
     passedPredicate = false;
-    //TODO: Pop the cloned cardinalities!!!
     ${returnTrue(cardinalitiesVar)};
   }
  #endif

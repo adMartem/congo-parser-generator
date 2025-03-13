@@ -54,7 +54,7 @@
         <enable />
       </assertions>
     	<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="testfiles/small_tests.txt" />
+      <arg value="testfiles" />
     </java>
   </target>
 
