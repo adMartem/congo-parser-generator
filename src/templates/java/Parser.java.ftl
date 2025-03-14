@@ -108,6 +108,10 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
     private final class RepetitionCardinality {
 
         final int[][] choiceCardinalities;
+        [#-- NOTE: This stack is currently unnecessary, as it never has more than 2 elements and could be replaced by 4 scalar fields.
+          I leave it in for now to make sure it isn't potentially useful for a likely future extension to this capability. I have
+          marked it as Deprecated in the meantime. JB --]
+        @Deprecated
         Stack<CardinalityState> cardinalitiesStack = new Stack<>();
         final int[] cardinalities;
         int myId = -1;
@@ -150,7 +154,8 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
                 int[] priorCardinalities = priorState.cardinalities();
                 // N.B., there can never be more than one increment per interation, hence this check
                 // allowing the detection of multiple chooses during the lookahead process.  In
-                // other words, the first increment is necessary and sufficient for accuracy.
+                // other words, in a given iteration only the first increment is necessary and 
+                // sufficient for accuracy.
                 if (currentCardinalities[choiceNo] == priorCardinalities[choiceNo]) {
                     if (currentCardinalities[choiceNo] < choiceCardinalities[choiceNo][1]) {
                         ++currentCardinalities[choiceNo];
@@ -219,8 +224,10 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
                 cardinalitiesStack.pop(); // pop the penultimate
                 cardinalitiesStack.push(new CardinalityState(current.cardinalities(), false));
             } else if (isParsing) {
-                // update the lookahead cardinalities to match the parsing ones (handles the OneOrMore loop order)
-                // since the lookahead cardinality increment is done after the actual parsing increment. 
+                // No provisional frame (i.e., no lookahead "choose" yet), but we are parsing now, so
+                // update the lookahead cardinalities by borrowing the parsing ones, as the lookahead 
+                // cardinality increment is potentially done after the actual parsing increment 
+                // (this handles the OneOrMore loop order). 
                 cardinalitiesStack.pop(); // pop the penultimate
                 cardinalitiesStack.push(new CardinalityState(cardinalities, false));
             }
