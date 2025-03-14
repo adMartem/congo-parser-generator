@@ -14,17 +14,18 @@ FAULT_TOLERANT_DEFAULT=true;
 UNPARSED : 
     < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > |
     < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > |
-    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR> > 
+    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR>  > |
+    < COMMA: [ ",", ";" ] >
 ;
 
 #Root :
     (
         "(" Letters ")"
         |
-        "<" OnesToFives ">" 
+        Set
         |
         "[" Modifiers "]"
-    )*
+    )+!
     ("!end" | <EOF> ) {return CURRENT_NODE;}
 ;
 
@@ -58,99 +59,139 @@ LTest3 :
     )+
 ; 
 
-OnesToFives :
+Set :
+    "{"
     (
-        &1& One #AOne
+        OddNumberUnitSet =>||   // This accepts a unit set of an odd natural number <= 5  
         |
-        & (
-            &1&Two
-            |
-            &(Three | Four)
-        )+ =>|| #TwoThreeFour
+        AllOddNumberSet =>||    // This accepts a set of all odd natural numbers <= 5
         |
-        SCAN {false} => &0:2&Two #Never
+        OddNumberSet =>||       // This accepts a member of the power set of odd natural numbers <= 5 
         |
-        &0:5&Five #SomeFives
-    )+ =>||
-; 
+        EvenNumberUnitSet =>||  // This accepts a unit set of an even natural number <= 5
+        |
+        EvenNumberSet =>||      // This accepts a member of the power set of even natural numbers <= 5
+        |
+        PrimeNumberUnitSet =>|| // This accepts a unit set of a prime natural number <= 5
+        |
+        AllPrimeNumberSet =>||  // This accepts a set of all prime natural numbers <= 5
+        |
+        PrimeNumberSet =>||     // This accepts a member of the power set of prime natural numbers <= 5
+        |
+        NumberSet =>||          // This accepts a member of the power set of natural numbers <= 5
+        |
+        Numbers =>||            // This accepts any collection of natural numbers <= 5
+    )
+    "}"
+;
 
-One: "1"("x")*;
-Two: "2"("y")*;
-Three: "3"("z")*;
+One: "1";
+Two: "2";
+Three: "3";
 Four: "4";
 Five: "5";
 
-OneToFiveSet :
+Number : 
+    "1" | "2" | "3" | "4" | "5"; 
+
+NumberUnitSet : 
+    Number 
+    ENSURE ("}")
+    {System.out.println("A member of the unit set of natural numbers <= 5");}
+;
+
+NumberSet :
     (
-        &1& "1"
+        & "1"
         |
-        &(
-            &1& "2"
-            |
-            & "3"
-        )+
+        & "2"
         |
-        ( & "4" )
+        & "3"
         |
-        &1& "5"
+        & "4"
+        |
+        & "5"
     )+
-; 
-
-Foos :
-    "foo"  ( "," "foo" )+ =>||
-    {System.out.println("Several foos accepted.");}
+    ENSURE ("}")
+    {System.out.println("A member of the power set of natural numbers <= 5");}
 ;
 
-OneOrTwoFoos :
+Numbers :
     (
-            "foo" ( & "," "foo" )* // this one works because the constraint is "no more than one", so the post-loop check passes
-        |
-            "foo" [( &1& "," "foo" )+] // This also works because the ZeroOrOne is determined by the predicate of the nested loop, which does not find the ",".
-        |
-            "foo" (ASSERT {&1&} "," "foo" )* // This fails for one foo because the cardinality constraint is not met at the end of the loop.
-        |
-            "foo" ( "," "foo" &1& )* =>|| // This also fails because the position of the assertion does not affect the checking of the minimum cardinality.
-    ) =>||
-    {System.out.println("One or two foos accepted.");}
+        Number
+    )+ ! //-> {System.out.println("Not a number! Skip it.");}
+    ENSURE ("}")
+    {System.out.println("A non-empty collection of natural numbers <= 5");}
 ;
 
-TwoFoos :
-  "foo"  ( &1& "," "foo" )+ =>||
-    {System.out.println("Exactly two foos accepted.");}
+OddNumber :
+    "1" | "3" | "5"; 
+
+OddNumberUnitSet :
+    OddNumber 
+    ENSURE ("}")
+    {System.out.println("A member of the unit set of odd natural numbers <= 5");}
 ;
 
-FiveFoos : 
-    "foo" (&4& "," "foo")+ =>||
-    {System.out.println("Exactly five foos accepted.");}
+OddNumberSet :
+    ENSURE (NumberSet) (
+        OddNumber
+    )+ 
+    ENSURE ("}")
+    {System.out.println("A non-empty subset of the odd natuaral numbers <= 5");}
 ;
 
-NotFiveFoos :
-    ASSERT ~(FiveFoos) =>|| Foos
-    {System.out.println("Other than five foos accepted.");}
+AllOddNumberSet :
+    (
+        &1&"1" | &1&"3" | &1&"5"
+    )+ 
+    ENSURE ("}")
+    {System.out.println("The set of all odd natural numbers <= 5");}
 ;
 
-TryFiveFoos1 :
-  "foo"  (
-      try {
-        &4& "," "foo" 
-      } catch (ParseException e) {
-        e.printStackTrace();
-        System.out.println("Not 5 foos!");
-      }
-  )+ =>||
-  {System.out.println("Five foos tried and accepted.");}
+PrimeNumber :
+    "1" | "2" | "3" | "5";
+
+PrimeNumberUnitSet :
+    PrimeNumber
+    ENSURE ("}")
+    {System.out.println("A member of the unit set of prime natural numbers <= 5");}
 ;
 
-TryFiveFoos2 :
-  "foo"  (
-      try {
-        &4& "," "foo" 
-      } catch (ParseException e) {
-        e.printStackTrace();
-        System.out.println("Not 5 foos!");
-      }
-  )+
+AllPrimeNumberSet :
+    (
+        &1&"1" | &1&"2" | &1&"3" | &1&"5"
+    )+ 
+    ENSURE ("}")
+    {System.out.println("A set of all prime natural numbers <= 5");}
 ;
+
+PrimeNumberSet :
+    ENSURE (NumberSet) (
+        PrimeNumber
+    )+ 
+    ENSURE ("}")
+    {System.out.println("A non-empty subset of prime natural numbers <= 5");}
+;
+
+EvenNumberUnitSet :
+    ENSURE ~(OddNumberUnitSet) Number
+    ENSURE ("}")
+    {System.out.println("A member of the unit set of even natural numbers <= 5");}
+;
+
+EvenNumberSet :
+    ENSURE (NumberSet) (
+        OddNumber
+    )+
+    ENSURE ("}")
+    {System.out.println("A non-empty subset of prime natural numbers <= 5");}
+;
+
+/***
+ * The following is an isolated version of an alternative production for handling
+ * Modifiers in Java.ccc using RCAs instead of semantic actions (mostly).
+ */
 
 TOKEN #KeyWord :
   <UNDERSCORE : "_">
