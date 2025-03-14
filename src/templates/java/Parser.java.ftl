@@ -105,7 +105,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
         }
     }
 
-    private final class ChoiceCardinality {
+    private final class RepetitionCardinality {
 
         final int[][] choiceCardinalities;
         Stack<CardinalityState> cardinalitiesStack = new Stack<>();
@@ -114,7 +114,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
 
         // TODO: use "record CardinalityState (int[] cardinalities, boolean isProvisional) {};" in Java 17 
 
-        ChoiceCardinality(int[][] choiceCardinalities, boolean isParsing) {
+        RepetitionCardinality(int[][] choiceCardinalities, boolean isParsing) {
             this.choiceCardinalities = choiceCardinalities;
             // push an initialized, non-provisional frame to start a loop
             cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], false));
@@ -212,17 +212,22 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
           return true;
         }
 
-        public void commitIteration() {
+        public void commitIteration(boolean isParsing) {
             if (cardinalitiesStack.peek().isProvisional()) {
                 CardinalityState current = cardinalitiesStack.pop();
                 // replace the penultimate frame with the current one
                 cardinalitiesStack.pop(); // pop the penultimate
                 cardinalitiesStack.push(new CardinalityState(current.cardinalities(), false));
+            } else if (isParsing) {
+                // update the lookahead cardinalities to match the parsing ones (handles the OneOrMore loop order)
+                // since the lookahead cardinality increment is done after the actual parsing increment. 
+                cardinalitiesStack.pop(); // pop the penultimate
+                cardinalitiesStack.push(new CardinalityState(cardinalities, false));
             }
         }
 
         public boolean commit(boolean isSuccess) {
-            if (cardinalitiesStack.peek().isProvisional()) {
+            if (!cardinalitiesStack.isEmpty() && cardinalitiesStack.peek().isProvisional()) {
               // discard the provisional frame if not successful
               if (!isSuccess) {
                   cardinalitiesStack.pop();
@@ -233,7 +238,7 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
         }
     }
 #else
-  // Suppressing ChoiceCardinality class; cardinality not used in this parser. 
+  // Suppressing RepetitionCardinality class; cardinality not used in this parser. 
 #endif
 
 static final int UNLIMITED = Integer.MAX_VALUE;

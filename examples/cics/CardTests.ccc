@@ -19,12 +19,45 @@ UNPARSED :
 
 #Root :
     (
-        ( "<" OnesToFives =>|| ">" )+ 
+        "(" Letters ")"
         |
-        ( "[" Modifiers =>|| "]" )+
+        "<" OnesToFives ">" 
+        |
+        "[" Modifiers "]"
     )*
     ("!end" | <EOF> ) {return CURRENT_NODE;}
 ;
+
+Letters :
+    LTest1 | LTest2 | LTest3
+;
+
+LTest1 :
+    ((ASSERT {&0:1&}# "a" =>|| )+ #ZeroOrOneA [ "a" ]) #Variant1
+    | 
+    ((&1&"b")* #OneB [ "b" ] "a") =>|| #Variant2
+;
+
+LTest2 :
+    (&"c")* "a" #Variant3
+;
+
+LTest3 :
+    (
+        "d"
+        |
+        (
+            "e"
+            |
+            &(
+                &"f" | "g"
+            )+
+        )+
+        |
+        (((((&"h" | &"i")))))*
+    )+
+;      
+
 
 OnesToFives :
     (

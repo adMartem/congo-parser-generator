@@ -856,12 +856,12 @@
    #if oom.cardinalityContainer
       #set cardinalitiesVar = "cardinalities" + repetitionIndex
       #set repetitionIndex = repetitionIndex + 1
-      ChoiceCardinality ${cardinalitiesVar} = new ChoiceCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, true);
+      RepetitionCardinality ${cardinalitiesVar} = new RepetitionCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, true);
    #endif
    while (true) {
      ${RecoveryLoop(oom cardinalitiesVar)} [#-- REVISIT: recovery of cardinalities!!! --]
      #if oom.cardinalityContainer
-       ${cardinalitiesVar}.commitIteration();
+       ${cardinalitiesVar}.commitIteration(true);
      #endif
      #if nestedExp.simpleName = "ExpansionChoice"
        ${inFirstVarName} = false;
@@ -882,7 +882,7 @@
    #if zom.cardinalityContainer
       #set cardinalitiesVar = "cardinalities" + repetitionIndex
       #set repetitionIndex = repetitionIndex + 1
-      ChoiceCardinality ${cardinalitiesVar} = new ChoiceCardinality(${CU.BuildCardinalities(zom.cardinalityConstraints)}, true);
+      RepetitionCardinality ${cardinalitiesVar} = new RepetitionCardinality(${CU.BuildCardinalities(zom.cardinalityConstraints)}, true);
    #endif
    while (true) {
       #if zom.nestedExpansion.class.simpleName != "ExpansionChoice"
@@ -890,7 +890,7 @@
       #endif
       ${RecoveryLoop(zom cardinalitiesVar)}
       #if zom.cardinalityContainer
-         ${cardinalitiesVar}.commitIteration();
+         ${cardinalitiesVar}.commitIteration(true);
       #endif
    }
    #if zom.cardinalityContainer

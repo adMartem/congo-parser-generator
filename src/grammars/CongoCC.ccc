@@ -1165,8 +1165,8 @@ INJECT Assertion :
                || firstChildOfType(Expansion.class) != null && getAppSettings().getAssertAppliesInLookahead()
                || isAppliedUniversally()
                || firstAncestorOfType(Lookahead.class) !=null
-               || getContainingProduction().isOnlyForLookahead()
-               || isCardinalityConstraint();
+               || getContainingProduction().isOnlyForLookahead();
+               //|| isCardinalityConstraint();
     }
     
     public boolean isCardinalityConstraint() {
@@ -1177,51 +1177,49 @@ INJECT Assertion :
 Assertion# :
    {boolean assertKeywordPresent = false; int[] cardinality = null;}
    (
+       /** preceeding using cardinality, for example:
        (
           "ASSERT" {assertKeywordPresent = true;} ["ENSURE"]
           |
           "ENSURE" ["ASSERT" {assertKeywordPresent = true;}]
        )
-       /** preceeding using cardinality, for example:
-           (
-              &"ASSERT" {assertKeywordPresent = true;}
-              |
-              &"ENSURE"
-           )+
        **/
        (
-        "{"
-        (
+          &"ASSERT" {assertKeywordPresent = true;}
+          |
+          &"ENSURE"
+       )+
+       (
+         "{"
+         (
            @assertionExpression := Expression
-           | //REVISIT: do we really need this?
-           //SCAN /.../BNFProduction/.../ExpansionWithParentheses/ExpansionChoice/ExpansionSequence/ExpansionUnit => 
+           | 
            cardinality=CardinalityConstraint =>|| 
            {
              CURRENT_NODE.setCardinalityConstraint(cardinality);
-             //REVISIT: THIS_PRODUCTION.setAppliedUniversally(true);
            }
-        )
-        "}"
-        [ SCAN {assertKeywordPresent} => @appliedUniversally :=? "#" ]
-        |
-        [ @expansionNegated :=? "~" ]
-        "("
+         )
+         "}"
+         [ SCAN {assertKeywordPresent} => @appliedUniversally :=? "#" ]
+         |
+         [ @expansionNegated :=? "~" ]
+         "("
             ExpansionChoice {CURRENT_NODE.setExpansion((Expansion) peekNode());}
-        ")"
-       )
-       [
+         ")"
+        )
+        [
           SCAN {assertKeywordPresent} =>
-           ":" @messageExpression := Expression
-           [":"]
-       ]
-       |
-       // Abbreviated "ASSERT {&...&}#..."
-       SCAN /.../BNFProduction/.../ExpansionWithParentheses/ExpansionChoice/ExpansionSequence/ExpansionUnit => 
-       cardinality=CardinalityConstraint =>||  
-       {
-         CURRENT_NODE.setCardinalityConstraint(cardinality);
-         THIS_PRODUCTION.setAppliedUniversally(true);
-       }
+          ":" @messageExpression := Expression
+          [":"]
+        ]
+        |
+        // Abbreviated "ASSERT {&...&}#..."
+        SCAN /.../BNFProduction/.../ExpansionWithParentheses/ExpansionChoice/ExpansionSequence/ExpansionUnit => 
+        cardinality=CardinalityConstraint =>||  
+        {
+          CURRENT_NODE.setCardinalityConstraint(cardinality);
+          THIS_PRODUCTION.setAppliedUniversally(true);
+        }
    )
    [UpToHere(CURRENT_NODE)]
 ;

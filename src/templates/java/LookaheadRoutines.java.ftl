@@ -140,7 +140,7 @@
       #set cardinalitiesVar = "cardinalities"
   #endif
   // BuildPredicateRoutine: ${expansion.simpleName} at ${expansion.location}
-   private boolean ${expansion.predicateMethodName}([#if cardinalitiesVar??]ChoiceCardinality ${cardinalitiesVar}[/#if]) {
+   private boolean ${expansion.predicateMethodName}([#if cardinalitiesVar??]RepetitionCardinality ${cardinalitiesVar}[/#if]) {
      remainingLookahead = ${lookaheadAmount};
      currentLookaheadToken = lastConsumedToken;
      final boolean scanToEnd = false;
@@ -174,7 +174,7 @@
   #if expansion.cardinalityConstrained
     #set cardinalitiesVar = "cardinalities"
   #endif
-  private boolean ${expansion.scanRoutineName}(boolean scanToEnd[#if expansion.cardinalityConstrained], ChoiceCardinality cardinalities[/#if]) { 
+  private boolean ${expansion.scanRoutineName}(boolean scanToEnd[#if expansion.cardinalityConstrained], RepetitionCardinality cardinalities[/#if]) { 
     #if expansion.hasScanLimit
        int prevPassedPredicateThreshold = this.passedPredicateThreshold;
        this.passedPredicateThreshold = -1;
@@ -285,7 +285,7 @@
   #if lookahead.nestedExpansion.cardinalityConstrained
    #set cardinalitiesVar = "cardinalities"
   #endif
-     private boolean ${lookahead.nestedExpansion.scanRoutineName}(boolean scanToEnd[#if lookahead.nestedExpansion.cardinalityConstrained], ChoiceCardinality ${cardinalitiesVar}[/#if]) {
+     private boolean ${lookahead.nestedExpansion.scanRoutineName}(boolean scanToEnd[#if lookahead.nestedExpansion.cardinalityConstrained], RepetitionCardinality ${cardinalitiesVar}[/#if]) {
         int prevRemainingLookahead = remainingLookahead;
         boolean prevHitFailure = hitFailure;
         ${settings.baseTokenClassName} prevScanAheadToken = currentLookaheadToken;
@@ -572,7 +572,7 @@
       #set zomCardVar = "cardinality" + repetitionIndex
       #set repetitionIndex = repetitionIndex + 1
       // instantiating the OneOrMore choice cardinality container for its ExpansionChoices 
-      ChoiceCardinality ${zomCardVar} = new ChoiceCardinality(${CU.BuildCardinalities(zom.cardinalityConstraints)}, false); 
+      RepetitionCardinality ${zomCardVar} = new RepetitionCardinality(${CU.BuildCardinalities(zom.cardinalityConstraints)}, false); 
     #endif
     boolean ${prevPassPredicateVarName} = passedPredicate;
     try {
@@ -580,16 +580,16 @@
       ${CU.newVar(type = settings.baseTokenClassName init = "currentLookaheadToken")}
         passedPredicate = false;
         if (!${CheckExpansion(zom.nestedExpansion zomCardVar cardinalitiesVar!null)}) {
-            if (passedPredicate && !legacyGlitchyLookahead) ${returnFalse(zomCardVar, cardinalitiesVar!null)};
+            if (passedPredicate && !legacyGlitchyLookahead) ${returnFalse(cardinalitiesVar!null)};
             currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
             break;
         }
         #if zom.cardinalityContainer
-           ${zomCardVar}.commitIteration();
+           ${zomCardVar}.commitIteration(false);
         #endif
       }
       #if zom.cardinalityContainer
-         if(!${zomCardVar}.checkCardinality(true)) ${returnFalse(zomCardVar, cardinalitiesVar!null)};
+         if(!${zomCardVar}.checkCardinality(true)) ${returnFalse(cardinalitiesVar!null)};
       #endif
     } finally {
       passedPredicate = ${prevPassPredicateVarName};
@@ -608,11 +608,11 @@
       #set oomCardVar = "cardinality" + repetitionIndex
       #set repetitionIndex = repetitionIndex + 1
       // instantiating the OneOrMore choice cardinality container for its ExpansionChoices 
-      ChoiceCardinality ${oomCardVar} = new ChoiceCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, false); 
+      RepetitionCardinality ${oomCardVar} = new RepetitionCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, false); 
     #endif
    ${BuildScanCode(oom.nestedExpansion oomCardVar cardinalitiesVar!null)}
    #if oom.cardinalityContainer
-      ${oomCardVar}.commitIteration();
+      ${oomCardVar}.commitIteration(false);
    #endif
    ${ScanCodeZeroOrMore(oom oomCardVar cardinalitiesVar!null)}
 #endmacro
