@@ -201,40 +201,37 @@ void dumpLookaheadCallStack(PrintStream ps) {
       )
       [#if settings.useCheckedException] throws ParseException [/#if]
       {
-#if settings.faultTolerant
-        if (isParserTolerant()) {
-            ${settings.baseTokenClassName} nextNext = nextToken(nextToken);
-            [#-- REVISIT. Here we skip one token (as well as any InvalidToken) but maybe (probably!) this behavior
+      #if !settings.faultTolerant
+       throw new ParseException(nextToken, EnumSet.of(expectedType), parsingStack);
+      #else
+       if (!this.tolerantParsing) {
+          throw new ParseException(nextToken, EnumSet.of(expectedType), parsingStack);
+       }
+       ${settings.baseTokenClassName} nextNext = nextToken(nextToken);
+       if (nextNext.getType() == expectedType) {
+             [#-- REVISIT. Here we skip one token (as well as any InvalidToken) but maybe (probably!) this behavior
              should be configurable. But we need to experiment, because this is really a heuristic question, no?--]
-            // does the token after the unexpected one match the expected type?
-            if (nextNext.getType() == expectedType) {
-                // we got an extra token; indicate that it is skipped and push it on the stack
-                nextToken.setSkipped(true);
-    #if settings.treeBuildingEnabled
-                pushNode(nextToken);
-    #endif
-                // return the expected token that immediately follows the skipped one
-                return nextNext;
-            }
-            [#-- Since skipping the next token did not work, we will insert a virtual token --]
-            // did the Terminal have a ! or does the follow set include the token we got? 
-            if (tolerant || followSet == null || followSet.contains(nextToken.getType())) {
-                // we are missing the expected token; create and return a virtual token as a placeholder
-                Token virtualToken = Token.newToken(expectedType, token_source, 0, 0);
-                virtualToken.setVirtual(true);
-                virtualToken.copyLocationInfo(nextToken);
-    #if lexerData.hasLexicalStateTransitions
-                if (token_source.doLexicalStateSwitch(expectedType)) {
-                   token_source.reset(virtualToken);
-                }
-    #endif
-                return virtualToken;
-            }
-        }
-        // recovery is either not requested or not possible
+             nextToken.setSkipped(true);
+#if settings.treeBuildingEnabled
+             pushNode(nextToken);
 #endif
-        throw new ParseException(nextToken, EnumSet.of(expectedType), parsingStack);
-    }
+             return nextNext;
+       }
+         [#-- Since skipping the next token did not work, we will insert a virtual token --]
+       if (tolerant || followSet == null || followSet.contains(nextToken.getType())) {
+           ${settings.baseTokenClassName} virtualToken = ${settings.baseTokenClassName}.newToken(expectedType, token_source, 0, 0);
+           virtualToken.setVirtual(true);
+           virtualToken.copyLocationInfo(nextToken);
+#if lexerData.hasLexicalStateTransitions
+           if (token_source.doLexicalStateSwitch(expectedType)) {
+              token_source.reset(virtualToken);
+           }
+#endif
+           return virtualToken;
+       }
+       throw new ParseException(nextToken, EnumSet.of(expectedType), parsingStack);
+      #endif
+  }
 
   /**
    * pushes the last token back.
