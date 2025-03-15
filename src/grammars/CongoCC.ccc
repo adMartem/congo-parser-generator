@@ -746,7 +746,7 @@ BNFProduction #org.congocc.core.BNFProduction :
         if (tba == null && !grammar.getAppSettings().getNodeDefaultVoid()) {
            grammar.addNodeType(CURRENT_NODE.getName(),CURRENT_NODE.getName());
         }
-     }
+    }
 ;
 
 TreeNodeDescriptor #TreeBuildingAnnotation :
@@ -986,6 +986,7 @@ ExpansionWithParentheses :
     LexicalStateSwitch lss=null;
     Assignment assignment = null;
     Token atPrefix = null;
+    CodeBlock recoveryBlock = null;
     ExpansionChoice choice;
 }
    [lss=LexicalStateSwitch | TokenActivation]
@@ -1008,12 +1009,14 @@ ExpansionWithParentheses :
    }
    [
        SCAN ~\...\Lookahead =>
-       "!"
+       ( "!" | "!->" recoveryBlock = Block )
        {
            if (CURRENT_NODE instanceof ZeroOrOne) {
                nested.setTolerantParsing(true);
+               nested.setRecoveryBlock(recoveryBlock);
            } else {
                CURRENT_NODE.setTolerantParsing(true);
+               CURRENT_NODE.setRecoveryBlock(recoveryBlock);
            }
        }
    ]
@@ -1498,7 +1501,7 @@ ExpansionUnit #void :
   ]
   [
      SCAN ~\...\Lookahead =>
-     "!"
+     ( "!" | "!->" @recoveryBlock = Block )
      {CURRENT_NODE.setTolerantParsing(true);}
   ]
   [ChildNameInfo(CURRENT_NODE)]
@@ -1594,7 +1597,10 @@ ZeroOrOne :
         @assignment = Assignment =>||
     ]
     "[" =>|| ExpansionChoice {Expansion exp = (Expansion) peekNode();} "]"
-     ["!" {exp.setTolerantParsing(true);}]
+     [
+        ( "!" | "!->" @recoveryBlock = Block )
+        {exp.setTolerantParsing(true);}
+     ]
      [UpToHere(CURRENT_NODE)]
 ;
 
@@ -1602,7 +1608,7 @@ INJECT ZeroOrOne :
      import org.congocc.core.Expansion;
      import org.congocc.core.TokenSet;
      extends ExpansionWithParentheses
-{
+{  
     @Override
     protected int getMinimumSize(java.util.Set<String> unused) {return 0;}
 }
