@@ -818,6 +818,7 @@
 
 #macro BuildCodeTerminal terminal
    #var LHS = getLhsPattern(terminal.assignment, "Token"), regexp = terminal.regexp
+   #var lambda = terminal.recoveryBlock!
    #if !settings.faultTolerant
        ${LHS?replace("@", "consumeToken(" + regexp.label + ")")};
    #else
@@ -831,7 +832,7 @@
             ${followSetVarName}.addAll(outerFollowSet);
          }
        #endif
-       ${LHS?replace("@", "consumeToken(" + regexp.label + ", " + tolerant + ", " + followSetVarName + ")")};
+       ${LHS?replace("@", "consumeToken(" + regexp.label + ", " + tolerant + ", " + followSetVarName + ", () -> {" + lambda + ";})")};
    #endif
 #endmacro
 
