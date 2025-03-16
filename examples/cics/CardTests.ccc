@@ -3,18 +3,21 @@ PARSER_PACKAGE=org.parsers.test;
 TAB_SIZE=4;
 ENSURE_FINAL_EOL;
 TERMINATING_STRING="";
-//#define FT
+#define FT
 #if FT
 FAULT_TOLERANT;
 FAULT_TOLERANT_DEFAULT=true;
 #endif
 
+<DEFAULT,JAVA> UNPARSED : 
+    < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > 
+    |
+    < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > 
+    |
+    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR> >
+; 
 
-
-UNPARSED : 
-    < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > |
-    < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > |
-    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR>  > |
+<DEFAULT> UNPARSED :
     < COMMA: [ ",", ";" ] >
 ;
 
@@ -92,7 +95,7 @@ Four: "4";
 Five: "5";
 
 Number : 
-    "1" | "2" | "3" | "4" | "5"; 
+    "1"! | "2"! | "3"! | "4"! | "5"!; 
 
 NumberUnitSet : 
     Number 
@@ -119,9 +122,9 @@ NumberSet :
 Numbers :
     (
         Number
-    )+ ! //-> {System.out.println("Not a number! Skip it.");}
+    )+ !-> {System.out.println("Not a number! Skip it.");}
     ENSURE ("}")
-    {System.out.println("A non-empty collection of natural numbers <= 5");}
+    {System.err.println("A non-empty collection of natural numbers <= 5");}
 ;
 
 OddNumber :
@@ -193,7 +196,7 @@ EvenNumberSet :
  * Modifiers in Java.ccc using RCAs instead of semantic actions (mostly).
  */
 
-TOKEN #KeyWord :
+<JAVA> TOKEN #KeyWord :
   <UNDERSCORE : "_">
 |  < ABSTRACT: "abstract" >
 | < _ASSERT: "assert" >

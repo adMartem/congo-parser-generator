@@ -1526,11 +1526,9 @@ Terminal# :
       CURRENT_NODE.setLabel(result.getLabel());
   }
   [
-      SCAN ~\...\Lookahead
-      => "!"
-      {
-          CURRENT_NODE.setTolerantParsing(true);
-      }
+      SCAN ~\...\Lookahead =>
+     ( "!" | "!->" @recoveryBlock = Block )
+     {CURRENT_NODE.setTolerantParsing(true);}
   ]
   [
       ChildNameInfo(CURRENT_NODE)

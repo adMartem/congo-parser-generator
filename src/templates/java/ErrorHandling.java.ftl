@@ -158,13 +158,12 @@ void dumpLookaheadCallStack(PrintStream ps) {
       {
         ${settings.baseTokenClassName} nextToken = nextToken(lastConsumedToken);
         if (nextToken.getType() != expectedType) {
-            nextToken = handleUnexpectedTokenType(expectedType, nextToken
+            lastConsumedToken = handleUnexpectedTokenType(expectedType, nextToken
             #if settings.faultTolerant
-               , tolerant, followSet
+               , tolerant, followSet, recoveryAction
             #endif
             ) ;
         }
-        this.lastConsumedToken = nextToken;
         this.nextTokenType = null;
 #if settings.treeBuildingEnabled
       if (buildTree && tokensAreNodes) {
@@ -183,14 +182,18 @@ void dumpLookaheadCallStack(PrintStream ps) {
 // Check whether the very next token is in the follow set of the last consumed token
 // and if it is not, we check one token ahead to see if skipping the next token remedies
 // the problem.
+      ${settings.baseTokenClassName} next = null;
       if (followSet != null && isParserTolerant()) {
-         nextToken = nextToken(lastConsumedToken);
-         if (!followSet.contains(nextToken.getType())) {
-            ${settings.baseTokenClassName} nextNext = nextToken(nextToken);
+         next = nextToken(lastConsumedToken);
+         if (!followSet.contains(next.getType())) {
+            ${settings.baseTokenClassName} nextNext = nextToken(next);
             if (followSet.contains(nextNext.getType())) {
-               nextToken.setSkipped(true);
+               next.setSkipped(true);
             }
          }
+      }
+      if (lastConsumedToken.isSkipped() || lastConsumedToken.isVirtual() || (next != null && next.isSkipped())) {
+         recoveryAction.run();
       }
 #endif
       return lastConsumedToken;
