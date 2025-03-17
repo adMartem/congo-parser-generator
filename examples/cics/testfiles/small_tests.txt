@@ -1,4 +1,4 @@
-
+!{4,9,2}!
 (a)
 (aa)
 (bba)
@@ -27,6 +27,4 @@
 [static final public]
 [final static public]
 [final public static]
-(deefgghi)
-!end
-{4,public,2} FT-only!
+(the end)
