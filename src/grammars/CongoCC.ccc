@@ -856,11 +856,6 @@ INJECT ExpansionChoice :
 {
     @Property int assertionIndex = -1;
     
-    public String dumpit() {
-        Thread.dumpStack();
-        return "";
-    }
-    
     public List<ExpansionSequence> getChoices() {
         return childrenOfType(ExpansionSequence.class);
     }
@@ -1135,8 +1130,10 @@ int[] CardinalityConstraint#void :
         literal=<INTEGER_LITERAL> 
             {cardinality[0]=cardinality[1]=Integer.valueOf(literal.toString());}
         [
-            ":"
+            ":" {cardinality[1]=Integer.MAX_VALUE;}
+            [
             literal=<INTEGER_LITERAL> {cardinality[1]=Integer.valueOf(literal.toString());}
+        ]
         ]
         "&"
    ]
