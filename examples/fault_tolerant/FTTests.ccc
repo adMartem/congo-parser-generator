@@ -1,0 +1,42 @@
+
+PARSER_PACKAGE=org.parsers.test;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+TERMINATING_STRING="";
+#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+<DEFAULT> UNPARSED : 
+    < #LINE_TERMINATOR: ( [ "\n", "\r" ] | "\r\n" ) > 
+    |
+    < #INLINE_WHITESPACE: ( [ " ", "\t", "\f" ] )+ > 
+    |
+    < WHITESPACE: <INLINE_WHITESPACE> | <LINE_TERMINATOR> >
+; 
+
+<DEFAULT> UNPARSED :
+    < COMMA: [ ",", ";" ] >
+;
+<OTHER> TOKEN : 
+    <FOO: "foo">
+    |
+    <BAR: "bar">
+;
+
+FooBar : 
+    (<FOO>! | <BAR>!)+ 
+;
+
+FooBars : 
+    (
+        "[" LEXICAL_STATE OTHER (FooBar #Other) "]"
+    )+
+;
+
+#Root : 
+    FooBars
+    <EOF> {return CURRENT_NODE;}
+;

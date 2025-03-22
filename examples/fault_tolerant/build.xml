@@ -1,0 +1,76 @@
+<project name="PEG Parser" default="compile">
+  <target name="clean">
+    <delete dir="org" />
+    <delete dir="pegparser" />
+  	<delete dir="PegParse.class"/>
+  </target>
+
+  <target name="init">
+    <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
+      <srcfiles dir="." includes="*.ccc" />
+    </uptodate>
+  </target>
+
+  <target name="parser-gen" depends="init" unless="pegparser.uptodate">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/peg.ccc" />
+    </java>
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/FTTests.ccc" />
+    </java>
+  	<!--
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line="-n -lang python ${basedir}/Cics.ccc" />
+    </java>
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg line="-n -lang csharp ${basedir}/Cics.ccc" />
+    </java>
+    -->
+  </target>
+
+  <target name="compile" depends="init,parser-gen">
+    <javac srcdir="." failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
+  </target>
+
+  <target name="test" depends="compile">
+    <java fork="true" classpath="." failonerror="true" classname="FTParse">
+      <assertions>
+        <enable />
+      </assertions>
+    	<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/FooBars.txt" />
+    </java>
+  </target>
+
+  <target name="test-peg" depends="compile">
+    <java fork="true" classpath="." failonerror="true" classname="PegParse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/peg.peg" />
+    </java>
+  </target>
+
+<!--
+  <target name="test-python" depends="parser-gen">
+    <exec executable="python3" dir="${basedir}" failonerror="true">
+      <arg line="-u cicsparse.py testfiles" />
+    </exec>
+  </target>
+-->
+</project>

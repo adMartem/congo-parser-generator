@@ -101,12 +101,18 @@ private boolean unparsedTokensAreNodes = ${settings.unparsedTokensAreNodes ?: "t
 	/* A definite node is constructed from a specified number of
 	 * children.  That number of nodes are popped from the stack and
 	 * made the children of the definite node.  Then the definite node
-	 * is pushed on to the stack.
+	 * is pushed on to the stack.  If the number of nodes is < 0, the node is not
+	 * constructed and they are left on the stack in the same manner as a conditional
+     * node with a false predicate.
 	 * @param n is the node whose scope is being closed
 	 * @param num is the number of child nodes to pop as children
 	 * @return @{code true}
 	 */
     private boolean closeNodeScope(Node n, int num) {
+        if (num < 0 || n == null) {
+            currentNodeScope.close();
+            return false;
+        }
         n.setBeginOffset(lastConsumedToken.getEndOffset());
         n.setEndOffset(lastConsumedToken.getEndOffset());
         currentNodeScope.close();
@@ -158,11 +164,7 @@ private boolean unparsedTokensAreNodes = ${settings.unparsedTokensAreNodes ?: "t
 	 * constructed and they are left on the stack.
 	 */
     private boolean closeNodeScope(Node n, boolean condition) {
-        if (n == null || !condition) {
-            currentNodeScope.close();
-            return false;
-        }
-        return closeNodeScope(n, nodeArity());
+        return closeNodeScope(n, (condition ? nodeArity() : -1));
     }
 
 
