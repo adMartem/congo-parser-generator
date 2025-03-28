@@ -7,7 +7,7 @@
 
   <target name="init">
     <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
-      <srcfiles dir="." includes="*.ccc" />
+      <srcfiles dir="." includes="grammar.*.ccc" />
     </uptodate>
   </target>
 
@@ -56,13 +56,13 @@
     </java>
   </target>
 
-  <target name="test-peg" depends="compile">
+  <target name="test-peg-on-peg" depends="compile">
     <java fork="true" classpath="." failonerror="true" classname="PegParse">
       <assertions>
         <enable />
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="testfiles/peg.peg" />
+      <arg value="grammar/peg.peg" />
     </java>
   </target>
 

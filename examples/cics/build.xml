@@ -64,7 +64,7 @@
         <enable />
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="testfiles" />
+      <arg value="testfiles/a_valid.cics" />
     </java>
   </target>
 

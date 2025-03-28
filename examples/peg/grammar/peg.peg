@@ -1,18 +1,21 @@
-
+# This is Bryan Ford's original PEG grammar as defined by his paper 
+# titled "Parsing Expression Grammars: A Recognition-based Syntactic Foundation" 
+# in POPL'04 January 14-16, 2004, Venice, Italy.
+  
 #########################
 ## Hierarchical Syntax ##
 #########################
 
 Grammar     <- Spacing (Definition)+ EndOfFile
-Definition  <- Identifier LEFTARROW ⫸ Expression
+Definition  <- Identifier LEFTARROW Expression
 Expression  <- Sequence (SLASH Sequence)*
 Sequence    <- Prefix*
 Prefix      <- (AND / NOT)? Suffix
 Suffix      <- Primary (QUESTION / STAR / PLUS)? (ENTAILS)?
 Primary     <- Identifier !LEFTARROW
              / OPEN Expression CLOSE
-             / Literal / Class / Dot
-
+             / Literal / Class / DOT 
+             
 ####################
 ## Lexical Syntax ##
 ####################
@@ -20,14 +23,14 @@ Primary     <- Identifier !LEFTARROW
 Identifier  <- IdentStart IdentCont* Spacing
 IdentStart  <- [a-zA-Z]
 IdentCont   <- IdentStart / [0-9]
-Literal     <- ['] (!['] Char)* ['] Spacing
-             / ["] (!["] Char)* ["] Spacing
-Class       <- '[' (!']' Range)* ']' Spacing
+Literal     <- ['] (!['] Char)* ['] Spacing 
+             / ["] (!["] Char)* ["] Spacing 
+Class       <- '[' (!']' Range )* ']' Spacing
 Range       <- Char '-' Char / Char
-Char        <- '\\' [nrt'"\[\]\\]               # escapes = {n,r,t,',",[,],\}
-             / '\\' [0-2] [0-7] [0-7] ⫸        #           {000->277}
-             / '\\' [0-7] [0-7]?                #           {0->7,00->77}
-             / !'\\' .                          #           {[^\]}
+Char        <- '\\' [nrt"'\[\]\\]
+             / '\\' [0-2] [0-7] [0-7]
+             / '\\' [0-7] [0-7]? 
+             / !'\\' . 
              
 ENTAILS     <- ('>>>' / '⫸') Spacing
 LEFTARROW   <- '<-' Spacing
@@ -41,7 +44,7 @@ OPEN        <- '(' Spacing
 CLOSE       <- ')' Spacing
 DOT         <- '.' Spacing
 
-Spacing     <- (Space / Comment)*
+Spacing     <- ( Space / Comment )*
 Comment     <- '#' (!EndOfLine .)* EndOfLine
 Space       <- ' ' / '\t' / EndOfLine
 EndOfLine   <- '\r\n' / '\n' / '\r'

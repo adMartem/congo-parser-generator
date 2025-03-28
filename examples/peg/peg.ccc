@@ -1,0 +1,17 @@
+PARSER_PACKAGE=org.parsers.peg;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TERMINATING_STRING="";
+DEFAULT_LEXICAL_STATE=PEG;
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+#PegGrammar :
+    Grammar {return CURRENT_NODE;}
+;
+
+INCLUDE "boot_peg.inc";

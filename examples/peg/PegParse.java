@@ -1,17 +1,15 @@
 import java.io.*;
 import java.util.*;
 
-import org.parsers.peg.Node;
-import org.parsers.peg.PegParser;
 import org.parsers.peg.*;
 import org.parsers.peg.ast.*;
 
 /**
- * A test harness for parsing Cics source code
+ * A test harness for parsing PEG grammar source code
   */
 public class PegParse {
 
-    static public ArrayList<Node> roots= new ArrayList<>();
+   static public ArrayList<Node> roots= new ArrayList<>();
 
    static public void main(String args[]) {
       List<File> failures = new ArrayList<File>();
@@ -35,7 +33,7 @@ public class PegParse {
           try {
              // A bit screwball, we'll dump the tree if there is only one arg. :-)
               parseStart = System.nanoTime();
-              BaseNode root = pp.parseFile(file, files.size() == 1);
+              PegGrammar root = pp.parseFile(file, files.size() == 1);
               pp.convert(root);
           }
           catch (Exception e) {
@@ -64,9 +62,9 @@ public class PegParse {
        if (!failures.isEmpty()) System.exit(-1);
     }
 
-   public BaseNode parseFile(File file, boolean dumpTree) throws IOException {
+   public PegGrammar parseFile(File file, boolean dumpTree) throws IOException {
        PegParser parser = new PegParser(file.toPath());
-       BaseNode root=parser.Grammar();
+       PegGrammar root=parser.PegGrammar();
        if (dumpTree) {
            root.dump("");
        }
@@ -90,7 +88,29 @@ public class PegParse {
        System.exit(-1);
    }
    
-   public void convert(BaseNode n) {
+   private static final Set<String> JAVA_CORE_CLASSES = Set.of(
+           // java.lang package
+           "String", "Integer", "Double", "Boolean", "Character", "Math", "Object", "Class", 
+           "System", "Runtime", "Thread", "Exception", "Error", "Enum", "Comparable",
+           "Throwable", "StringBuilder", "StringBuffer", "Void", "Number", "StrictMath",
+
+           // java.util package
+           "List", "ArrayList", "LinkedList", "Vector", "Stack", "Queue", "Deque",
+           "HashMap", "TreeMap", "Hashtable", "HashSet", "TreeSet", "Collections",
+           "Optional", "Iterator", "Random", "Date", "UUID", "Stream",
+
+           // java.io package
+           "File", "FileReader", "FileWriter", "BufferedReader", "PrintWriter", "Console",
+           "InputStream", "OutputStream", "Reader", "Writer"
+       );
+
+   static boolean isJavaCoreClass(String className) {
+       return JAVA_CORE_CLASSES.contains(className.trim());
+   }
+   
+   static final boolean AUTO_ENTAILMENT = true;
+   
+   public void convert(PegGrammar n) {
        PegVisitor visitor = new PegVisitor(new IndentingPrintStream(System.out));
        visitor.visit(n);
    }
@@ -135,39 +155,48 @@ public class PegParse {
        Map<String,String> tokenDefinitions = new LinkedHashMap<>();
        int tokenId = -1;
        
+       private String mungPegIdentifier(String identifier) {
+           if (isJavaCoreClass(identifier)) {
+               return "_"+identifier;
+           }
+           return identifier;
+       }
+       
        private String resolveToken(String tokenDef) {
            String tokenName;
            if (!tokenDefinitions.containsKey(tokenDef)) {
+               if (tokenDef.matches("\\[\".(.)?\\\"\\]")) {
+                   tokenName = tokenDef.substring(1, tokenDef.length() - 1);
+                   return tokenName;
+               }
                tokenName = "CLASS_" + ++tokenId;
                tokenDefinitions.put(tokenDef, tokenName);
            } else {
                tokenName = tokenDefinitions.get(tokenDef);
            }
-           return "<" + tokenName + ">";
+           return "LEXICAL_STATE " + tokenName +"_STATE (<" + tokenName + ">)";
        }
        
        private void printTokenDefinitions(IndentingPrintStream ps) {
            ps.append("<ANY> TOKEN : <ANY_CHAR: ~[] >;").nl();
-           ps.append("<PEG> ").append("TOKEN :").indent().nl();
-           boolean isFirst = true;
            Iterator<Map.Entry<String,String>> i = tokenDefinitions.entrySet().iterator();
            while (i.hasNext()) {
                Map.Entry<String,String> e = i.next();
                String tokenName = e.getValue();
                String tokenDefinition = e.getKey();
-               if (!isFirst) {
-                   ps.append("|").nl();
-               } else {
-                   isFirst = false;
-               }
-               ps.append("<").append(tokenName).append(":").append(" ").append(tokenDefinition).append(" >").nl();
+               ps.append("<").append(tokenName).append("_STATE> TOKEN:").append(" ")
+                 .append("<").append(tokenName).append(": ").append(tokenDefinition)
+                 .append(" >;").nl();
            }
-           ps.outdent().append(";").nl();
        }
        
        public PegVisitor(IndentingPrintStream ps) {
            this.ps = ps;
        }
+       
+//       void visit(Comment n) {
+//           //TODO: convert to CongoCC comment
+//       }
        
        void visit(Grammar n) {
            recurse(n);
@@ -175,46 +204,128 @@ public class PegParse {
        }
        
        void visit(Definition n) {
-           ps.nl().append(n.getProductionName()).colon().indent().nl();
-           recurse(n);
+           ps.nl().append(mungPegIdentifier(n.firstChildOfType(Identifier.class).toString())).colon().indent().nl();
+           visit(n.firstChildOfType(Expression.class));
            ps.outdent().nl().semi().nl();
        }
        
-       void visit(Predicate n) {
-           ps.append("ENSURE ");
-           visit(n.firstChildOfType(Token.class));
-           ps.append("( ");
-           visit(n.firstChildOfType(Suffix.class));
-           ps.append(") ");
+       void visit(Prefix n) {
+           if (n.firstChildOfType(NOT.class) != null || n.firstChildOfType(AND.class) != null) {
+               ps.append("ENSURE ");
+               visit(n.firstChildOfType(BaseNode.class));
+               ps.append("( ");
+               visit(n.firstChildOfType(Suffix.class));
+               ps.append(") ");
+           } else {
+               recurse(n);
+           }
        }
        
        void visit(Suffix n) {
+           boolean isModified = false;
+           if ( n.size() > 1 && 
+               (n.get(1).toString().trim().equals("?") ||
+                n.get(1).toString().trim().equals("*") ||
+                n.get(1).toString().trim().equals("+"))) {
+               isModified = true;
+           }
            // if */?/+, wrap the Primary in parentheses
-           if (n.size() > 1) {
+           if (isModified) {
                ps.append("( ");
            }
            visit(n.get(0));
-           if (n.size() > 1) {
+           if (isModified) {
+               if (AUTO_ENTAILMENT) {
+                   ps.append("=>|| ");
+               }
                ps.append(")");
-               visit(n.get(1));
+           }
+           for (int i = 1; i < n.size(); i++) {
+               visit(n.get(i));
            }
        }
        
-       void visit(NonTerminalReference n) {
-           ps.append(n.toString()).append(' ');
+       void visit(Identifier n) {
+           ps.append(mungPegIdentifier(n.toString())).append(' ');
        }
        
-       void visit(_LITERAL n) {
+       String convertEscapedString(String literal) {
+           if (
+               ((literal.startsWith("\"") && literal.charAt(literal.length()-1) == '\"') ||
+               (literal.startsWith("'") && literal.charAt(literal.length()-1) == '\'')) &&
+               literal.length() > 1
+              ) {
+               literal = literal.substring(1, literal.length() - 1);
+           }
+           StringBuilder sb = new StringBuilder("\"");
+           boolean isEscape = false;
+           int oDigit = 0;
+           int oAccum = 0;
+           for (int i=0; i < literal.length(); i++) {
+               char c = literal.charAt(i);
+               if (oDigit > 0 && oDigit <= 3) {
+                   if ('0' > c || c > '7') {
+                       oAccum = (oAccum * 8) + (c - '0');
+                       oDigit++;
+                       continue;
+                   } else {
+                       String hex = String.format("%04X", oAccum); 
+                       sb.append("\\u").append(String.format("%04X", oAccum));
+                   }
+               }
+               oDigit = 0;
+               if (isEscape) {
+                    isEscape = false;
+                    if ('0' > c || c > '7') {
+                       switch (c) {
+                       case 'n':
+                       case 'r':
+                       case 't':
+                       case '\\':
+                       case '\"':
+                           sb.append('\\');
+                           // fall thru
+                       default:
+                           sb.append(c);
+                       }
+                    } else {
+                        // octal ASCII code point
+                        oAccum = c - '0';
+                        oDigit = 1;
+                    }
+               } else {
+                   if (c == '\\') {
+                       isEscape = true;
+                       continue;
+                   }
+                   if (c == '\"') {
+                       sb.append("\\\"");
+                       continue;
+                   }
+                   sb.append(c);
+               }
+           }
+           sb.append("\"");
+           return sb.toString();
+       }
+       
+       void visit(Literal n) {
            // "..." | '...' with C escaping
            // form the Java string, use it in situ
-           String literal = n.toString();
-           if (literal.startsWith("'")) {
-               literal = literal.translateEscapes().replaceAll("'", "\"");
+           String literal = "";
+           List<Char> chars = n.childrenOfType(Char.class);
+           if (chars != null && !chars.isEmpty()) {
+               for (Char literalChar : chars) {
+                   literal += literalChar.toString();
+               }
+           } else {
+               // hand coded peg.ccc
+               literal = n.toString();
            }
-           ps.append(literal).append(' ');
+           ps.append(convertEscapedString(literal)).append(" ");
        }
        
-       void visit(Clazz n) {
+       void visit(_Class n) {
            // [...] with \] and \\ escaped
            StringBuilder sb = new StringBuilder();
            List<Range> ranges = n.childrenOfType(Range.class);
@@ -223,10 +334,10 @@ public class PegParse {
                for (Range r : ranges) {
                    List<Char> chars = r.childrenOfType(Char.class);
                    String char1 = chars.get(0).toString();
-                   sb.append('\"').append(char1.replaceAll("[\"]", "\\\"")).append('\"');
-                   if (!r.isLoneChar()) {
+                   sb.append(convertEscapedString(char1));
+                   if (chars.size() > 1) {
                        String char2 = chars.get(1).toString();
-                       sb.append('-').append('\"').append(char2.replaceAll("[\"]", "\\\"")).append('\"');
+                       sb.append('-').append(convertEscapedString(char2));
                    }
                    sb.append(',');
                }
@@ -253,6 +364,9 @@ public class PegParse {
        }
        
        void visit(SLASH n) {
+           if (AUTO_ENTAILMENT) {
+               ps.append("=>|| ");
+           }
            ps.append("| ");
        }
        
@@ -268,7 +382,7 @@ public class PegParse {
            ps.append(") ");
        }
        
-       void visit(_DOT n) {
+       void visit(DOT n) {
            ps.append("LEXICAL_STATE ANY (<ANY_CHAR>) ");
        }
    }

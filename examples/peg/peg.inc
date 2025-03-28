@@ -1,14 +1,4 @@
 
-PARSER_PACKAGE=org.parsers.peg;
-TAB_SIZE=4;
-ENSURE_FINAL_EOL;
-TERMINATING_STRING="";
-SMART_NODE_CREATION=false;
-//#define FT
-#if FT
-FAULT_TOLERANT;
-FAULT_TOLERANT_DEFAULT=true;
-#endif
 
 UNPARSED #WhitespaceToken :
         <EOL: "\n" >
@@ -353,11 +343,10 @@ TOKEN :
 ;
 
 Definition : 
-    @productionName :=$ <_IDENTIFIER> <LEFT_ARROW>
-    Expression
+    Identifier <LEFT_ARROW> Expression
 ;
 
-Expression #Choice : 
+Expression : 
     Sequence (<SLASH> Sequence)*
 ;
 
@@ -366,49 +355,56 @@ Sequence :
 ;
 
 Prefix :
-{
-    int p = -1;
-}
-    [ (<AND> {p=1;} | <NOT> {p=2;}) ] Suffix #Predicate(p)
+    [ AND | NOT ] Suffix
 ;
 
-Suffix#(true) :
-    Primary [ <QUESTION> | <STAR> | <PLUS> ] [ <ENTAILS> ]
+Suffix :
+    Primary [ (<QUESTION> | <STAR> | <PLUS>) ] [ <ENTAILS> ]
 ;
 
 Primary :
-    <_IDENTIFIER> #NonTerminalReference ENSURE ~(<LEFT_ARROW>) =>||
+    Identifier ENSURE ~(<LEFT_ARROW>) =>||
     |
     <OPEN> Expression <CLOSE>
     |
-    <_LITERAL>
+    Literal
     |
-    Clazz
+    _Class
     |
-    <_DOT>
+    DOT
 ;
 
 ////////////////////
 // Lexical Syntax //
 ////////////////////
 
-Clazz :
+Identifier : <_IDENTIFIER>;
+
+Literal : <_LITERAL>;
+
+_Class :
     "[" (Range =>||)* "]"
 ;
 
 Range# :
-    Char "-" =>|| Char | @loneChar :=? Char
+    Char "-" =>|| Char | Char
 ;
 
 Char# :
     <CHAR_ESCAPED> | ENSURE ~(<CLOSE_BRACKET>) AnyChar =>||
 ;
 
+AND : <_AND>;
+
+NOT : <_NOT>;
+
+DOT : <_DOT>;
+
 AnyChar : LEXICAL_STATE ANY (<ANY_CHAR>);
 
 
 <ANY> TOKEN : <ANY_CHAR: ~[] >;
-<DEFAULT,ANY> TOKEN :
+<PEG,ANY> TOKEN :
     <CLOSE_BRACKET: "]" >
 ;
     
@@ -435,9 +431,9 @@ TOKEN :
     |
     <SLASH: "/" >
     |
-    <AND: "&" >
+    <_AND: "&" >
     |
-    <NOT: "!" >
+    <_NOT: "!" >
     |
     <QUESTION: "?" >
     |
