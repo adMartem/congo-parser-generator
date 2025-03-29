@@ -19,27 +19,6 @@
       <arg value="-n" />
       <arg value="${basedir}/peg.ccc" />
     </java>
-    <java jar="../../congocc.jar" failonerror="true" fork="true">
-      <assertions>
-        <enable />
-      </assertions>
-      <arg value="-n" />
-      <arg value="${basedir}/FTTests.ccc" />
-    </java>
-  	<!--
-    <java jar="../../congocc.jar" failonerror="true" fork="true">
-      <assertions>
-        <enable />
-      </assertions>
-      <arg line="-n -lang python ${basedir}/Cics.ccc" />
-    </java>
-    <java jar="../../congocc.jar" failonerror="true" fork="true">
-      <assertions>
-        <enable />
-      </assertions>
-      <arg line="-n -lang csharp ${basedir}/Cics.ccc" />
-    </java>
-    -->
   </target>
 
   <target name="compile" depends="init,parser-gen">
@@ -47,12 +26,12 @@
   </target>
 
   <target name="test" depends="compile">
-    <java fork="true" classpath="." failonerror="true" classname="FTParse">
+    <java fork="true" classpath="." failonerror="true" classname="PegParse">
       <assertions>
         <enable />
       </assertions>
     	<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="testfiles/FooBars.txt" />
+      <arg value="testfiles" />
     </java>
   </target>
 
@@ -63,6 +42,16 @@
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
       <arg value="grammar/peg.peg" />
+    </java>
+  </target>
+
+  <target name="gen-json-parser" depends="compile">
+    <java fork="true" classpath="." failonerror="true" classname="PegParse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/json.peg" />
     </java>
   </target>
 

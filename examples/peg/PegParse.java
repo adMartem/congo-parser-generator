@@ -209,17 +209,29 @@ public class PegParse {
            ps.outdent().nl().semi().nl();
        }
        
+       void visit(Sequence n) {
+           List<ENTAILS> entails = n.childrenOfType(ENTAILS.class);
+           isExplicitEntailment = entails != null && entails.size() > 0;
+           recurse(n);
+       }
+       
+       boolean isPredicate = false;
+       
        void visit(Prefix n) {
            if (n.firstChildOfType(NOT.class) != null || n.firstChildOfType(AND.class) != null) {
+               isPredicate = true;
                ps.append("ENSURE ");
                visit(n.firstChildOfType(BaseNode.class));
                ps.append("( ");
                visit(n.firstChildOfType(Suffix.class));
                ps.append(") ");
            } else {
+               isPredicate = false;
                recurse(n);
            }
        }
+       
+       boolean isExplicitEntailment = false;
        
        void visit(Suffix n) {
            boolean isModified = false;
@@ -235,7 +247,7 @@ public class PegParse {
            }
            visit(n.get(0));
            if (isModified) {
-               if (AUTO_ENTAILMENT) {
+               if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
                    ps.append("=>|| ");
                }
                ps.append(")");
@@ -360,11 +372,15 @@ public class PegParse {
        }
        
        void visit(ENTAILS n) {
-           ps.append("=>|| ");
+           if (!isPredicate) {
+               ps.append("=>|| ");
+           } else {
+               ps.append(" /* explicit entailment is ignored in this position */ ");
+           }
        }
        
        void visit(SLASH n) {
-           if (AUTO_ENTAILMENT) {
+           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
                ps.append("=>|| ");
            }
            ps.append("| ");
