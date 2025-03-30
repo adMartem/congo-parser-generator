@@ -14,4 +14,4 @@ FAULT_TOLERANT_DEFAULT=true;
     Grammar {return CURRENT_NODE;}
 ;
 
-INCLUDE "boot_peg.inc";
+INCLUDE "grammar/boot_peg.inc";

@@ -206,7 +206,7 @@ public class PegParse {
        void visit(Definition n) {
            ps.nl().append(mungPegIdentifier(n.firstChildOfType(Identifier.class).toString())).colon().indent().nl();
            visit(n.firstChildOfType(Expression.class));
-           ps.outdent().nl().semi().nl();
+           ps.outdent().nl().semi();
        }
        
        void visit(Sequence n) {
@@ -220,6 +220,7 @@ public class PegParse {
        void visit(Prefix n) {
            if (n.firstChildOfType(NOT.class) != null || n.firstChildOfType(AND.class) != null) {
                isPredicate = true;
+               //TODO: use ASSERT if this entails the preceding (explicit)
                ps.append("ENSURE ");
                visit(n.firstChildOfType(BaseNode.class));
                ps.append("( ");
@@ -367,6 +368,10 @@ public class PegParse {
            ps.append("* ");
        }
        
+       void visit(Cardinality n) {
+           ps.append(n.toString().trim().replaceAll("%", "&")).append(" ");
+       }
+       
        void visit(PLUS n) {
            ps.append("+ ");
        }
@@ -374,6 +379,7 @@ public class PegParse {
        void visit(ENTAILS n) {
            if (!isPredicate) {
                ps.append("=>|| ");
+               isExplicitEntailment = true;
            } else {
                ps.append(" /* explicit entailment is ignored in this position */ ");
            }
