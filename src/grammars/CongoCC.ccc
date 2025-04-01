@@ -255,6 +255,15 @@ INJECT CodeBlock :
 {
     @Property boolean appliesInLookahead;
 
+    private final String defaultCode;
+    public CodeBlock() {
+        defaultCode = null;
+    }
+    
+    public CodeBlock(String defaultCodeText) {
+        this.defaultCode = defaultCodeText;
+    }
+    
     public CodeBlock getJavaCode() {
         return this;
     }
@@ -265,6 +274,9 @@ INJECT CodeBlock :
     }
 
     public String toString() {
+        if (defaultCode != null) {
+            return defaultCode;
+        }
         StringBuilder buf = new StringBuilder();
         List<? extends TerminalNode> tokens = getAllTokens(true);
         boolean outputOpeningBrace = false;
@@ -1132,8 +1144,8 @@ int[] CardinalityConstraint#void :
         [
             ":" {cardinality[1]=Integer.MAX_VALUE;}
             [
-            literal=<INTEGER_LITERAL> {cardinality[1]=Integer.valueOf(literal.toString());}
-        ]
+                literal=<INTEGER_LITERAL> {cardinality[1]=Integer.valueOf(literal.toString());}
+            ]
         ]
         "&"
    ]

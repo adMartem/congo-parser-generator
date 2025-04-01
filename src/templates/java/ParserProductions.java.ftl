@@ -87,15 +87,15 @@
 --]
 #macro BuildRecoverRoutines
    #list grammar.expansionsNeedingRecoverMethod as expansion
-       private boolean ${expansion.recoverMethodName}(ParseException pe) {
+       private boolean ${expansion.recoverMethodName}(ParseException pe[#if cardinalitiesVar??], RepetitionCardinality cardinalities[/#if]) {
           ${settings.baseTokenClassName} initialToken = lastConsumedToken;
           java.util.List<${settings.baseTokenClassName}> skippedTokens = new java.util.ArrayList<>();
           boolean success = false;
           while (lastConsumedToken.getType() != EOF) {
             #if expansion.simpleName = "OneOrMore" || expansion.simpleName = "ZeroOrMore"
-             if (${ExpansionCondition(expansion.nestedExpansion)}) {
+             if (${ExpansionCondition(expansion.nestedExpansion cardinalitiesVar!null)}) {
             #else
-             if (${ExpansionCondition(expansion)}) {
+             if (${ExpansionCondition(expansion cardinalitiesVar!null)}) {
             #endif
                 success = true;
                 break;
@@ -106,9 +106,9 @@
                 [#if followingExpansion?is_null][#break][/#if]
                 #if followingExpansion.maximumSize > 0
                  #if followingExpansion.simpleName = "OneOrMore" || followingExpansion.simpleName = "ZeroOrOne" || followingExpansion.simpleName = "ZeroOrMore"
-                 if (${ExpansionCondition(followingExpansion.nestedExpansion)}) {
+                 if (${ExpansionCondition(followingExpansion.nestedExpansion cardinalitiesVar!null)}) {
                  #else
-                 if (${ExpansionCondition(followingExpansion)}) {
+                 if (${ExpansionCondition(followingExpansion cardinalitiesVar!null)}) {
                  #endif
                     success = true;
                     break;
@@ -154,7 +154,7 @@
      [@CU.HandleLexicalStateChange expansion false]
          #if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty
          if (pendingRecovery) {
-            pendingRecovery = !${expansion.recoverMethodName}(null);
+            pendingRecovery = !${expansion.recoverMethodName}(null[#if cardinalitiesVar??], ${cardinaalitiesVar}[/#if]);
          }
          #endif
          ${BuildExpansionCode(expansion)}
@@ -818,7 +818,7 @@
             ${followSetVarName}.addAll(outerFollowSet);
          }
        #endif
-       ${LHS?replace("@", "consumeToken(" + regexp.label + ", " + tolerant + ", " + followSetVarName + ", () -> {" + lambda + ";})")};
+       ${LHS?replace("@", "consumeToken(" + regexp.label + ", " + tolerant + ", " + followSetVarName + ", () -> {" + lambda + "})")};
    #endif
 #endmacro
 
@@ -877,9 +877,8 @@
              // we'll be stuck in an infinite loop!
              lastConsumedToken.setSkipped(true);
           }
-          if (${loopExpansion.recoverMethodName}(pe)) {
+          if (${loopExpansion.recoverMethodName}(pe[#if cardinalitiesVar??], ${cardinalitiesVar!null}[/#if])) {
              #if loopExpansion.recoveryBlock??
-                 // Recovery code action at ${loopExpansion.recoveryBlock.location} when recovery succeeded and pushed an InvalidNode
                  ${loopExpansion.recoveryBlock.javaCode} 
              /#if 
              pendingRecovery = false;

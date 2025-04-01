@@ -41,12 +41,17 @@ abstract public class Expansion extends BaseNode {
     public void setTolerantParsing(boolean tolerantParsing) {
         this.tolerantParsing = tolerantParsing;
     }
+    
+    private static final boolean TRACE_RECOVERY = true;
 
     /**
      * If a recovery action is provided (in fault-tolerant mode), this is it.
      * @return the recovery action {@link CodeBlock}
      */
     public CodeBlock getRecoveryBlock() {
+        if (TRACE_RECOVERY && recoveryBlock == null || recoveryBlock.toString().isEmpty()) {
+            return new CodeBlock("System.out.println(\"Recovery at " + toString() + " attempted\");");
+        }
         return recoveryBlock;
     }
 
