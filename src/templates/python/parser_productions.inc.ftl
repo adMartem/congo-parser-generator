@@ -200,6 +200,7 @@ ${is}    raise
       [#else]
 ${is}    if not self.is_tolerant: raise
 ${is}    self.pending_recovery = True
+         ${expansion.customErrorRecoveryBlock!}
          [#if !production?is_null && production.returnType != "void"]
             [#var rt = production.returnType]
             [#-- We need a return statement here or the code won't compile! --]
