@@ -56,12 +56,6 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
 
 #if grammar.usingCardinality
 
-    #-- TODO: remove this TRACE at some point.  In the meantime, no bytecodes are generated if TRACE=false. --
-      int cardinalitiesId = 0;
-      static final boolean TRACE = false;
-      static final PrintStream TRACE_STREAM = System.out;
-    #-- end TODO --
-
     [#-- N.B., this class definition can be replaced by:
       record CardinalityState (int[] cardinalities, boolean isProvisional) {}; 
       in Java 17 --]
@@ -114,7 +108,6 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
         @Deprecated
         Stack<CardinalityState> cardinalitiesStack = new Stack<>();
         final int[] cardinalities;
-        int myId = -1;
 
         // TODO: use "record CardinalityState (int[] cardinalities, boolean isProvisional) {};" in Java 17 
 
@@ -124,11 +117,6 @@ public ${isFinal ?: "final"} class ${settings.parserClassName} {
             cardinalitiesStack.push(new CardinalityState(new int[choiceCardinalities.length], false));
             // initialize the parse version of the cardinality state
             cardinalities = new int[choiceCardinalities.length];
-            // make a unique id for trace purposes only
-            if (TRACE) {
-              myId = ++cardinalitiesId;
-              TRACE_STREAM.println("********** " + myId + " **********");
-            }
         }
 
         private String indent(int level) {
