@@ -1,10 +1,7 @@
 <project name="Cardinality" default="compile">
   <target name="clean">
     <delete dir="org" />
-    <delete dir="cicsparser" />
-    <delete dir="cs-cicsparser" />
   	<delete dir="CardTestsParse.class"/>
-    <delete file="CicsParse.class" />
   </target>
 
   <target name="init">

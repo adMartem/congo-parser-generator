@@ -1177,18 +1177,18 @@ INJECT Assertion :
 Assertion# :
    {boolean assertKeywordPresent = false; int[] cardinality = null;}
    (
-       /** preceeding using cardinality, for example:
        (
           "ASSERT" {assertKeywordPresent = true;} ["ENSURE"]
           |
           "ENSURE" ["ASSERT" {assertKeywordPresent = true;}]
        )
-       **/
+       /** preceeding using cardinality, for example:
        (
           &"ASSERT" {assertKeywordPresent = true;}
           |
           &"ENSURE"
        )+
+       **/
        (
          "{"
          (
