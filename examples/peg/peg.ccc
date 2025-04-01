@@ -13,5 +13,16 @@ FAULT_TOLERANT_DEFAULT=true;
 #PegGrammar :
     Grammar {return CURRENT_NODE;}
 ;
-
+#if USE_BOOT
 INCLUDE "grammar/boot_peg.inc";
+#else 
+#if TEST_BOOT
+INCLUDE "boot_peg.inc";
+#else
+#if TEST_CPP
+INCLUDE "grammar/generated/cpp_expressions_stubbed.ccc";
+#else
+INCLUDE "peg_ext.inc";
+#endif
+#endif
+#endif

@@ -1,0 +1,116 @@
+translationunit <- declarationseq? EOF
+
+primaryexpression <-
+    literal
+  / This
+  / '(' expression ')'
+  / idexpression
+  / lambdaexpression
+
+idexpression <- unqualifiedid / qualifiedid
+
+unqualifiedid <-
+    Identifier
+  / operatorfunctionid
+  / conversionfunctionid
+  / literaloperatorid
+  / '~' classname
+  / '~' decltypespecifier
+  / templateid
+
+qualifiedid <-
+    nestednamespecifier 'template'? unqualifiedid
+
+nestednamespecifier <-
+    '::'
+  / typename '::'
+  / namespacename '::'
+  / decltypespecifier '::'
+  / nestednamespecifier Identifier '::'
+  / nestednamespecifier 'template'? simpletemplateid '::'
+
+lambdaexpression <- lambdaintroducer lambdadeclarator? compoundstatement
+
+lambdaintroducer <- '[' lambdacapture? ']'
+
+lambdacapture <-
+    capturedefault
+  / capturelist
+  / capturedefault ',' capturelist
+
+capturedefault <- '&' / '='
+
+capturelist <-
+    capture '...'?
+  / capturelist ',' capture '...'?
+
+capture <- simplecapture / initcapture
+
+simplecapture <- Identifier / '&' Identifier / This
+
+initcapture <- Identifier initializer / '&' Identifier initializer
+
+lambdadeclarator <- '(' parameterdeclarationclause ')' 'mutable'? exceptionspecification? attributespecifierseq? trailingreturntype?
+
+postfixexpression <-
+    primaryexpression
+  / postfixexpression '[' expression ']'
+  / postfixexpression '[' bracedinitlist ']'
+  / postfixexpression '(' expressionlist? ')'
+  / simpletypespecifier '(' expressionlist? ')'
+  / typenamespecifier '(' expressionlist? ')'
+  / simpletypespecifier bracedinitlist
+  / typenamespecifier bracedinitlist
+  / postfixexpression '.' 'template'? idexpression
+  / postfixexpression '->' 'template'? idexpression
+  / postfixexpression '.' pseudodestructorname
+  / postfixexpression '->' pseudodestructorname
+  / postfixexpression '++'
+  / postfixexpression '--'
+  / 'dynamic_cast' '<' typeid '>' '(' expression ')'
+  / 'static_cast' '<' typeid '>' '(' expression ')'
+  / 'reinterpret_cast' '<' typeid '>' '(' expression ')'
+  / 'const_cast' '<' typeid '>' '(' expression ')'
+  / 'typeid' '(' expression ')'
+  / 'typeid' '(' typeid ')'
+
+expressionlist <- initializerlist
+
+pseudodestructorname <-
+    nestednamespecifier? typename '::' '~' typename
+  / nestednamespecifier 'template' simpletemplateid '::' '~' typename
+  / nestednamespecifier? '~' typename
+  / '~' decltypespecifier
+
+unaryexpression <-
+    postfixexpression
+  / '++' castexpression
+  / '--' castexpression
+  / unaryoperator castexpression
+  / 'sizeof' unaryexpression
+  / 'sizeof' '(' typeid ')'
+  / 'sizeof' '...' '(' Identifier ')'
+  / 'alignof' '(' typeid ')'
+  / noexceptexpression
+  / newexpression
+  / deleteexpression
+
+unaryoperator <- '/' / '*' / '&' / '+' / '!' / '~' / '-'
+
+newexpression <-
+    '::'? 'new' newplacement? newtypeid newinitializer?
+  / '::'? 'new' newplacement? '(' typeid ')' newinitializer?
+
+newplacement <- '(' expressionlist ')'
+
+newtypeid <- typespecifierseq newdeclarator?
+
+newdeclarator <- ptroperator newdeclarator? / noptrnewdeclarator
+
+noptrnewdeclarator <-
+    '[' expression ']' attributespecifierseq?
+  / noptrnewdeclarator '[' constantexpression ']' attributespecifierseq?
+
+newinitializer <- '(' expressionlist? ')' / bracedinitlist
+
+

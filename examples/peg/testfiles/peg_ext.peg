@@ -23,7 +23,7 @@ Primary     <- Identifier !LEFTARROW
 ####################
     
 Identifier  <- IdentStart IdentCont* Spacing
-IdentStart  <- [a-zA-Z]
+IdentStart  <- [a-zA-Z_]
 IdentCont   <- IdentStart / [0-9]
 Literal     <- ['] >>> (!['] Char)* ['] Spacing 
              / ["] >>> (!["] Char)* ["] Spacing 

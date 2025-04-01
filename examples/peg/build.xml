@@ -11,6 +11,18 @@
     </uptodate>
   </target>
 
+  <target name="cpp-gen" depends="init" unless="pegparser.uptodate">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/grammar/generated/cpp_expressions_stubbed.ccc" />
+      <arg value="-p" />
+      <arg value="TEST_CPP"/>
+    </java>
+  </target>
+
   <target name="parser-gen" depends="init" unless="pegparser.uptodate">
     <java jar="../../congocc.jar" failonerror="true" fork="true">
       <assertions>
@@ -18,6 +30,8 @@
       </assertions>
       <arg value="-n" />
       <arg value="${basedir}/peg.ccc" />
+      <arg value="-p" />
+      <arg value="x"/>
     </java>
   </target>
 

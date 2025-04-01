@@ -34,7 +34,19 @@ public class PegParse {
              // A bit screwball, we'll dump the tree if there is only one arg. :-)
               parseStart = System.nanoTime();
               PegGrammar root = pp.parseFile(file, files.size() == 1);
-              pp.convert(root);
+              String fileName = file.getName();
+              fileName = "grammar/generated/" + fileName.replaceAll(".peg", ".ccc");
+              File outFile = new File(fileName);
+              PrintStream ps;
+              if (outFile.createNewFile() || outFile.exists() && outFile.canWrite()) {
+                  ps = new PrintStream(outFile);
+              } else {
+                  System.err.println("Cannot create or write file " + outFile);
+                  ps = System.out;
+              }
+              if (pp.convert(root, ps)) {
+                  System.out.println("CongoCC parser written to " + outFile);
+              };
           }
           catch (Exception e) {
               System.err.println("Error processing file: " + file);
@@ -111,8 +123,18 @@ public class PegParse {
    static final boolean AUTO_ENTAILMENT = true;
    
    public void convert(PegGrammar n) {
-       PegVisitor visitor = new PegVisitor(new IndentingPrintStream(System.out));
-       visitor.visit(n);
+       convert(n, System.out);
+   }
+   
+   public boolean convert(PegGrammar n, PrintStream ps) {
+       try {
+           PegVisitor visitor = new PegVisitor(new IndentingPrintStream(ps));
+           visitor.visit(n);
+           return true;
+       } catch (Exception e) {
+           e.printStackTrace();
+           return false;
+       }
    }
    
    public class IndentingPrintStream extends PrintStream {

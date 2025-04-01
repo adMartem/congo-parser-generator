@@ -1,0 +1,417 @@
+
+
+Dynamic <- '/* Dynamic */'
+
+Identifier <- '/* Identifier */'
+
+Mutable <- '/* Mutable */'
+
+Template <- '/* Template */'
+
+This <- '/* This */'
+
+attributespecifierseq <- '/* attributespecifierseq */'
+
+bracedinitlist <- '/* bracedinitlist */'
+
+classname <- '/* classname */'
+
+compoundstatement <- '/* compoundstatement */'
+
+constantexpression <- '/* constantexpression */'
+
+conversionfunctionid <- '/* conversionfunctionid */'
+
+decltypespecifier <- '/* decltypespecifier */'
+
+deleteexpression <- '/* deleteexpression */'
+
+exceptionspecification <- '/* exceptionspecification */'
+
+expression <- '/* expression */'
+
+initializer <- '/* initializer */'
+
+literal <- '/* literal */'
+
+literaloperatorid <- '/* literaloperatorid */'
+
+namespacename <- '/* namespacename */'
+
+noexceptexpression <- '/* noexceptexpression */'
+
+operatorfunctionid <- '/* operatorfunctionid */'
+
+parameterdeclarationclause <- '/* parameterdeclarationclause */'
+
+ptroperator <- '/* ptroperator */'
+
+qualifiedid <- '/* qualifiedid */'
+
+simpletemplateid <- '/* simpletemplateid */'
+
+simpletypespecifier <- '/* simpletypespecifier */'
+
+templateid <- '/* templateid */'
+
+trailingreturntype <- '/* trailingreturntype */'
+
+typeid <- '/* typeid */'
+
+typenamespecifier <- '/* typenamespecifier */'
+
+typespecifierseq <- '/* typespecifierseq */'
+
+Alignof <- '/* Alignof */'
+
+Const_cast <- '/* Const_cast */'
+
+Delete <- '/* Delete */'
+
+Dynamic <- '/* Dynamic */'
+
+Dynamic_cast <- '/* Dynamic_cast */'
+
+Identifier <- '/* Identifier */'
+
+Mutable <- '/* Mutable */'
+
+New <- '/* New */'
+
+Noexcept <- '/* Noexcept */'
+
+Reinterpret_cast <- '/* Reinterpret_cast */'
+
+Sizeof <- '/* Sizeof */'
+
+Static_cast <- '/* Static_cast */'
+
+Template <- '/* Template */'
+
+This <- '/* This */'
+
+Typeid <- '/* Typeid */'
+
+assignmentoperator <- '/* assignmentoperator */'
+
+attributespecifierseq <- '/* attributespecifierseq */'
+
+bracedinitlist <- '/* bracedinitlist */'
+
+classname <- '/* classname */'
+
+compoundstatement <- '/* compoundstatement */'
+
+constantexpression <- '/* constantexpression */'
+
+conversionfunctionid <- '/* conversionfunctionid */'
+
+decltypespecifier <- '/* decltypespecifier */'
+
+deleteexpression <- '/* deleteexpression */'
+
+exceptionspecification <- '/* exceptionspecification */'
+
+expression <- '/* expression */'
+
+initializer <- '/* initializer */'
+
+initializerclause <- '/* initializerclause */'
+
+initializerlist <- '/* initializerlist */'
+
+literal <- '/* literal */'
+
+literaloperatorid <- '/* literaloperatorid */'
+
+namespacename <- '/* namespacename */'
+
+noexceptexpression <- '/* noexceptexpression */'
+
+operatorfunctionid <- '/* operatorfunctionid */'
+
+parameterdeclarationclause <- '/* parameterdeclarationclause */'
+
+ptroperator <- '/* ptroperator */'
+
+qualifiedid <- '/* qualifiedid */'
+
+rightShift <- '/* rightShift */'
+
+simpletemplateid <- '/* simpletemplateid */'
+
+simpletypespecifier <- '/* simpletypespecifier */'
+
+templateid <- '/* templateid */'
+
+throwexpression <- '/* throwexpression */'
+
+trailingreturntype <- '/* trailingreturntype */'
+
+typeid <- '/* typeid */'
+
+typename <- '/* typename */'
+
+typenamespecifier <- '/* typenamespecifier */'
+
+typespecifierseq <- '/* typespecifierseq */'
+
+primaryexpression <-
+    literal
+  / This
+  / '(' expression ')'
+  / idexpression
+  / lambdaexpression
+
+idexpression <- unqualifiedid / qualifiedid
+
+unqualifiedid <-
+    Identifier
+  / operatorfunctionid
+  / conversionfunctionid
+  / literaloperatorid
+  / '~' classname
+  / '~' decltypespecifier
+  / templateid
+
+qualifiedid <-
+    nestednamespecifier 'template'? unqualifiedid
+
+nestednamespecifier <- #LR
+    '::'
+  / typename '::'
+  / namespacename '::'
+  / decltypespecifier '::'
+  / nestednamespecifier Identifier '::'
+  / nestednamespecifier 'template'? simpletemplateid '::'
+
+lambdaexpression <- lambdaintroducer lambdadeclarator? compoundstatement
+
+lambdaintroducer <- '[' lambdacapture? ']'
+
+lambdacapture <-
+    capturedefault
+  / capturelist
+  / capturedefault ',' capturelist
+
+capturedefault <- '&' / '='
+
+capturelist <- #LR
+    capture '...'? (',' capture '...'?)*
+
+capture <- simplecapture / initcapture
+
+simplecapture <- Identifier / '&' Identifier / This
+
+initcapture <- Identifier initializer / '&' Identifier initializer
+
+lambdadeclarator <- '(' parameterdeclarationclause ')' 'mutable'? exceptionspecification? attributespecifierseq? trailingreturntype?
+ 
+
+  
+postfixexpression <- 
+    primaryexpression
+    / 'dynamic_cast' '<' typeid '>' '(' expression ')'
+    / 'static_cast' '<' typeid '>' '(' expression ')'
+    / 'reinterpret_cast' '<' typeid '>' '(' expression ')'
+    / 'const_cast' '<' typeid '>' '(' expression ')'
+    / 'typeid' '(' expression ')'
+    / 'typeid' '(' typeid ')'
+    (
+        '[' expression ']'
+      / '[' bracedinitlist ']'
+      / '(' expressionlist? ')'
+      / '.' 'template'? idexpression
+      / '->' 'template'? idexpression
+      / '.' pseudodestructorname
+      / '->' pseudodestructorname
+      / '++'
+      / '--'
+    )*
+    / simpletypespecifier '(' expressionlist? ')'
+    / typenamespecifier '(' expressionlist? ')'
+    / simpletypespecifier bracedinitlist
+    / typenamespecifier bracedinitlist
+
+expressionlist <- initializerlist
+
+pseudodestructorname <-
+    nestednamespecifier? typename '::' '~' typename
+  / nestednamespecifier 'template' simpletemplateid '::' '~' typename
+  / nestednamespecifier? '~' typename
+  / '~' decltypespecifier
+
+unaryexpression <-
+    postfixexpression
+  / '++' castexpression
+  / '--' castexpression
+  / unaryoperator castexpression
+  / 'sizeof' unaryexpression
+  / 'sizeof' '(' typeid ')'
+  / 'sizeof' '...' '(' Identifier ')'
+  / 'alignof' '(' typeid ')'
+  / noexceptexpression
+  / newexpression
+  / deleteexpression
+
+unaryoperator <- '/' / '*' / '&' / '+' / '!' / '~' / '-'
+
+newexpression <-
+    '::'? 'new' newplacement? newtypeid newinitializer?
+  / '::'? 'new' newplacement? '(' typeid ')' newinitializer?
+
+newplacement <- '(' expressionlist ')'
+
+newtypeid <- typespecifierseq newdeclarator?
+
+newdeclarator <- ptroperator newdeclarator? / noptrnewdeclarator
+
+noptrnewdeclarator <- #LR
+    '[' expression ']' attributespecifierseq? ('[' constantexpression ']' attributespecifierseq?)*
+
+newinitializer <- '(' expressionlist? ')' / bracedinitlist
+
+####
+
+capture <-
+    simplecapture
+  / initcapture
+
+simplecapture <-
+    Identifier
+  / '&' Identifier
+  / This
+
+initcapture <-
+    Identifier initializer
+  / '&' Identifier initializer
+
+lambdadeclarator <- '(' parameterdeclarationclause ')' Mutable? exceptionspecification? attributespecifierseq? trailingreturntype?
+
+expressionlist <- initializerlist
+
+pseudodestructorname <-
+    nestednamespecifier? typename '::' '~' typename
+  / nestednamespecifier Template simpletemplateid '::' '~' typename
+  / nestednamespecifier? '~' typename
+  / '~' decltypespecifier
+
+unaryexpression <-
+    postfixexpression
+  / '++' castexpression
+  / '--' castexpression
+  / unaryoperator castexpression
+  / Sizeof unaryexpression
+  / Sizeof '(' typeid ')'
+  / Sizeof '...' '(' Identifier ')'
+  / Alignof '(' typeid ')'
+  / noexceptexpression
+  / newexpression
+  / deleteexpression
+
+unaryoperator <-
+    '|'
+  / '*'
+  / '&'
+  / '+'
+  / '!'
+  / '~'
+  / '-'
+
+newexpression <-
+    '::'? New newplacement? newtypeid newinitializer?
+  / '::'? New newplacement? '(' typeid ')' newinitializer?
+
+newplacement <- '(' expressionlist ')'
+
+newtypeid <- typespecifierseq newdeclarator?
+
+newdeclarator <-
+    ptroperator newdeclarator?
+  / noptrnewdeclarator
+
+noptrnewdeclarator <-
+    '[' expression ']' attributespecifierseq?
+  / noptrnewdeclarator '[' constantexpression ']' attributespecifierseq?
+
+newinitializer <-
+    '(' expressionlist? ')'
+  / bracedinitlist
+
+deleteexpression <-
+    '::'? Delete castexpression
+  / '::'? Delete '[' ']' castexpression
+
+noexceptexpression <- Noexcept '(' expression ')'
+
+castexpression <-
+    unaryexpression
+  / '(' typeid ')' castexpression
+
+pmexpression <- #LR
+    castexpression
+  / pmexpression '.*' castexpression
+  / pmexpression '->*' castexpression
+
+multiplicativeexpression <- #LR
+    pmexpression
+  / multiplicativeexpression '*' pmexpression
+  / multiplicativeexpression '/' pmexpression
+  / multiplicativeexpression '%' pmexpression
+
+additiveexpression <- #LR
+    multiplicativeexpression
+  / additiveexpression '+' multiplicativeexpression
+  / additiveexpression '-' multiplicativeexpression
+
+shiftexpression <- #LR
+    additiveexpression
+  / shiftexpression '<<' additiveexpression
+  / shiftexpression rightShift additiveexpression
+
+relationalexpression <- #LR
+    shiftexpression
+  / relationalexpression '<' shiftexpression
+  / relationalexpression '>' shiftexpression
+  / relationalexpression '<=' shiftexpression
+  / relationalexpression '>=' shiftexpression
+
+equalityexpression <- #LR
+    relationalexpression
+  / equalityexpression '==' relationalexpression
+  / equalityexpression '!=' relationalexpression
+
+andexpression <- #LR
+    equalityexpression
+  / andexpression '&' equalityexpression
+
+exclusiveorexpression <- #LR
+    andexpression
+  / exclusiveorexpression '^' andexpression
+
+inclusiveorexpression <- #LR
+    exclusiveorexpression
+  / inclusiveorexpression '|' exclusiveorexpression
+
+logicalandexpression <- #LR
+    inclusiveorexpression
+  / logicalandexpression '&&' inclusiveorexpression
+
+logicalorexpression <- #LR
+    logicalandexpression
+  / logicalorexpression '||' logicalandexpression
+
+conditionalexpression <- 
+    logicalorexpression
+  / logicalorexpression '?' expression ':' assignmentexpression
+
+assignmentexpression <-
+    conditionalexpression
+  / logicalorexpression assignmentoperator initializerclause
+  / throwexpression
+
+expression <- #LR
+    assignmentexpression
+  / expression ',' assignmentexpression
+
+constantexpression <- conditionalexpression
