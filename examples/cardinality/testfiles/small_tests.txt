@@ -1,4 +1,6 @@
 !{4,9,2}!
+[public final]
+[private static synchronized]
 (a)
 (aa)
 (bba)
