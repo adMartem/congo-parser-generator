@@ -59,6 +59,18 @@ abstract public class Expansion extends BaseNode {
         this.recoveryBlock = recoveryBlock;
     }
 
+    /**
+     * If a recovery action is provided (in fault-tolerant mode), this is it.
+     * @return the recovery action {@link CodeBlock}
+     */
+    public CodeBlock getRecoveryBlock() {
+        return recoveryBlock;
+    }
+
+    public void setRecoveryBlock(CodeBlock recoveryBlock) {
+        this.recoveryBlock = recoveryBlock;
+    }
+
     public String toString() {
         String result = "[" + getSimpleName() + " on line " + getBeginLine() + ", column " + getBeginColumn();
         String inputSource = getInputSource();
