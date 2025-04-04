@@ -232,7 +232,7 @@ public class PegParse {
        }
        
        void visit(Sequence n) {
-           List<ENTAILS> entails = n.childrenOfType(ENTAILS.class);
+           List<Entails> entails = n.childrenOfType(Entails.class);
            isExplicitEntailment = entails != null && entails.size() > 0;
            recurse(n);
        }
@@ -391,14 +391,15 @@ public class PegParse {
        }
        
        void visit(Cardinality n) {
-           ps.append(n.toString().trim().replaceAll("%", "&")).append(" ");
+           recurse(n);
+           ps.append(" ");
        }
        
        void visit(PLUS n) {
            ps.append("+ ");
        }
        
-       void visit(ENTAILS n) {
+       void visit(Entails n) {
            if (!isPredicate) {
                ps.append("=>|| ");
                isExplicitEntailment = true;
@@ -412,6 +413,17 @@ public class PegParse {
                ps.append("=>|| ");
            }
            ps.append("| ");
+       }
+       
+       void visit(BAR n) {
+           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
+               ps.append("=>|| ");
+           }
+           ps.append("| ");
+       }
+       
+       void visit(HASH n) {
+           ps.append("&");
        }
        
        void visit(NOT n) {

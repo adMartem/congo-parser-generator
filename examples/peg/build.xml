@@ -17,7 +17,7 @@
         <enable />
       </assertions>
       <arg value="-n" />
-      <arg value="${basedir}/grammar/generated/cpp_expressions_stubbed.ccc" />
+      <arg value="${basedir}/grammar/generated/cpp.ccc" />
       <arg value="-p" />
       <arg value="TEST_CPP"/>
     </java>
@@ -31,7 +31,7 @@
       <arg value="-n" />
       <arg value="${basedir}/peg.ccc" />
       <arg value="-p" />
-      <arg value="x"/>
+      <arg value="PEG_EXT"/>
     </java>
   </target>
 
@@ -49,17 +49,17 @@
     </java>
   </target>
 
-  <target name="test-peg-on-peg" depends="compile">
+  <target name="test-peg-to-peg-ccc" depends="compile">
     <java fork="true" classpath="." failonerror="true" classname="PegParse">
       <assertions>
         <enable />
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="grammar/peg_ext.peg" />
+      <arg value="grammar/peg.peg" />
     </java>
   </target>
 
-  <target name="gen-json-parser" depends="compile">
+  <target name="test-json-parser" depends="compile">
     <java fork="true" classpath="." failonerror="true" classname="PegParse">
       <assertions>
         <enable />
@@ -68,12 +68,4 @@
       <arg value="testfiles/json.peg" />
     </java>
   </target>
-
-<!--
-  <target name="test-python" depends="parser-gen">
-    <exec executable="python3" dir="${basedir}" failonerror="true">
-      <arg line="-u cicsparse.py testfiles" />
-    </exec>
-  </target>
--->
 </project>

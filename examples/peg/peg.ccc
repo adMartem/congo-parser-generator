@@ -13,6 +13,25 @@ FAULT_TOLERANT_DEFAULT=true;
 #PegGrammar :
     Grammar {return CURRENT_NODE;}
 ;
+
+TOKEN : 
+    <SINGLE_LINE_COMMENT : ("//"|"#") (~["\n"])* >
+    |
+    <?MULTI_LINE_COMMENT : "/*" (~[])* "*/" >
+;
+
+INJECT BASE_NODE_CLASS :
+{
+    public String toRealString() {
+        List<Token> tokens = getRealTokens();
+        StringBuilder sb = new StringBuilder();
+        for (Token t : tokens) {
+            sb.append(t.toString());
+        }
+        return sb.append(' ').toString();
+    }
+}
+
 #if USE_BOOT
 INCLUDE "grammar/boot_peg.inc";
 #else 
@@ -20,9 +39,9 @@ INCLUDE "grammar/boot_peg.inc";
 INCLUDE "boot_peg.inc";
 #else
 #if TEST_CPP
-INCLUDE "grammar/generated/cpp_expressions_stubbed.ccc";
+INCLUDE "grammar/generated/cpp.ccc";
 #else
-INCLUDE "peg_ext.inc";
+INCLUDE "peg_ext_alt.ccc";
 #endif
 #endif
 #endif

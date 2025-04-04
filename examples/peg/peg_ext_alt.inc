@@ -1,125 +1,151 @@
 
-Grammar      : 
+Grammar     : 
     Spacing  ( ( Definition ) =>|| )+ EndOfFile
  
 ; 
-Definition   : 
-    Identifier  ( LEFTARROW  =>|| | COLON ) Expression  ( ";" =>|| )? 
-; 
-Expression   : 
-    Sequence  ( ( SLASH  Sequence ) =>|| )* 
-; 
-Sequence     : 
-    ( ( Prefix  ( ENTAILS =>|| )? ) =>|| )* 
-; 
-Prefix       : 
-    ( ( Cardinality  =>|| | AND  =>|| | NOT ) =>|| )? Suffix
+Definition  : 
+    Identifier  ( LEFTARROW  =>|| | COLON ) Expression
  
 ; 
-Suffix       : 
+Expression  : 
+    Sequence  ( ( ( SLASH  =>|| | BAR ) Sequence ) =>|| )* 
+; 
+Sequence    : 
+    ( ( Prefix  ( ( Entails ) =>|| )? ) =>|| )* 
+; 
+Prefix      : 
+    ( ( Cardinality  =>|| | ( AND  =>|| | NOT ) ) =>|| )? Suffix
+ 
+; 
+Suffix      : 
     Primary  ( ( QUESTION  =>|| | STAR  =>|| | PLUS ) =>|| )? 
 ; 
-Primary      : 
+Primary     : 
     Identifier  ENSURE ~( ( LEFTARROW  =>|| | COLON ) ) =>|| | OPEN  Expression  CLOSE
               =>|| | Literal  =>|| | _Class  =>|| | DOT
+             
+/*******************
+** Lexical Syntax **
+********************/
+    
+ 
 ; 
-Identifier   : 
+Identifier  : 
     ( IdentStart  ( IdentCont =>|| )* =>|| | "<" Identifier  ">" ) Spacing
  
 ; 
-IdentStart   : 
+IdentStart  : 
     LEXICAL_STATE CLASS_0_STATE (<CLASS_0>) 
 ; 
-IdentCont    : 
+IdentCont   : 
     IdentStart  =>|| | LEXICAL_STATE CLASS_1_STATE (<CLASS_1>) 
 ; 
-Literal      : 
+Literal     : 
     "'" ( ( ENSURE ~( "'" ) Char ) =>|| )* "'" Spacing 
               =>|| | "\"" ( ( ENSURE ~( "\"" ) Char ) =>|| )* "\"" Spacing 
  
 ; 
-_Class        : 
+_Class       : 
     "[" ( ( ENSURE ~( "]" ) Range  ) =>|| )* "]" Spacing
  
 ; 
-Range        : 
+Range       : 
     Char  "-" Char  =>|| | Char
  
 ; 
-Char         : 
+Char        : 
     "\\" LEXICAL_STATE CLASS_2_STATE (<CLASS_2>) =>|| | "\\" LEXICAL_STATE CLASS_3_STATE (<CLASS_3>) LEXICAL_STATE CLASS_4_STATE (<CLASS_4>) LEXICAL_STATE CLASS_4_STATE (<CLASS_4>) =>|| | "\\" LEXICAL_STATE CLASS_4_STATE (<CLASS_4>) ( LEXICAL_STATE CLASS_4_STATE (<CLASS_4>) =>|| )? =>|| | ENSURE ~( "\\" ) LEXICAL_STATE ANY (<ANY_CHAR>) 
 ; 
-LEFTARROW    : 
+LEFTARROW   : 
     "<-" Spacing
  
 ; 
-COLON        : 
+COLON       : 
     ":" Spacing
  
 ; 
-SLASH        : 
-    ( "/" =>|| | "|" ) Spacing
+SLASH       : 
+    "/" Spacing
  
 ; 
-AND          : 
+BAR         : 
+    "|" Spacing
+ 
+; 
+AND         : 
     "&" Spacing
  
 ; 
-NOT          : 
+NOT         : 
     "!" Spacing
  
 ; 
-QUESTION     : 
+QUESTION    : 
     "?" Spacing
  
 ; 
-STAR         : 
+STAR        : 
     "*" Spacing
  
 ; 
-PLUS         : 
+PLUS        : 
     "+" Spacing
  
 ; 
-OPEN         : 
+OPEN        : 
     "(" Spacing
  
 ; 
-CLOSE        : 
+CLOSE       : 
     ")" Spacing
  
 ; 
-DOT          : 
+DOT         : 
     "." Spacing
+ 
+; 
+HASH        : 
+    "#" Spacing
+ 
+; 
+NESTED_GT   : 
+    "⫸" Spacing
+ 
+; 
+TRIPLE_GT   : 
+    ">>>" Spacing
 
  
 ; 
-Spacing      : 
+Spacing     : 
     ( ( Space  =>|| | Comment  ) =>|| )* 
 ; 
-Comment      : 
-    "#" ( ( ENSURE ~( EndOfLine  ) LEXICAL_STATE ANY (<ANY_CHAR>) ) =>|| )* EndOfLine
+Comment     : 
+    <SINGLE_LINE_COMMENT>  =>|| | <MULTI_LINE_COMMENT>  =>|| | LegacyComment
  
 ; 
-Space        : 
-    " " =>|| | "\t" =>|| | EndOfLine
+LegacyComment  : 
+    ENSURE ~( Cardinality  ) ( HASH  ( ( ENSURE ~( EndOfLine  ) LEXICAL_STATE ANY (<ANY_CHAR>) ) =>|| )* EndOfLine ) 
+; 
+Space       : 
+    " " =>|| | "\t" =>|| | ";" =>|| | EndOfLine
  
 ; 
-EndOfLine    : 
+EndOfLine   : 
     "\r\n" =>|| | "\n" =>|| | "\r" 
 ; 
-EndOfFile    : 
+EndOfFile   : 
     ENSURE ~( LEXICAL_STATE ANY (<ANY_CHAR>) ) 
 ; 
-Cardinality  : 
-    "%" ( ( NATURAL  ( ( ":" ( NATURAL =>|| )? "%" ) =>|| )? ) =>|| )? 
+Cardinality    : 
+    HASH  ( ( NaturalNumber  ( ( COLON  ( NaturalNumber =>|| )? HASH ) =>|| )? ) =>|| )? 
 ; 
-NATURAL      : 
+NaturalNumber  : 
     "0" =>|| | LEXICAL_STATE CLASS_5_STATE (<CLASS_5>) ( LEXICAL_STATE CLASS_1_STATE (<CLASS_1>) =>|| )* Spacing
  
 ; 
-ENTAILS      : 
-    ( ">>>" =>|| | "⫸" ) Spacing
+Entails        : 
+    ( TRIPLE_GT  =>|| | NESTED_GT ) Spacing
          
 ; <ANY> TOKEN : <ANY_CHAR: ~[] >;
 <CLASS_0_STATE> TOKEN: <CLASS_0: ["a"-"z","A"-"Z","_"] >;
