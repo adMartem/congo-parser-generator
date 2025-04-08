@@ -39,7 +39,7 @@ INCLUDE "grammar/boot_peg.inc";
 INCLUDE "boot_peg.inc";
 #else
 #if TEST_CPP
-INCLUDE "grammar/generated/cpp.ccc";
+INCLUDE "grammar/generated/CPP14.ccc";
 #else
 INCLUDE "peg_ext_alt.ccc";
 #endif

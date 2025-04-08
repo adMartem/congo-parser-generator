@@ -4,6 +4,8 @@ Grammar     :
  
 ; 
 Definition  : 
+    Identifier  ( LEFTARROW  =>|| | COLON ) Expression ";" Spacing =>||
+    |
     Identifier  ( LEFTARROW  =>|| | COLON ) Expression
  
 ; 
@@ -128,7 +130,7 @@ LegacyComment  :
     ENSURE ~( Cardinality  ) ( HASH  ( ( ENSURE ~( EndOfLine  ) LEXICAL_STATE ANY (<ANY_CHAR>) ) =>|| )* EndOfLine ) 
 ; 
 Space       : 
-    " " =>|| | "\t" =>|| | ";" =>|| | EndOfLine
+    " " =>|| | "\t" =>|| | EndOfLine
  
 ; 
 EndOfLine   : 

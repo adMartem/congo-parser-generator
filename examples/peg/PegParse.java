@@ -121,6 +121,8 @@ public class PegParse {
    }
    
    static final boolean AUTO_ENTAILMENT = true;
+   static final boolean ANTLR = false;
+   static final boolean TRACE=false;
    
    public void convert(PegGrammar n) {
        convert(n, System.out);
@@ -135,6 +137,87 @@ public class PegParse {
            e.printStackTrace();
            return false;
        }
+   }
+   
+   static String convertEscapedString(String literal) { //FIXME: do \uxxxx!
+       if (
+           ((literal.startsWith("\"") && literal.charAt(literal.length()-1) == '\"') ||
+           (literal.startsWith("'") && literal.charAt(literal.length()-1) == '\'')) &&
+           literal.length() > 1
+          ) {
+           literal = literal.substring(1, literal.length() - 1);
+       }
+       StringBuilder sb = new StringBuilder("\"");
+       boolean isEscape = false;
+       int oDigit = 0;
+       int oAccum = 0;
+       for (int i=0; i < literal.length(); i++) {
+           char c = literal.charAt(i);
+           if (oDigit > 0 && oDigit <= 3) {
+               if ('0' > c || c > '7') {
+                   oAccum = (oAccum * 8) + (c - '0');
+                   oDigit++;
+                   continue;
+               } else {
+                   String hex = String.format("%04X", oAccum); 
+                   sb.append("\\u").append(String.format("%04X", oAccum));
+               }
+           }
+           oDigit = 0;
+           if (isEscape) {
+                isEscape = false;
+                if ('0' > c || c > '7') {
+                   switch (c) {
+                   case 'n':
+                   case 'r':
+                   case 't':
+                   case '\\':
+                   case '\"':
+                       sb.append('\\');
+                       // fall thru
+                   default:
+                       sb.append(c);
+                   }
+                } else {
+                    // octal ASCII code point
+                    oAccum = c - '0';
+                    oDigit = 1;
+                }
+           } else {
+               if (c == '\\') {
+                   isEscape = true;
+                   continue;
+               }
+               if (c == '\"') {
+                   sb.append("\\\"");
+                   continue;
+               }
+               sb.append(c);
+           }
+       }
+       sb.append("\"");
+       return sb.toString();
+   }
+   
+   static String normalizeForJava(String raw) {
+       // properly escape for Java
+       raw = convertEscapedString(raw);
+       // remove outer quotes
+       raw = raw.substring(1, raw.length() - 1);
+       // now normalize whitespace
+       StringBuilder sb = new StringBuilder();
+       boolean isSkipping = false;
+       for (int i = 0; i < raw.length(); i++) {
+           char aChar = raw.charAt(i);
+           if (aChar > 0x20) {
+               sb.append(aChar);
+               isSkipping = false;
+           } else if (!isSkipping) {
+               sb.append(' ');
+               isSkipping = true;
+           }
+       }
+       return sb.toString();
    }
    
    public class IndentingPrintStream extends PrintStream {
@@ -226,15 +309,50 @@ public class PegParse {
        }
        
        void visit(Definition n) {
-           ps.nl().append(mungPegIdentifier(n.firstChildOfType(Identifier.class).toString())).colon().indent().nl();
+           String name = mungPegIdentifier(n.firstChildOfType(Identifier.class).toString());
+           ps.nl().append(name).colon().indent().nl();
+           if (TRACE) {
+               ps.append("{System.out.println(\"applying?: " + normalizeForJava(name) + "\");}# ");
+           }
            visit(n.firstChildOfType(Expression.class));
+           if (TRACE) {
+               ps.append("{System.out.println(\"applied!: " + normalizeForJava(name) + "\");}# ");
+           }
            ps.outdent().nl().semi();
        }
        
-       void visit(Sequence n) {
-           List<Entails> entails = n.childrenOfType(Entails.class);
+       boolean isChoiceExpression = false;
+       Stack<Boolean> isChoice = new Stack<>();
+       
+       void visit(Expression expression) {
+           if (expression.childrenOfType(Sequence.class).size() > 1) {
+               isChoice.push(true);
+               if (ANTLR) {
+                   ps.append("( ");
+               }
+           } else {
+               isChoice.push(false);
+           }
+           recurse(expression);
+           if (ANTLR && isChoice.peek()) {
+               ps.append(")+ ");
+           }
+           isChoice.pop();
+       }
+       
+       void visit(Sequence sequence) {
+           List<Entails> entails = sequence.childrenOfType(Entails.class);
            isExplicitEntailment = entails != null && entails.size() > 0;
-           recurse(n);
+           if (ANTLR && isChoice.peek()) {
+               ps.append("ENSURE {&} ");
+           }
+           recurse(sequence);
+           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment && isChoice.peek()) {
+               ps.append(" =>|| ");
+           }
+           if (TRACE) {
+               ps.append("{System.out.println(\"chosen: " + normalizeForJava(sequence.toString()) + "\");}# ");
+           }
        }
        
        boolean isPredicate = false;
@@ -242,7 +360,7 @@ public class PegParse {
        void visit(Prefix n) {
            if (n.firstChildOfType(NOT.class) != null || n.firstChildOfType(AND.class) != null) {
                isPredicate = true;
-               //TODO: use ASSERT if this entails the preceding (explicit)
+               //TODO: use ASSERT if this is post-entailment (explicit)
                ps.append("ENSURE ");
                visit(n.firstChildOfType(BaseNode.class));
                ps.append("( ");
@@ -268,10 +386,14 @@ public class PegParse {
            if (isModified) {
                ps.append("( ");
            }
-           visit(n.get(0));
+           Node primary = n.get(0);
+           visit(primary);
            if (isModified) {
                if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
                    ps.append("=>|| ");
+               }
+               if (TRACE) {
+                   ps.append("{System.out.println(\"interating: " + normalizeForJava(primary.toString()) + "\");}# ");
                }
                ps.append(")");
            }
@@ -282,66 +404,6 @@ public class PegParse {
        
        void visit(Identifier n) {
            ps.append(mungPegIdentifier(n.toString())).append(' ');
-       }
-       
-       String convertEscapedString(String literal) {
-           if (
-               ((literal.startsWith("\"") && literal.charAt(literal.length()-1) == '\"') ||
-               (literal.startsWith("'") && literal.charAt(literal.length()-1) == '\'')) &&
-               literal.length() > 1
-              ) {
-               literal = literal.substring(1, literal.length() - 1);
-           }
-           StringBuilder sb = new StringBuilder("\"");
-           boolean isEscape = false;
-           int oDigit = 0;
-           int oAccum = 0;
-           for (int i=0; i < literal.length(); i++) {
-               char c = literal.charAt(i);
-               if (oDigit > 0 && oDigit <= 3) {
-                   if ('0' > c || c > '7') {
-                       oAccum = (oAccum * 8) + (c - '0');
-                       oDigit++;
-                       continue;
-                   } else {
-                       String hex = String.format("%04X", oAccum); 
-                       sb.append("\\u").append(String.format("%04X", oAccum));
-                   }
-               }
-               oDigit = 0;
-               if (isEscape) {
-                    isEscape = false;
-                    if ('0' > c || c > '7') {
-                       switch (c) {
-                       case 'n':
-                       case 'r':
-                       case 't':
-                       case '\\':
-                       case '\"':
-                           sb.append('\\');
-                           // fall thru
-                       default:
-                           sb.append(c);
-                       }
-                    } else {
-                        // octal ASCII code point
-                        oAccum = c - '0';
-                        oDigit = 1;
-                    }
-               } else {
-                   if (c == '\\') {
-                       isEscape = true;
-                       continue;
-                   }
-                   if (c == '\"') {
-                       sb.append("\\\"");
-                       continue;
-                   }
-                   sb.append(c);
-               }
-           }
-           sb.append("\"");
-           return sb.toString();
        }
        
        void visit(Literal n) {
@@ -409,16 +471,10 @@ public class PegParse {
        }
        
        void visit(SLASH n) {
-           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
-               ps.append("=>|| ");
-           }
            ps.append("| ");
        }
        
        void visit(BAR n) {
-           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment) {
-               ps.append("=>|| ");
-           }
            ps.append("| ");
        }
        
@@ -432,10 +488,12 @@ public class PegParse {
        
        void visit(OPEN n) {
            ps.append("( ");
+           isChoice.push(false);
        }
        
        void visit(CLOSE n) {
            ps.append(") ");
+           isChoice.pop();
        }
        
        void visit(DOT n) {
