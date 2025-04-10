@@ -9,17 +9,28 @@
     <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
       <srcfiles dir="." includes="grammar.*.ccc" />
     </uptodate>
+    <uptodate property="cppparser.uptodate" targetfile="org/parsers/peg/CppParser.java">
+      <srcfiles dir="." includes="grammar.*.ccc" />
+    </uptodate>
   </target>
 
-  <target name="cpp-gen" depends="init" unless="pegparser.uptodate">
+  <target name="cpp-gen" depends="init" unless="cppparser.uptodate">
     <java jar="../../congocc.jar" failonerror="true" fork="true">
       <assertions>
         <enable />
       </assertions>
       <arg value="-n" />
-      <arg value="${basedir}/grammar/generated/cpp.ccc" />
-      <arg value="-p" />
-      <arg value="TEST_CPP"/>
+      <arg value="${basedir}/cpp.ccc" />
+    </java>
+  </target>
+
+  <target name="antlr-gen" depends="init" unless="pegrparser.uptodate">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/antlr.ccc" />
     </java>
   </target>
 
@@ -39,6 +50,14 @@
     <javac srcdir="." failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
   </target>
 
+  <target name="compile-cpp" depends="init,cpp-gen">
+    <javac classpath="./grammar/generated" srcdir="./grammar/generated" includeantruntime="off" failonerror="true" debug="on" release="8" fork="true" />
+  </target>
+
+  <target name="compile-antlr" depends="init,antlr-gen">
+    <javac classpath="./grammar/generated" srcdir="./grammar/generated" includeantruntime="off" failonerror="true" debug="on" release="8" fork="true" />
+  </target>
+
   <target name="test" depends="compile">
     <java fork="true" classpath="." failonerror="true" classname="PegParse">
       <assertions>
@@ -46,6 +65,26 @@
       </assertions>
     	<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
       <arg value="testfiles" />
+    </java>
+  </target>
+
+  <target name="test-cpp" depends="compile">
+    <java fork="true" classpath="." failonerror="true" classname="CppParse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/box.cpp" />
+    </java>
+  </target>
+
+  <target name="test-antlr" depends="compile">
+    <java fork="true" classpath="." failonerror="true" classname="ANTLRv4Parse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/calculator.g4" />
     </java>
   </target>
 

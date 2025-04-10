@@ -139,7 +139,7 @@ public class PegParse {
        }
    }
    
-   static String convertEscapedString(String literal) { //FIXME: do \uxxxx!
+   static String convertEscapedString(String literal) { 
        if (
            ((literal.startsWith("\"") && literal.charAt(literal.length()-1) == '\"') ||
            (literal.startsWith("'") && literal.charAt(literal.length()-1) == '\'')) &&
@@ -168,6 +168,16 @@ public class PegParse {
                 isEscape = false;
                 if ('0' > c || c > '7') {
                    switch (c) {
+                   case 'u' :
+                   case 'U' : {
+                       sb.append('\\')
+                       .append(c)
+                       .append(literal.charAt(++i))
+                       .append(literal.charAt(++i))
+                       .append(literal.charAt(++i))
+                       .append(literal.charAt(++i));
+                       break;
+                   }  
                    case 'n':
                    case 'r':
                    case 't':
@@ -283,7 +293,7 @@ public class PegParse {
        }
        
        private void printTokenDefinitions(IndentingPrintStream ps) {
-           ps.append("<ANY> TOKEN : <ANY_CHAR: ~[] >;").nl();
+           ps.nl().append("<ANY> TOKEN : <ANY_CHAR: ~[] >;").nl();
            Iterator<Map.Entry<String,String>> i = tokenDefinitions.entrySet().iterator();
            while (i.hasNext()) {
                Map.Entry<String,String> e = i.next();

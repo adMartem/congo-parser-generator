@@ -1,0 +1,17 @@
+PARSER_PACKAGE=grammar.generated.CPP14Parser;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TREE_BUILDING_ENABLED=true;
+TERMINATING_STRING="";
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+#CppGrammar :
+    translationunit {return CURRENT_NODE;}
+;
+
+INCLUDE "grammar/generated/CPP14.ccc";

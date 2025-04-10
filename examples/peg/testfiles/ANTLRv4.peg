@@ -244,14 +244,11 @@ lexerAltList
     ;
 
 lexerAlt
-    : lexerElements lexerCommands?
-    |
-    // explicitly allow empty alts
+    : (lexerElements lexerCommands?)?
     ;
 
 lexerElements
-    : lexerElement+
-    |
+    : lexerElement*
     ;
 
 lexerElement
@@ -295,14 +292,12 @@ altList
     ;
 
 alternative
-    : elementOptions? element+
-    |
-    // explicitly allow empty alts
+    : (elementOptions? element+)?
     ;
 
 element
-    : labeledElement (ebnfSuffix |)
-    | atom (ebnfSuffix |)
+    : labeledElement (ebnfSuffix)?
+    | atom (ebnfSuffix)?
     | ebnf
     | actionBlock QUESTION? predicateOptions?
     ;
@@ -674,8 +669,8 @@ WS
 // Lexer modes
 // -------------------------
 // Arguments
-/*** I don't know what these are for (they are not referenced anywhere else)
-mode Argument;
+/*** I don't know what these are for (they are not referenced anywhere else)FIXME
+//mode Argument;
 
 // E.g., [int x, List<String> a[]]
 NESTED_ARGUMENT
@@ -785,3 +780,6 @@ NameStartChar
     | [\uFDF0-\uFFFD]
     // ignores | ['\u10000-'\uEFFFF]
     ;
+    
+EOF
+    : !.
