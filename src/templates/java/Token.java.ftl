@@ -37,6 +37,8 @@ public class ${settings.baseTokenClassName} ${implements} {
           ${regexp.label}
           #if regexp.class.simpleName == "RegexpStringLiteral" && !regexp.ignoreCase
             ("${regexp.literalString?j_string}")
+          #elseif regexp.class.simpleName == "RegexpStringLiteral"
+            ("${regexp.literalString?j_string}", true)
           #endif
           ,
         #endlist
@@ -46,16 +48,28 @@ public class ${settings.baseTokenClassName} ${implements} {
         DUMMY,
         INVALID;
 
-       TokenType() {}
+        TokenType() {}
 
         TokenType(String literalString) {
             this.literalString = literalString;
+            this.ignoresCase = false;
         }
 
-       private String literalString;
+        TokenType(String literalString, boolean ignoresCase) {
+            this.literalString = literalString;
+            this.ignoresCase = ignoresCase;
+        }
+
+        private String literalString;
 
         public String getLiteralString() {
           return literalString;
+        }
+
+        private boolean ignoresCase = false;
+
+        public boolean ignoresCase() {
+            return ignoresCase;
         }
 
         public boolean isUndefined() {return this == DUMMY;}
