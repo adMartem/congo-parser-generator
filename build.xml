@@ -1,4 +1,4 @@
-<project name="congo" default="jar" basedir=".">
+<project name="congocc" default="jar" basedir=".">
   <tstamp>
     <format property="timestamp" pattern="yyyy-MM-dd HH:mm:ss" />
   </tstamp>
@@ -157,6 +157,11 @@
     <echo>Testing the newer FreeMarker parser</echo>
     <ant dir="examples/freemarker" target="clean" />
     <ant dir="examples/freemarker" target="test" />
+  	<!--
+    <echo>Testing the CICS parser</echo>
+    <ant dir="examples/cics" target="clean" />
+    <ant dir="examples/cics" target="test" />
+    -->
   </target>
 
   <target name="test-java" depends="jar">

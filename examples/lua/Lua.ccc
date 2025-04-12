@@ -83,7 +83,7 @@ AttributeNameList : <NAME> [Attribute] ("," <NAME> [Attribute])* ;
 
 Attribute : "<" <NAME> ">" ;
 
-LastStatement : ( "return" [ExpressionList] | "break" ) [";"] ;
+LastStatement : "return" [ExpressionList] [";"] ;
 
 Label : "::" <NAME> "::" ;
 

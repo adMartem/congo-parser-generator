@@ -33,34 +33,48 @@ public class ${settings.baseTokenClassName} ${implements} {
        implements Node.NodeType
     #endif
     {
-       #list lexerData.regularExpressions as regexp
+        #list lexerData.regularExpressions as regexp
           ${regexp.label}
           #if regexp.class.simpleName == "RegexpStringLiteral" && !regexp.ignoreCase
             ("${regexp.literalString?j_string}")
+          #elseif regexp.class.simpleName == "RegexpStringLiteral"
+            ("${regexp.literalString?j_string}", true)
           #endif
           ,
-       #endlist
-       #list settings.extraTokenNames as extraToken
+        #endlist
+        #list settings.extraTokenNames as extraToken
           ${extraToken},
-       #endlist
-       DUMMY,
-       INVALID;
+        #endlist
+        DUMMY,
+        INVALID;
 
-       TokenType() {}
+        TokenType() {}
 
-       TokenType(String literalString) {
-          this.literalString = literalString;
-       }
+        TokenType(String literalString) {
+            this.literalString = literalString;
+            this.ignoresCase = false;
+        }
 
-       private String literalString;
+        TokenType(String literalString, boolean ignoresCase) {
+            this.literalString = literalString;
+            this.ignoresCase = ignoresCase;
+        }
 
-       public String getLiteralString() {
-           return literalString;
-       }
+        private String literalString;
 
-       public boolean isUndefined() {return this == DUMMY;}
-       public boolean isInvalid() {return this == INVALID;}
-       public boolean isEOF() {return this == EOF;}
+        public String getLiteralString() {
+          return literalString;
+        }
+
+        private boolean ignoresCase = false;
+
+        public boolean ignoresCase() {
+            return ignoresCase;
+        }
+
+        public boolean isUndefined() {return this == DUMMY;}
+        public boolean isInvalid() {return this == INVALID;}
+        public boolean isEOF() {return this == EOF;}
     }
 
     private ${settings.lexerClassName} tokenSource;
@@ -107,7 +121,7 @@ public class ${settings.baseTokenClassName} ${implements} {
     public void truncate(int amount) {
         int newEndOffset = Math.max(getBeginOffset(), getEndOffset()-amount);
         setEndOffset(newEndOffset);
-   #if !settings.minimalToken        
+   #if !settings.minimalToken
         if (cachedImage != null) {
             cachedImage = cachedImage.substring(0, newEndOffset - getBeginOffset());
         }
@@ -167,7 +181,15 @@ public class ${settings.baseTokenClassName} ${implements} {
      * location info for the tokens.
      */
     public ${settings.lexerClassName} getTokenSource() {
-        return this.tokenSource;
+        return tokenSource;
+    }
+
+    /**
+     * @return the line of source which contains the token.
+     * This can be useful in error reporting.
+     */
+    public String getSourceLine() {
+        return tokenSource.getLine(this);
     }
 
     /**
