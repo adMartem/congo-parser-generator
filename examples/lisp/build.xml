@@ -43,10 +43,10 @@
       <assertions>
         <enable />
       </assertions>
-      <!--<arg value="${basedir}/testfiles/Page10.lsp" />
-      <arg value="${basedir}/testfiles/Page15.lsp" />
-      <arg value="${basedir}/testfiles/Page27.lsp" /> -->
-      <arg value="${basedir}/testfiles/big_one.lsp" />
+      <arg value="${basedir}/testfiles/Page10.lsp" />
+    	<!--<arg value="${basedir}/testfiles/Page15.lsp" />
+      <arg value="${basedir}/testfiles/Page27.lsp" /> 
+      <arg value="${basedir}/testfiles/big_one.lsp" />-->
     </java>
     <echo>
       Now test the LISP interpreter on a file.
@@ -55,7 +55,7 @@
       <assertions>
         <enable />
       </assertions>
-      <arg value="${basedir}/testfiles/Page15.lsp" />
+      <arg value="${basedir}/testfiles/Page10.lsp" />
     </java>
     <echo>
       Now test the LISP parser on a file with errors

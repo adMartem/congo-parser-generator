@@ -2,7 +2,6 @@ import java.io.*;
 import java.util.Map;
 
 import org.parsers.lisp.*;
-import org.congocc.core.Grammar;
 
 public class LISPParse {
     static public void parseFile(File file, boolean dumpTree) throws IOException, ParseException {
@@ -32,11 +31,6 @@ public class LISPParse {
           }
         }
       }
-    }
-    
-    static public Grammar parseGrammar(File file) {
-    	Grammar grammar = new Grammar(file, 17, boolean true, null);
-    	
     }
 
     static public void usage() {

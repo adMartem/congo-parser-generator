@@ -42,9 +42,9 @@ Root :
 Sexpression : 
       <ATOMIC_SYMBOL>!
     | "(" Sexpression "." =>|| Sexpression ")"
-    | List
+    | _List
 ;
 
-List : 
+_List : 
     "(" ( Sexpression )+! ")"
 ;
