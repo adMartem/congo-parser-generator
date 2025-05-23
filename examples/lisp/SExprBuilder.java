@@ -1,5 +1,6 @@
 import org.parsers.lisp.*;
 import org.parsers.lisp.ast.*;
+import java.util.List;
 
 public class SExprBuilder extends Node.Visitor {
     
@@ -9,11 +10,11 @@ public class SExprBuilder extends Node.Visitor {
         if (n.size() == 1) {
             // Either an ATOMIC_SYMBOL or a List
             visit(n.get(0));
-        } else if (n.size() == 3 && ".".equals(n.get(1).getImage())) {
+        } else if (n.getCar() != null) {
             // Dotted pair: (a . b)
-            visit(n.get(0));
+            visit(n.getCar());
             SExpr car = result;
-            visit(n.get(2));
+            visit(n.getCdr());
             SExpr cdr = result;
             result = new Cons(car, cdr);
         } else {
@@ -29,14 +30,17 @@ public class SExprBuilder extends Node.Visitor {
         result = new Atom(n.getImage());
     }
 
-    private SExpr buildList(_List listNode) {
+    private SExpr buildList(Node listNode) {
+        
         if (listNode.isEmpty()) return null;
 
         SExpr head = null;
         SExpr tail = null;
+        
+        List<Sexpression> sexprs = listNode.childrenOfType(Sexpression.class);
 
-        for (int i = 0; i < listNode.size(); i++) {
-            visit(listNode.get(i));
+        for (int i = 0; i < sexprs.size(); i++) {
+            visit(sexprs.get(i));
             SExpr next = result;
             if (head == null) {
                 head = tail = new Cons(next, null);

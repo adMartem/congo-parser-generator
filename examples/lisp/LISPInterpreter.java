@@ -37,11 +37,8 @@ public class LISPInterpreter extends Node.Visitor {
     void evalQuote(Node root) {
         System.out.println("EVALQUOTE has been entered...");
         
-        for (Node expr : root.children()) {
-            SExpr sexpr = SExprBuilder.build(expr);
-            SExpr result = LispEvaluator.evalquote(sexpr, null);
-            System.out.println("=> " + result);
-        }
+        SExpr result = LispEvaluator.evalquote(SExprBuilder.build(root), null);
+        System.out.println("=> " + (result != null ? result : "NIL"));
 
         System.out.println("EVALQUOTE is finished.");
     }

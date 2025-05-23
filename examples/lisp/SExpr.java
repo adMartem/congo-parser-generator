@@ -1,11 +1,14 @@
 import java.util.*;
 
-abstract class SExpr {}
+abstract class SExpr {
+    public abstract String print();
+}
 
 class Atom extends SExpr {
     public final String name;
     public Atom(String name) { this.name = name; }
     public String toString() { return name; }
+    public String print() { return name; }
 }
 
 class Cons extends SExpr {
@@ -16,16 +19,24 @@ class Cons extends SExpr {
         this.cdr = cdr;
     }
     public String toString() {
-        return "(" + stringify(this) + ")";
+        return print();
     }
-    private static String stringify(SExpr expr) {
-        if (expr == null) return "";
-        if (expr instanceof Cons) {
-            Cons cons = (Cons) expr;
-            return cons.car + (cons.cdr != null ? " " + stringify(cons.cdr) : "");
-        } else {
-            return ". " + expr;
+    public String print() {
+        StringBuilder sb = new StringBuilder("(");
+        SExpr current = this;
+        while (current instanceof Cons) {
+            Cons cons = (Cons) current;
+            sb.append(cons.car.print());
+            current = cons.cdr;
+            if (current instanceof Cons) {
+                sb.append(" ");
+            }
         }
+        if (!(current == null || (current instanceof Atom && ((Atom) current).name.equalsIgnoreCase("NIL")))) {
+            sb.append(" . ").append(current.print());
+        }
+        sb.append(")");
+        return sb.toString();
     }
 }
 
@@ -55,5 +66,3 @@ class Alist {
         return child;
     }
 }
-
-

@@ -2,6 +2,7 @@
 PARSER_PACKAGE="org.parsers.lisp";
 NODE_PACKAGE="org.parsers.lisp.ast";
 DEFAULT_LEXICAL_STATE=LISP;
+SMART_NODE_CREATION=false;
 #define FT
 #if FT
 FAULT_TOLERANT;
@@ -40,9 +41,9 @@ Root :
 ;
 
 Sexpression : 
-      <ATOMIC_SYMBOL>!
-    | "(" Sexpression "." =>|| Sexpression ")"
-    | _List
+      @atom := <ATOMIC_SYMBOL>!
+    | "(" @car := Sexpression "." =>|| @cdr := Sexpression ")"
+    | @cons := _List
 ;
 
 _List : 

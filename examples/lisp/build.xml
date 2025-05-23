@@ -43,7 +43,8 @@
       <assertions>
         <enable />
       </assertions>
-      <arg value="${basedir}/testfiles/Page10.lsp" />
+      <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="${basedir}/testfiles/Page15.lsp" />
     	<!--<arg value="${basedir}/testfiles/Page15.lsp" />
       <arg value="${basedir}/testfiles/Page27.lsp" /> 
       <arg value="${basedir}/testfiles/big_one.lsp" />-->
@@ -55,7 +56,8 @@
       <assertions>
         <enable />
       </assertions>
-      <arg value="${basedir}/testfiles/Page10.lsp" />
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="${basedir}/testfiles/Page15.lsp" />
     </java>
     <echo>
       Now test the LISP parser on a file with errors
