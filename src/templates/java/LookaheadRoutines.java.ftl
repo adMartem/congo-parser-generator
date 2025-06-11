@@ -145,10 +145,10 @@
      currentLookaheadToken = lastConsumedToken;
      final boolean scanToEnd = false;
      try {
-      ${BuildPredicateCode(expansion cardinalitiesVar)}
+      ${BuildPredicateCode(expansion, cardinalitiesVar)}
       #if !expansion.hasSeparateSyntacticLookahead && expansion.lookaheadAmount > 0
         #if expansion.cardinalityConstrained
-          ${BuildScanCode(expansion cardinalitiesVar)}
+          ${BuildScanCode(expansion, cardinalitiesVar)}
         #else
           ${BuildScanCode(expansion)}
         #endif
@@ -184,12 +184,12 @@
     /#if
     try {
        lookaheadRoutineNesting++;
-       ${BuildPredicateCode(expansion cardinalitiesVar)}
+       ${BuildPredicateCode(expansion, cardinalitiesVar)}
       #if !expansion.hasScanLimit
        reachedScanCode = true;
       #endif
       #if expansion.cardinalityConstrained
-       ${BuildScanCode(expansion cardinalitiesVar)}
+       ${BuildScanCode(expansion, cardinalitiesVar)}
       #else
        ${BuildScanCode(expansion)}
       #endif 
@@ -292,7 +292,7 @@
         try {
           lookaheadRoutineNesting++;
           #if lookahead.nestedExpansion.cardinalityConstrained
-            ${BuildScanCode(lookahead.nestedExpansion cardinalitiesVar)}
+            ${BuildScanCode(lookahead.nestedExpansion, cardinalitiesVar)}
           #else
             ${BuildScanCode(lookahead.nestedExpansion)}
           #endif
@@ -390,39 +390,39 @@
    // at: ${expansion.location}
    --]
    #if classname = "ExpansionWithParentheses"
-      ${BuildScanCode(expansion.nestedExpansion cardVar!null parentCardVar!null)}
+      ${BuildScanCode(expansion.nestedExpansion, cardVar!null, parentCardVar!null)}
    #elif expansion.singleTokenLookahead
-      ${ScanSingleToken(expansion cardVar!null)}
+      ${ScanSingleToken(expansion, cardVar!null)}
    #elif expansion.terminal
       [#-- This is actually dead code since this is
       caught by the previous case. I have it here because
       sometimes I like to comment out the previous condition
       for testing purposes.--]
-      ${ScanSingleToken(expansion cardVar!null)}
+      ${ScanSingleToken(expansion, cardVar!null)}
    #elif classname = "Assertion" 
       #if expansion.appliesInLookahead
-         ${ScanCodeAssertion(expansion cardVar!null parentCardVar!null)}
+         ${ScanCodeAssertion(expansion, cardVar!null, parentCardVar!null)}
       #else
          // No code generated since this assertion does not apply in lookahead
       #endif
    #elif classname = "Failure"
-         ${ScanCodeError(expansion cardVar!null)}
+         ${ScanCodeError(expansion, cardVar!null)}
    #elif classname = "UncacheTokens"
          uncacheTokens();
    #elif classname = "ExpansionSequence"
-      ${ScanCodeSequence(expansion cardVar!null parentCardVar!null)}
+      ${ScanCodeSequence(expansion, cardVar!null, parentCardVar!null)}
    #elif classname = "ZeroOrOne"
-      ${ScanCodeZeroOrOne(expansion cardVar!null)}
+      ${ScanCodeZeroOrOne(expansion, cardVar!null)}
    #elif classname = "ZeroOrMore"
-      ${ScanCodeZeroOrMore(expansion cardVar!null)}
+      ${ScanCodeZeroOrMore(expansion, cardVar!null)}
    #elif classname = "OneOrMore"
-      ${ScanCodeOneOrMore(expansion cardVar!null)}
+      ${ScanCodeOneOrMore(expansion, cardVar!null)}
    #elif classname = "NonTerminal"
-      ${ScanCodeNonTerminal(expansion cardVar!null)}
+      ${ScanCodeNonTerminal(expansion, cardVar!null)}
    #elif classname = "TryBlock" || classname = "AttemptBlock"
-      ${BuildScanCode(expansion.nestedExpansion cardVar!null parentCardVar!null)}
+      ${BuildScanCode(expansion.nestedExpansion, cardVar!null, parentCardVar!null)}
    #elif classname = "ExpansionChoice"
-      ${ScanCodeChoice(expansion cardVar!null parentCardVar!null)}
+      ${ScanCodeChoice(expansion, cardVar!null, parentCardVar!null)}
    #elif classname = "CodeBlock"
       #if expansion.appliesInLookahead || expansion.insideLookahead || expansion.containingProduction.onlyForLookahead
          ${expansion}
@@ -443,7 +443,7 @@
 --]
 #macro ScanCodeSequence sequence cardVar parentCardVar
    #list sequence.units as sub
-       ${BuildScanCode(sub cardVar!null parentCardVar!null)}
+       ${BuildScanCode(sub, cardVar!null, parentCardVar!null)}
        #if sub.scanLimit
          if (!scanToEnd && lookaheadStack.size() <= 1) {
             if (lookaheadRoutineNesting == 0) {
@@ -528,7 +528,7 @@
    try {
   #list choice.choices as subseq
      passedPredicate = false;
-     if (!${CheckExpansion(subseq cardinalitiesVar!null parentCardVar!null)}) {
+     if (!${CheckExpansion(subseq, cardinalitiesVar!null, parentCardVar!null)}) {
      currentLookaheadToken = ${settings.baseTokenClassName?lower_case}${CU.newVarIndex};
      remainingLookahead = remainingLookahead${CU.newVarIndex};
      hitFailure = hitFailure${CU.newVarIndex};
@@ -551,7 +551,7 @@
    boolean passedPredicate${CU.newVarIndex} = passedPredicate;
    passedPredicate = false;
    try {
-      if (!${CheckExpansion(zoo.nestedExpansion cardVar!null parentCardVar!null)}) {
+      if (!${CheckExpansion(zoo.nestedExpansion, cardVar!null, parentCardVar!null)}) {
         #if !settings.legacyGlitchyLookahead
          if (passedPredicate) ${returnFalse(cardVar!null)};
         #endif
@@ -578,7 +578,7 @@
       while (remainingLookahead > 0 && !hitFailure) {
       ${CU.newVar(settings.baseTokenClassName, "currentLookaheadToken")}
         passedPredicate = false;
-        if (!${CheckExpansion(zom.nestedExpansion zomCardVar cardinalitiesVar!null)}) {
+        if (!${CheckExpansion(zom.nestedExpansion, zomCardVar, cardinalitiesVar!null)}) {
            #if !settings.legacyGlitchyLookahead
             if (passedPredicate) ${returnFalse(cardinalitiesVar!null)};
            #endif
@@ -611,11 +611,11 @@
       // instantiating the OneOrMore choice cardinality container for its ExpansionChoices 
       RepetitionCardinality ${oomCardVar} = new RepetitionCardinality(${CU.BuildCardinalities(oom.cardinalityConstraints)}, false); 
     #endif
-   ${BuildScanCode(oom.nestedExpansion oomCardVar cardinalitiesVar!null)}
+   ${BuildScanCode(oom.nestedExpansion, oomCardVar, cardinalitiesVar!null)}
    #if oom.cardinalityContainer
       ${oomCardVar}.commitIteration(false);
    #endif
-   ${ScanCodeZeroOrMore(oom oomCardVar cardinalitiesVar!null)}
+   ${ScanCodeZeroOrMore(oom, oomCardVar, cardinalitiesVar!null)}
 #endmacro
 
 #macro CheckExpansion expansion cardinalitiesVar parentCardVar
