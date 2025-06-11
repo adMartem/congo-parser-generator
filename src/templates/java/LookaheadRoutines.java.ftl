@@ -567,7 +567,7 @@
 #macro ScanCodeZeroOrMore zom cardVar cardinalitiesVar
    #var prevPassPredicateVarName = "passedPredicate" + CU.newID()
     #var zomCardVar = cardVar!null
-    #if zom.cardinalityContainer & zomCardVar?is_null
+    #if zom.cardinalityContainer & !zomCardVar
       #set zomCardVar = "cardinality" + repetitionIndex
       #set repetitionIndex = repetitionIndex + 1
       // instantiating the OneOrMore choice cardinality container for its ExpansionChoices 
