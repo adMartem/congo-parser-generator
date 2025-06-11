@@ -18,27 +18,15 @@ import org.congocc.parser.tree.*;
 public class TemplateGlobals {
 
     private final Grammar grammar;
-    // private final LexerData lexerData;
     private final AppSettings appSettings;
     private Translator translator;
 
-    private final List<String> nodeVariableNameStack = new ArrayList<>();
-
     public TemplateGlobals(Grammar grammar) {
         this.grammar = grammar;
-        // this.lexerData = grammar.getLexerData();
         this.appSettings = grammar.getAppSettings();
     }
 
     public void setTranslator(Translator translator) {this.translator = translator;}
-
-    public void pushNodeVariableName(String nodeName) {
-        nodeVariableNameStack.add(nodeName);
-    }
-
-    public void popNodeVariableName() {
-        nodeVariableNameStack.remove(nodeVariableNameStack.size() - 1);
-    }
 
     public boolean nodeIsInterface(String nodeName) {
         return grammar.nodeIsInterface(nodeName);
@@ -49,37 +37,22 @@ public class TemplateGlobals {
         StringBuilder retval = new StringBuilder();
         for (int ch : str.codePoints().toArray()) {
             switch (ch) {
-                case '\b':
-                    retval.append("\\b");
-                    continue;
-                case '\t':
-                    retval.append("\\t");
-                    continue;
-                case '\n':
-                    retval.append("\\n");
-                    continue;
-                case '\f':
-                    retval.append("\\f");
-                    continue;
-                case '\r':
-                    retval.append("\\r");
-                    continue;
-                case '\"':
-                    retval.append("\\\"");
-                    continue;
-                case '\'':
-                    retval.append("\\'");
-                    continue;
-                case '\\':
-                    retval.append("\\\\");
-                    continue;
-                default:
+                case '\b' -> retval.append("\\b");
+                case '\t' -> retval.append("\\t");
+                case '\n' -> retval.append("\\n");
+                case '\f' -> retval.append("\\f");
+                case '\r' -> retval.append("\\r");
+                case '\"' -> retval.append("\\\"");
+                case '\'' -> retval.append("\\'");
+                case '\\' -> retval.append("\\\\");
+                default -> {
                     if (Character.isISOControl(ch)) {
                         String s = "0000" + java.lang.Integer.toString(ch, 16);
                         retval.append("\\u").append(s.substring(s.length() - 4));
                     } else {
                         retval.appendCodePoint(ch);
                     }
+                }
             }
         }
         return retval.toString();
@@ -96,28 +69,27 @@ public class TemplateGlobals {
      *         integer 97, we display 'a', for example.
      */
     public Function<Integer, String> getDisplayChar() {
-        return ch->{
-            if (ch == '\'')
-                return "'\\''";
-            if (ch == '\\')
-                return "'\\\\'";
-            if (ch == '\t')
-                return "'\\t'";
-            if (ch == '\r')
-                return "'\\r'";
-            if (ch == '\n')
-                return "'\\n'";
-            if (ch == '\f')
-                return "'\\f'";
-            if (ch == ' ')
-                return "' '";
-            if (ch < 128 && !Character.isWhitespace(ch) && !Character.isISOControl(ch))
-                return "'" + (char) ch.intValue() + "'";
-            String s = "0x" + Integer.toHexString(ch);
-            if (appSettings.getCodeLang().equals("python")) {
-                s = String.format("as_chr(%s)", s);
+        return this::displayChar;
+    }
+
+    public String displayChar(int ch) {
+        return switch (ch) {
+            case '\'' -> "'\\''";
+            case '\\' -> "'\\\\'";
+            case '\t' -> "'\\t'";
+            case '\r' -> "'\\r'";
+            case '\n' -> "'\\n'";
+            case '\f' -> "'\\f'";
+            case ' '  -> "' '";
+            default -> {
+                if (ch < 128 && !Character.isWhitespace(ch) && !Character.isISOControl(ch))
+                    yield "'" + (char) ch + "'";
+                String s = "0x" + Integer.toHexString(ch);
+                if (appSettings.getCodeLang().equals("python")) {
+                    s = String.format("as_chr(%s)", s);
+                }
+                yield s;
             }
-            return s;
         };
     }
 
@@ -499,11 +471,5 @@ public class TemplateGlobals {
         List<String> result = seq.steps(bnn);
         result.remove(0); // The bnn value
         return result;
-    }
-
-    public String getCurrentNodeVariableName() {
-        if (nodeVariableNameStack.isEmpty())
-            return "null";
-        return nodeVariableNameStack.get(nodeVariableNameStack.size() - 1);
     }
 }

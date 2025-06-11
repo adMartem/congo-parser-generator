@@ -4,7 +4,6 @@ PARSER_PACKAGE=org.congocc.parser;
 NODE_PACKAGE=org.congocc.parser.tree;
 DEFAULT_LEXICAL_STATE=JAVA;
 BASE_SRC_DIR="../../build/generated-java";
-MINIMAL_TOKEN=false;
 
 USES_PREPROCESSOR;
 
@@ -139,8 +138,8 @@ INJECT PARSER_CLASS :
         token_source.setParsedLines(lineMarkers);
     } 
 
-    static public CompilationUnit parseJavaFile(String inputSource, CharSequence content) {
-        PARSER_CLASS parser = new PARSER_CLASS(inputSource, content);
+    static public CompilationUnit parseJavaFile(Grammar grammar, String inputSource, CharSequence content) throws IOException{
+        PARSER_CLASS parser = new PARSER_CLASS(grammar, inputSource, content);
         return parser.CompilationUnit();
     }
 
@@ -318,64 +317,43 @@ INJECT Identifier :
 {
     private String savedImage;
 
-    static private Set<String> aliases = new HashSet<>();
-
-    static {
-        aliases.add("jjtThis");
-        aliases.add("CURRENT_NODE");
-        aliases.add("THIS_PRODUCTION");
-        aliases.add("PARSER_CLASS");
-        aliases.add("LEXER_CLASS");
-        aliases.add("BASE_NODE_CLASS");
-        aliases.add("BASE_TOKEN_CLASS");
-        aliases.add("NODE_PACKAGE");
-        aliases.add("PARSER_PACKAGE");
-        aliases.add("TOKEN_HOOK");
-        aliases.add("RESET_TOKEN_HOOK");
-        aliases.add("OPEN_NODE_HOOK");
-        aliases.add("CLOSE_NODE_HOOK");
-    }
-
     public String toString() {
         if (savedImage !=null) return savedImage;
         String image = getSource();
-        if (!aliases.contains(image) || firstAncestorOfType(Options.class) != null) return image;
-        String prefix;
-        switch (image) {
-            case "jjtThis" :
-            case "CURRENT_NODE" :
-               savedImage=getGrammar().getTemplateGlobals().getCurrentNodeVariableName();
-               if (!savedImage.equals("null")) return savedImage;
-               savedImage = null;
-               return image;
-            case "THIS_PRODUCTION" :
-               return savedImage = "thisProduction";
-            case "PARSER_CLASS" :
-               return savedImage = getAppSettings().getParserClassName();
-            case "LEXER_CLASS" :
-               return savedImage = getAppSettings().getLexerClassName();
-            case "BASE_NODE_CLASS" :
-               return savedImage = getAppSettings().getBaseNodeClassName();
-            case "BASE_TOKEN_CLASS" :
-               return savedImage = getAppSettings().getBaseTokenClassName();
-            case "NODE_PACKAGE" :
-               return savedImage = getAppSettings().getNodePackage();
-            case "PARSER_PACKAGE" :
-               return savedImage = getAppSettings().getParserPackage();
-            case "TOKEN_HOOK" :
-               prefix = getAppSettings().generateIdentifierPrefix("tokenHook");
-               return savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
-            case "RESET_TOKEN_HOOK" :
-               prefix = getAppSettings().generateIdentifierPrefix("resetTokenHook");
-               return savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
-            case "OPEN_NODE_HOOK" :
-               prefix = getAppSettings().generateIdentifierPrefix("openNodeHook");
-               return savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
-            case "CLOSE_NODE_HOOK" :
-               prefix = getAppSettings().generateIdentifierPrefix("closeNodeHook");
-               return savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
-            default : return image; 
-        }
+        if (firstAncestorOfType(Options.class) != null) return image; 
+        return switch (image) {
+            case "jjtThis", "CURRENT_NODE", "THIS_PRODUCTION" -> 
+                "thisProduction";
+            case "PARSER_CLASS" -> 
+               getAppSettings().getParserClassName();
+            case "LEXER_CLASS" -> 
+               getAppSettings().getLexerClassName();
+            case "BASE_NODE_CLASS" ->
+               getAppSettings().getBaseNodeClassName();
+            case "BASE_TOKEN_CLASS" ->
+               getAppSettings().getBaseTokenClassName();
+            case "NODE_PACKAGE" ->
+               getAppSettings().getNodePackage();
+            case "PARSER_PACKAGE" ->
+               getAppSettings().getParserPackage();
+            case "TOKEN_HOOK" -> {
+               String prefix = getAppSettings().generateIdentifierPrefix("tokenHook");
+               yield savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
+            }
+            case "RESET_TOKEN_HOOK" -> {
+               String prefix = getAppSettings().generateIdentifierPrefix("resetTokenHook");
+               yield savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
+            }
+            case "OPEN_NODE_HOOK" -> {
+               String prefix = getAppSettings().generateIdentifierPrefix("openNodeHook");
+               yield savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
+            }
+            case "CLOSE_NODE_HOOK" -> {
+               String prefix = getAppSettings().generateIdentifierPrefix("closeNodeHook");
+               yield savedImage = getAppSettings().generateUniqueIdentifier(prefix, this);
+            }
+            default -> image;
+        };
    }
 }
 
@@ -384,6 +362,8 @@ INJECT interface Node :
 {
     default Grammar getGrammar() {
         TokenSource ts = getTokenSource();
+        assert ts != null;
+        assert ts.getGrammar() != null;
         return ts == null ? null : ts.getGrammar();
     }
     default Node getNamedChild(String name) { return null; }
@@ -732,12 +712,6 @@ BNFProduction #org.congocc.core.BNFProduction :
         {CURRENT_NODE.setLexicalState(lastConsumedToken.toString());}
         ":"
     ]
-    [
-        Block
-        {CodeBlock block = (CodeBlock) peekNode();}
-        ["#" {block.setAppliesInLookahead(true);}]
-        ASSERT ~(";") =>||
-    ]
     ExpansionChoice
     {CURRENT_NODE.setExpansion((Expansion) peekNode());}
     ";"
@@ -779,12 +753,12 @@ InlineTreeNodeDescriptor #TreeBuildingAnnotation :
     ")"
     |
     "("
-    ASSERT ~(ExpansionSequence "|") //A bit kludgy, but we treat this case specially for principle of least surprise.
+    ENSURE ~(ExpansionSequence "|") //A bit kludgy, but we treat this case specially for principle of least surprise.
     Expression {CURRENT_NODE.setCondition((Expression) peekNode());}
     ")"
     // If any of the following tokens are after the closing parenthesesis, this must
     // be an expansion (or the code is just invalid)
-    ASSERT ~(<STAR>|<PLUS>|<HOOK>|<HASH>)
+    ENSURE ~(<STAR>|<PLUS>|<HOOK>|<HASH>)
     =>||
     |
     SCAN "(" ExpansionChoice ")" => {}
@@ -1425,7 +1399,7 @@ ChildNameInfo(Expansion expansion) : //#void :
     String name;
     boolean multiple = false;
 }
-  ASSERT ~(Assignment)
+  ENSURE ~(Assignment)
   // TODO these delimiters are provisional - agreement needed on final form
   "/" =>||
   (

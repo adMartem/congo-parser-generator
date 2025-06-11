@@ -361,9 +361,6 @@
    // BuildProductionLookaheadMethod macro
   #set CU.newVarIndex = 0 
    private boolean ${production.lookaheadMethodName}(boolean scanToEnd) {
-      #if production.javaCode?? && (production.javaCode.appliesInLookahead || production.onlyForLookahead)
-         ${production.javaCode}
-      #endif
       ${BuildScanCode(production.expansion)}
       return true;
    }
@@ -387,9 +384,11 @@
   #else
     // skipping check
   #endif
-  [@CU.HandleLexicalStateChange expansion true]
+  [@CU.HandleLexicalStateChange expansion, true]
+   [#--
    // Building scan code for: ${classname}
    // at: ${expansion.location}
+   --]
    #if classname = "ExpansionWithParentheses"
       ${BuildScanCode(expansion.nestedExpansion cardVar!null parentCardVar!null)}
    #elif expansion.singleTokenLookahead
@@ -548,7 +547,7 @@
 #endmacro
 
 #macro ScanCodeZeroOrOne zoo cardVar parentCardVar
-   ${CU.newVar(settings.baseTokenClassName"currentLookaheadToken")}
+   ${CU.newVar(settings.baseTokenClassName, "currentLookaheadToken")}
    boolean passedPredicate${CU.newVarIndex} = passedPredicate;
    passedPredicate = false;
    try {
@@ -577,7 +576,7 @@
     boolean ${prevPassPredicateVarName} = passedPredicate;
     try {
       while (remainingLookahead > 0 && !hitFailure) {
-      ${CU.newVar(type = settings.baseTokenClassName init = "currentLookaheadToken")}
+      ${CU.newVar(settings.baseTokenClassName, "currentLookaheadToken")}
         passedPredicate = false;
         if (!${CheckExpansion(zom.nestedExpansion zomCardVar cardinalitiesVar!null)}) {
            #if !settings.legacyGlitchyLookahead

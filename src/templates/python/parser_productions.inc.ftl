@@ -37,7 +37,7 @@
    [@CU.firstSetVar production.expansion/]
    [#if !production.onlyForLookahead]
       [#set currentProduction = production]
-   [@ParserProduction production 4/]
+   [@ParserProduction production, 4/]
    [/#if]
 [/#list]
 [#if settings.faultTolerant]
@@ -61,12 +61,7 @@ ${is}${globals::startProduction()}def parse_${production.name}(self[#if producti
 ${is}    # import pdb; pdb.set_trace()
    [#-- OMITTED: "if (cancelled) throw new CancellationException();" --]
 ${is}    self.currently_parsed_production = '${production.name}'
-   [#--${production.javaCode!}
-      This is actually inserted further down because
-      we want the prologue java code block to be able to refer to
-      CURRENT_NODE.
-   --]
-   [#set topLevelExpansion = false]
+   #set topLevelExpansion = false
 ${BuildCode(production, indent + 4)}
 ${is}# end of parse_${production.name}${globals::endProduction()}
 [/#macro]
@@ -138,13 +133,13 @@ ${is}        self.pending_recovery = not success
 #if expansion.simpleName != "ExpansionSequence" && expansion.simpleName != "ExpansionWithParentheses"
 ${is}# Code for ${expansion.simpleName} specified at ${expansion.location}
 /#if
-[@CU.HandleLexicalStateChange expansion false indent; indent]
+[@CU.HandleLexicalStateChange expansion, false, indent; indent]
   #if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty
     [#var is = ""?right_pad(indent)][#-- needed for when passed as nested content --]
 ${is}if self.pending_recovery:
 ${is}    self.${expansion.recoverMethodName}()
   /#if
-  [@BuildExpansionCode expansion indent/]
+  [@BuildExpansionCode expansion, indent/]
 [/@CU.HandleLexicalStateChange][#rt]
 [#--${is}# DBG < BuildCode ${indent} ${expansion.simpleName} --]
 /#macro
@@ -156,7 +151,6 @@ ${is}    self.${expansion.recoverMethodName}()
          treeNodeBehavior,
          buildingTreeNode = false,
          nodeVarName,
-         javaCodePrologue = null,
          parseExceptionVar = CU.newVarName("parseException"),
          callStackSizeVar = CU.newVarName("callStackSize"),
          canRecover = settings.faultTolerant && expansion.tolerantParsing && expansion.simpleName != "Terminal"
@@ -165,7 +159,6 @@ ${is}    self.${expansion.recoverMethodName}()
    [#if expansion == currentProduction]
       [#-- Set this expansion as the current production and capture any Java code specified before the first expansion unit --]
       [#set production = currentProduction]
-      [#set javaCodePrologue = production.javaCode!]
    [/#if]
    [#if treeNodeBehavior??]
       [#if settings.treeBuildingEnabled]
@@ -175,16 +168,14 @@ ${is}    self.${expansion.recoverMethodName}()
    [/#if]
    [#if !buildingTreeNode && !canRecover]
       [#-- We need neither tree nodes nor recovery code; do the simple one. --]
-${globals::translateCodeBlock(javaCodePrologue, indent)}[#rt]
       [#nested indent][#rt]
    [#else]
       [#-- We need tree nodes and/or recovery code. --]
       [#if buildingTreeNode]
          [#-- Build the tree node (part 1). --]
-         [@buildTreeNode production treeNodeBehavior nodeVarName indent/]
+         [@buildTreeNode production, treeNodeBehavior, nodeVarName, indent/]
       [/#if]
       [#-- Any prologue code can refer to CURRENT_NODE at this point. --]
-${globals::translateCodeBlock(javaCodePrologue, indent)}[#rt]
 ${is}${parseExceptionVar} = None
 ${is}${callStackSizeVar} = len(self.parsing_stack)
 ${is}try:
@@ -214,7 +205,7 @@ ${is}finally:
 ${is}    self.restore_call_stack(${callStackSizeVar})
       [#if buildingTreeNode]
          [#-- Build the tree node (part 2). --]
-[@buildTreeNodeEpilogue treeNodeBehavior nodeVarName parseExceptionVar indent /]
+[@buildTreeNodeEpilogue treeNodeBehavior, nodeVarName, parseExceptionVar, indent /]
       [/#if]
    [/#if]
 [#--${is}# DBG < TreeBuildingAndRecovery ${indent} --]
@@ -451,8 +442,7 @@ ${injectDeclaration(treeNodeBehavior.nodeName, treeNodeBehavior.assignment.name,
 [#macro buildTreeNode production treeNodeBehavior nodeVarName indent]
 [#-- FIXME: production is not used here --]
 [#var is = ""?right_pad(indent)]
-#exec globals::pushNodeVariableName(nodeVarName)
-[@createNode nodeClassName(treeNodeBehavior) nodeVarName indent /]
+[@createNode nodeClassName(treeNodeBehavior), nodeVarName, indent /]
 [/#macro]
 
 [#--  Boilerplate code to create the node variable --]
@@ -487,7 +477,6 @@ ${is}        ${nodeVarName}.dirty = True
    [#else]
 ${is}        self.clear_node_scope()
    [/#if]
-#exec globals::popNodeVariableName()
 [/#macro]
 
 [#function getRhsAssignmentPattern assignment]
@@ -590,28 +579,28 @@ ${globals::translateCodeBlock(expansion, indent)}
    [#elseif classname = "UncacheTokens"]
 ${is}self.uncache_tokens()
    [#elseif classname = "Failure"]
-      [@BuildCodeFailure expansion indent /]
+      [@BuildCodeFailure expansion, indent /]
    [#elseif classname = "Assertion"]
-      [@BuildAssertionCode expansion indent /]
+      [@BuildAssertionCode expansion, indent /]
    [#elseif classname = "TokenTypeActivation"]
-      [@BuildCodeTokenTypeActivation expansion indent /]
+      [@BuildCodeTokenTypeActivation expansion, indent /]
    [#elseif classname = "TryBlock"]
-      [@BuildCodeTryBlock expansion indent /]
+      [@BuildCodeTryBlock expansion, indent /]
    [#elseif classname = "AttemptBlock"]
-      [@BuildCodeAttemptBlock expansion indent /]
+      [@BuildCodeAttemptBlock expansion, indent /]
    [#else]
       [#-- take care of the tree node (if any) --]
-      [@TreeBuildingAndRecovery expansion indent; indent]
+      [@TreeBuildingAndRecovery expansion, indent; indent]
          [#if classname = "BNFProduction"]
             [#-- The tree node having been built, now build the actual top-level expansion --]
             [#set topLevelExpansion = true]
-            [@BuildCode expansion.nestedExpansion indent /]
+            [@BuildCode expansion.nestedExpansion, indent /]
          [#else]
             [#-- take care of terminal and non-terminal expansions; they cannot contain child expansions --]
             [#if classname = "NonTerminal"]
-               [@BuildCodeNonTerminal expansion indent /]
+               [@BuildCodeNonTerminal expansion, indent /]
             [#elseif classname = "Terminal"]
-               [@BuildCodeTerminal expansion indent /]
+               [@BuildCodeTerminal expansion, indent /]
             [#else]
                [#-- take care of the syntactical expansions (which can contain child expansions) --]
                [#-- capture the top-level indication in order to restore when bubbling up --]
@@ -621,18 +610,18 @@ ${is}self.uncache_tokens()
                   [#set topLevelExpansion = false]
                [/#if]
                [#if classname = "ZeroOrOne"]
-                  [@BuildCodeZeroOrOne expansion indent /]
+                  [@BuildCodeZeroOrOne expansion, indent /]
                [#elseif classname = "ZeroOrMore"]
-                  [@BuildCodeZeroOrMore expansion indent /]
+                  [@BuildCodeZeroOrMore expansion, indent /]
                [#elseif classname = "OneOrMore"]
-                  [@BuildCodeOneOrMore expansion indent /]
+                  [@BuildCodeOneOrMore expansion, indent /]
                [#elseif classname = "ExpansionChoice"]
-                  [@BuildCodeChoice expansion indent /]
+                  [@BuildCodeChoice expansion, indent /]
                [#elseif classname = "ExpansionWithParentheses"]
                   [#-- Recurse; the real expansion is nested within this one (but the LHS, if any, is on the parent) --]
-                  [@BuildExpansionCode expansion.nestedExpansion indent /]
+                  [@BuildExpansionCode expansion.nestedExpansion, indent /]
                [#elseif classname = "ExpansionSequence"]
-                  [@BuildCodeSequence expansion indent /]
+                  [@BuildCodeSequence expansion, indent /]
                   [#-- leave the topLevelExpansion one-shot alone (see above) --]
                [/#if]
                [#set topLevelExpansion = stackedTopLevel]
@@ -645,7 +634,7 @@ ${is}self.uncache_tokens()
 
 [#-- The following macros build expansions that never build tree nodes. --]
 
-[#macro BuildCodeFailure fail indent]
+[#macro BuildCodeFailure fail, indent]
 [#var is = ""?right_pad(indent)]
 [#--${is}# DBG > BuildCodeFailure ${indent} --]
     [#if fail.code?is_null]
@@ -743,7 +732,7 @@ ${is}    self.outer_follow_set = new_follow_set
    [/#if]
 [/#if]
 ${is}try:
-[@AcceptNonTerminal nonterminal indent + 4 /]
+[@AcceptNonTerminal nonterminal, indent + 4 /]
 ${is}finally:
 ${is}    self.pop_call_stack()
 [#--${is}# DBG < BuildCodeNonTerminal ${indent} ${nonterminal.production.name} --]
@@ -839,7 +828,7 @@ ${is}while True:
        [#if zom.nestedExpansion.class.simpleName != "ExpansionChoice"]
 ${is}    if not (${ExpansionCondition(zom.nestedExpansion)}): break
        [/#if]
-[@RecoveryLoop zom indent + 4 /]
+[@RecoveryLoop zom, indent + 4 /]
 [#--${is}# DBG < BuildCodeZeroOrMore ${indent} --]
 [/#macro]
 

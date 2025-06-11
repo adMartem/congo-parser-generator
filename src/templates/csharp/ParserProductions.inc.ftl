@@ -55,11 +55,6 @@
         // ${production.location}
         ${globals::startProduction()}${globals::translateModifiers(production.accessModifier)} ${globals::translateType(production.returnType)} Parse${production.name}([#if production.parameterList??]${globals::translateParameters(production.parameterList)}[/#if]) {
             _currentlyParsedProduction = "${production.name}";
-            [#--${production.javaCode!}
-            This is actually inserted further down because
-            we want the prologue java code block to be able to refer to
-            CURRENT_NODE.
-            --]
             [#set topLevelExpansion = false]
             ${BuildCode(production)}
         }
@@ -139,12 +134,12 @@
   [#if expansion.simpleName != "ExpansionSequence" && expansion.simpleName != "ExpansionWithParentheses"]
 // Code for ${expansion.simpleName} specified at ${expansion.location}
   [/#if]
-     [@CU.HandleLexicalStateChange expansion false]
-      [#if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty]
+     [@CU.HandleLexicalStateChange expansion, false]
+      #if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty
 if (_pendingRecovery) {
     ${expansion.recoverMethodName}();
 }
-      [/#if]
+      #endif
        [@BuildExpansionCode expansion/]
      [/@CU.HandleLexicalStateChange]
 [#-- // DBG < BuildCode ${expansion.simpleName} --]
@@ -155,7 +150,6 @@ if (_pendingRecovery) {
           treeNodeBehavior,
           buildingTreeNode = false,
           nodeVarName,
-          javaCodePrologue = null,
           parseExceptionVar = CU.newVarName("parseException"),
           callStackSizeVar = CU.newVarName("callStackSize"),
           canRecover = settings.faultTolerant && expansion.tolerantParsing && expansion.simpleName != "Terminal"
@@ -165,7 +159,6 @@ if (_pendingRecovery) {
     [#if expansion == currentProduction]
       [#-- Set this expansion as the current production and capture any Java code specified before the first expansion unit --]
       [#set production = currentProduction]
-      [#set javaCodePrologue = production.javaCode!]
     [/#if]
     [#if treeNodeBehavior??]
         [#if settings.treeBuildingEnabled]
@@ -174,16 +167,14 @@ if (_pendingRecovery) {
         [/#if]
     [/#if]
     [#if !buildingTreeNode && !canRecover]
-${globals::translateCodeBlock(javaCodePrologue, 1)}[#rt]
         [#nested]
     [#else]
         [#-- We need tree nodes and/or recovery code. --]
-        [#if buildingTreeNode]
+        #if buildingTreeNode
             [#-- Build the tree node (part 1). --]
-            [@buildTreeNode production treeNodeBehavior nodeVarName /]
-        [/#if]
+            [@createNode nodeClassName(treeNodeBehavior), nodeVarName /]
+        #endif
         [#-- Any prologue code can refer to CURRENT_NODE at this point. --][#-- REVISIT: Is this needed anymore, since THIS_PRODUCTION is always the reference to CURRENT_NODE (jb)? --]
-${globals::translateCodeBlock(javaCodePrologue, 1)}
 ParseException ${parseExceptionVar} = null;
 var ${callStackSizeVar} = ParsingStack.Count;
 try {
@@ -216,7 +207,7 @@ finally {
     RestoreCallStack(${callStackSizeVar});
 [#if buildingTreeNode]
     [#-- Build the tree node (part 2). --]
-    [@buildTreeNodeEpilogue treeNodeBehavior nodeVarName parseExceptionVar /]
+    [@buildTreeNodeEpilogue treeNodeBehavior, nodeVarName, parseExceptionVar /]
 [/#if]
 }
 [/#if]
@@ -439,8 +430,7 @@ finally {
 /#function
 
 [#macro buildTreeNode production treeNodeBehavior nodeVarName] [#-- FIXME: production is not used here --]
-   #exec globals::pushNodeVariableName(nodeVarName)
-   [@createNode nodeClassName(treeNodeBehavior) nodeVarName /]
+   [@createNode nodeClassName(treeNodeBehavior), nodeVarName /]
 [/#macro]
 
 [#--  Boilerplate code to create the node variable --]
@@ -479,7 +469,6 @@ if (BuildTree) {
    [/#if]
       }
    }
-   #exec globals::popNodeVariableName()
 [/#macro]
 
 [#function getRhsAssignmentPattern assignment]
@@ -928,13 +917,34 @@ ${BuildCode(subexp)}
 [/#macro]
 
 [#-- Generates code for when we need a scanahead --]
-[#macro ScanAheadCondition expansion]
-[#if expansion.lookahead?? && expansion.lookahead.assignment??](${expansion.lookahead.assignment.name} = [/#if][#if expansion.hasSemanticLookahead && !expansion.lookahead.semanticLookaheadNested](${globals::translateExpression(expansion.semanticLookahead)}) && [/#if]${expansion.predicateMethodName}()[#if expansion.lookahead?? && expansion.lookahead.assignment??])[/#if]
-[/#macro]
+#macro ScanAheadCondition expansion
+  #if expansion.lookahead?? && expansion.lookahead.assignment??
+     (${expansion.lookahead.assignment.name} = 
+  #endif
+  #if expansion.hasSemanticLookahead && !expansion.lookahead.semanticLookaheadNested
+    (${globals::translateExpression(expansion.semanticLookahead)}) && 
+  #endif
+    ${expansion.predicateMethodName}()
+  #if expansion.lookahead?? && expansion.lookahead.assignment??
+    )
+  #endif
+#endmacro
 
 
-[#-- Generates code for when we don't need any scanahead routine --]
-[#macro SingleTokenCondition expansion]
-[#if expansion.hasSemanticLookahead](${globals::translateExpression(expansion.semanticLookahead)}) && [/#if]
-[#if expansion.enteredUnconditionally]true[#elseif expansion.firstSet.tokenNames?size == 0]false[#elseif expansion.firstSet.tokenNames?size < 5][#list expansion.firstSet.tokenNames as name](NextTokenType == TokenType.${name})[#if name_has_next] || [/#if][/#list][#else]${expansion.firstSetVarName}.Contains(NextTokenType)[/#if][#t]
-[/#macro]
+#-- Generates code for when we don't need any scanahead routine 
+#macro SingleTokenCondition expansion
+  #if expansion.hasSemanticLookahead
+     (${globals::translateExpression(expansion.semanticLookahead)}) && 
+  #endif
+  #if expansion.enteredUnconditionally 
+     true
+  #elif expansion.firstSet.tokenNames?size == 0
+     false
+  #elif expansion.firstSet.tokenNames?size < 5
+     #list expansion.firstSet.tokenNames as name
+        (NextTokenType == TokenType.${name})${name_has_next ?: "||"}
+     #endlist
+  #else
+     ${expansion.firstSetVarName}.Contains(NextTokenType)
+  #endif
+#endmacro

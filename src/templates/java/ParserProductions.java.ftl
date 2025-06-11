@@ -76,11 +76,6 @@
     {
      if (cancelled) throw new CancellationException();
      this.currentlyParsedProduction = "${production.name}";
-     [#--${production.javaCode!}
-       This is actually inserted further down because
-       we want the prologue java code block to be able to refer to
-       CURRENT_NODE.
-     --]
      #set topLevelExpansion = false
      ${BuildCode(production)}
     }
@@ -108,7 +103,9 @@
              #if expansion.simpleName = "ZeroOrMore" || expansion.simpleName = "OneOrMore"
                #var followingExpansion = expansion.followingExpansion
                #list 1..1000000 as unused
-                [#if !followingExpansion][#break][/#if]
+                #if !followingExpansion
+                  #break
+                #endif
                 #if followingExpansion.maximumSize > 0
                  #if followingExpansion.simpleName = "OneOrMore" || followingExpansion.simpleName = "ZeroOrOne" || followingExpansion.simpleName = "ZeroOrMore"
                  if (${ExpansionCondition(followingExpansion.nestedExpansion)}) {
@@ -119,7 +116,9 @@
                     break;
                  }
                 #endif
-                [#if !followingExpansion.possiblyEmpty][#break][/#if]
+                #if !followingExpansion.possiblyEmpty
+                  #break
+                #endif
                 #if !followingExpansion.followingExpansion
                  if (outerFollowSet != null) {
                    if (outerFollowSet.contains(nextTokenType())) {
@@ -127,7 +126,7 @@
                       break;
                    }
                  }
-                 [#break/]
+                 #break
                 #endif
                 #set followingExpansion = followingExpansion.followingExpansion
                #endlist
@@ -156,7 +155,7 @@
   #if expansion.simpleName != "ExpansionSequence" && expansion.simpleName != "ExpansionWithParentheses"
   // Code for ${expansion.simpleName} specified at ${expansion.location}
   #endif
-     [@CU.HandleLexicalStateChange expansion false cardinalitiesVar!null]
+     [@CU.HandleLexicalStateChange expansion, false, cardinalitiesVar!null]
          #if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty
          if (pendingRecovery) {
             pendingRecovery = !${expansion.recoverMethodName}(null);
@@ -172,7 +171,6 @@
          treeNodeBehavior,
          buildingTreeNode = false,
          nodeVarName,
-         javaCodePrologue = "",
          parseExceptionVar = CU.newVarName("parseException"),
          callStackSizeVar = CU.newVarName("callStackSize"),
          canRecover = settings.faultTolerant && expansion.tolerantParsing && expansion.simpleName != "Terminal"
@@ -180,8 +178,7 @@
    #-- // DBG <> treeNodeBehavior = ${(treeNodeBehavior??)?string!} for expansion ${expansion.simpleName} --
    #if expansion == currentProduction
       #-- Set this expansion as the current production and capture any Java code specified before the first expansion unit --
-      #set production = currentProduction,
-           javaCodePrologue = production.javaCode!
+      #set production = currentProduction
    #endif
    #if treeNodeBehavior??
       #if settings.treeBuildingEnabled
@@ -191,17 +188,13 @@
    #endif
    #if !buildingTreeNode && !canRecover
       #-- We need neither tree nodes nor recovery code; do the simple one. --
-      ${javaCodePrologue}
       #nested
    #else
       #-- We need tree nodes and/or recovery code. --
       #if buildingTreeNode
-         #-- Build the tree node (part 1). --
-         ${buildTreeNode(production, treeNodeBehavior, nodeVarName)}
+         #-- Build the tree node (part 1). 
+         ${createNode(nodeClassName(treeNodeBehavior), nodeVarName)}
       #endif
-      #-- Any prologue code can refer to CURRENT_NODE at this point. --
-      #-- REVISIT: Is this needed anymore, since THIS_PRODUCTION is always the reference to the current production node (if any) (jb)? --
-      ${javaCodePrologue}
       ParseException ${parseExceptionVar} = null;
       int ${callStackSizeVar} = parsingStack.size();
       try {
@@ -476,7 +469,6 @@
 #endfunction
 
 #macro buildTreeNode production treeNodeBehavior nodeVarName [#-- FIXME: production is not used here --]
-   #exec globals::pushNodeVariableName(nodeVarName)
    ${createNode(nodeClassName(treeNodeBehavior), nodeVarName)}
 #endmacro
 
@@ -520,7 +512,6 @@
    #endif
       }
    }
-   #exec globals::popNodeVariableName()
 #endmacro
 
 #function getRhsAssignmentPattern assignment
