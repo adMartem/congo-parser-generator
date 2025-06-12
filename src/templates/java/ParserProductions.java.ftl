@@ -6,6 +6,7 @@
      NODE_USES_PARSER = settings.nodeUsesParser,
      NODE_PREFIX = grammar.nodePrefix,
      currentProduction,
+     treeNodeStack = [],
      topLevelExpansion [#-- A "one-shot" indication that we are processing
                               an expansion immediately below the BNF production expansion,
                               ignoring an ExpansionSequence that might be there. This is
@@ -193,6 +194,7 @@
       #-- We need tree nodes and/or recovery code. --
       #if buildingTreeNode
          #-- Build the tree node (part 1). 
+         #set treeNodeStack = treeNodeStack + [nodeVarName]
          ${createNode(nodeClassName(treeNodeBehavior), nodeVarName)}
       #endif
       ParseException ${parseExceptionVar} = null;
@@ -233,10 +235,19 @@
       #if buildingTreeNode
          #-- Build the tree node (part 2).
          ${buildTreeNodeEpilogue(treeNodeBehavior, nodeVarName, parseExceptionVar)}
+         #if treeNodeStack?size > 1
+            #set treeNodeStack = treeNodeStack[0..treeNodeStack?size - 2]
+         #else
+            #set treeNodeStack = []
+         #endif
       #endif
       }
    #endif
 #endmacro
+
+#function currentNodeVariableName()
+  #return treeNodeStack[treeNodeStack?size - 1]
+#endfunction
 
 #function imputedJtbFieldName nodeClass
    #if nodeClass?? && jtbParseTree && topLevelExpansion
@@ -468,10 +479,6 @@
    #return exceptionVarName
 #endfunction
 
-#macro buildTreeNode production treeNodeBehavior nodeVarName [#-- FIXME: production is not used here --]
-   ${createNode(nodeClassName(treeNodeBehavior), nodeVarName)}
-#endmacro
-
 #--  Boilerplate code to create the node variable --
 #macro createNode nodeClass nodeVarName
 #-- // DBG > createNode --
@@ -545,10 +552,10 @@
       #elif assignment.namedAssignment!false
          #if assignment.addTo
             #-- This is the addition of the current node to the named child list of the production node --
-            #return "${globals.currentNodeVariableName}" + ".addToNamedChildList(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
+            #return "${currentNodeVariableName()}" + ".addToNamedChildList(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
          #else
             #-- This is an assignment of the current node to a named child of the production node --
-            #return "${globals.currentNodeVariableName}" + ".setNamedChild(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
+            #return "${currentNodeVariableName()}" + ".setNamedChild(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
          #endif
       #endif
       #-- This is the assignment of the current node or it's returned value to an arbitrary LHS "name" (i.e., the legacy JavaCC assignment) --
@@ -925,7 +932,7 @@
         {
          ${BuildCode(expansion, cardinalitiesVar)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
-            ${globals.currentNodeVariableName}.setChoice(${expansion_index});
+            ${currentNodeVariableName()}.setChoice(${expansion_index});
          #endif
         }
         #if expansion_has_next
@@ -939,7 +946,7 @@
       if (${ExpansionCondition(expansion, cardinalitiesVar)}) {
          ${BuildCode(expansion, cardinalitiesVar)}
          #if jtbParseTree && isProductionInstantiatingNode(expansion)
-            ${globals.currentNodeVariableName}.setChoice(${expansion_index});
+            ${currentNodeVariableName()}.setChoice(${expansion_index});
          #endif
       }
       #if expansion_has_next
