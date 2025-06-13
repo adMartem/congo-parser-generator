@@ -139,8 +139,8 @@ abstract public class Expansion extends BaseNode {
      */
     public String getSpecifiedLexicalState() {
         Node parent = getParent();
-        if (parent instanceof BNFProduction) {
-            return ((BNFProduction) parent).getLexicalState();
+        if (parent instanceof BNFProduction bnf) {
+            return bnf.getLexicalState();
         }
         return null;
     }
@@ -267,8 +267,8 @@ abstract public class Expansion extends BaseNode {
 
     public String getFirstSetVarName() {
         if (firstSetVarName == null) {
-            if (this.getParent() instanceof BNFProduction) {
-                firstSetVarName = ((BNFProduction) getParent()).getFirstSetVarName();
+            if (this.getParent() instanceof BNFProduction bnf) {
+                firstSetVarName = bnf.getFirstSetVarName();
             } else {
                 String prefix = getAppSettings().generateIdentifierPrefix("first_set");
 
@@ -300,8 +300,7 @@ abstract public class Expansion extends BaseNode {
 
     public String getScanRoutineName() {
         if (scanRoutineName == null) {
-            if (this.getParent() instanceof BNFProduction) {
-                BNFProduction prod = (BNFProduction) getParent();
+            if (this.getParent() instanceof BNFProduction prod) {
                 scanRoutineName = prod.getLookaheadMethodName();
             } else {
                 String prefix = getAppSettings().generateIdentifierPrefix("check");
@@ -434,8 +433,8 @@ abstract public class Expansion extends BaseNode {
             if (index < siblings.size() - 1)
                 return siblings.get(index + 1);
         }
-        if (parent instanceof Expansion) {
-            return ((Expansion) parent).getFollowingExpansion();
+        if (parent instanceof Expansion exp) {
+            return exp.getFollowingExpansion();
         }
         return null;
     }
@@ -469,8 +468,8 @@ abstract public class Expansion extends BaseNode {
                     return false;
             }
         }
-        if (parent instanceof Expansion) {
-            return ((Expansion) parent).isAtEndOfLoop();
+        if (parent instanceof Expansion exp) {
+            return exp.isAtEndOfLoop();
         }
         return false;
     }

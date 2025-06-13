@@ -23,17 +23,15 @@
       <srcfiles dir="src/grammars" includes="CSharpInternal.ccc"/>
       <srcfiles dir="examples/csharp" includes="*.ccc"/>
     </uptodate>
+    <uptodate property="templates.uptodate"
+      targetfile="build/generated-java/org/congocc/templates/core/parser/CTLParser.java">
+      <!--srcfiles dir="src/grammars" includes="CTLInternal.ccc"/ -->
+      <srcfiles dir="examples/congo-templates" includes="*.ccc"/>
+    </uptodate>
     <uptodate property="ppline.uptodate"
       targetfile="build/generated-java/org/parsers/csharp/ppline/PPDirectiveLineParser.java"
       srcfile="examples/csharp/PPDirectiveLine.ccc" />
   </target>
-
-  <!--target name="ident-files">
-    There is no need for this. You can INCLUDE the JavaIdentifierDef.ccc via the alias JAVA_IDENTIFIER_DEF
-    <copy todir="${basedir}/examples/preprocessor">
-      <fileset dir="${basedir}/examples/java" includes="Java*IdentifierDef.ccc" />
-    </copy>
-  </target-->
 
   <target name="restore-bootstrap-jar">
     <exec executable="git" dir="${basedir}">
@@ -62,8 +60,8 @@
     <ant target="clean" dir="examples/python" />
     <ant target="clean" dir="examples/csharp" />
     <ant target="clean" dir="examples/lua" />
-    <ant target="clean" dir="examples/freemarker" />
     <ant target="clean" dir="examples/preprocessor" />
+    <!--ant target="clean" dir="examples/freemarker" /-->
   </target>
 
   <macrodef name="congocc">
@@ -77,7 +75,6 @@
       </java>
     </sequential>
   </macrodef>
-
 
   <target name="parser-gen" unless="parser.uptodate">
     <congocc target="src/grammars/CongoCC.ccc"/>
@@ -94,6 +91,11 @@
   <target name="csharp-gen" unless="csharp.uptodate">
     <congocc target="src/grammars/CSharpInternal.ccc"/>
   </target>
+  <target name="templates-gen" unless="templates.uptodate">
+    <congocc target="examples/congo-templates/CTL.ccc"/>
+    <!--congocc target="src/grammars/CTLInternal.ccc"/-->
+  </target>
+
 
   <target name="build-parsers" depends="init">
     <parallel>
@@ -102,6 +104,7 @@
       <antcall target="ppline-gen"/>
       <antcall target="python-gen"/>
       <antcall target="csharp-gen"/>
+      <antcall target="templates-gen"/>
     </parallel>
   </target>
 
@@ -111,7 +114,6 @@
       deprecation="off"
       debug="on"
       optimize="off"
-      classpath="bin/ctemplates.jar"
       failonerror="true"
       includeantruntime="false"
       release="17">
@@ -121,7 +123,7 @@
     </javac>
     <copy todir="build/templates">
       <fileset dir="src/templates">
-        <include name="**/*.ftl" />
+        <include name="**/*.ctl" />
       </fileset>
     </copy>
     <copy todir="build/include">
@@ -133,6 +135,21 @@
         <include name="python/*.ccc"/>
       </fileset>
     </copy>
+  </target>
+
+  <target name="templates-compile" depends="templates-gen">
+    <mkdir dir="build" />
+    <javac destdir="build"
+      deprecation="off"
+      debug="on"
+      optimize="off"
+      failonerror="true"
+      includeantruntime="false"
+      release="17">
+      <src path="src/java/org/congocc/templates/"/>
+      <src path="build/generated-java/org/congocc/templates/" />
+      <compilerarg value="-Xlint:deprecation" />
+    </javac>
   </target>
 
 
@@ -155,9 +172,10 @@
     <echo>Building the Python parser</echo>
     <ant dir="examples/python" target="clean" />
     <ant dir="examples/python" target="test" />
-    <echo>Testing the newer FreeMarker parser</echo>
+    <!--echo>Testing the newer FreeMarker parser</echo>
     <ant dir="examples/freemarker" target="clean" />
     <ant dir="examples/freemarker" target="test" />
+    -->
   	<!--
     <echo>Testing the CICS parser</echo>
     <ant dir="examples/cics" target="clean" />
@@ -172,11 +190,11 @@
   </target>
 
   <target name="minimal-jar" depends="compile">
-    <echo>Creating minimal jarfile, using this requires a ctemplates.jar in the same directory</echo>
+    <echo>Creating minimal jarfile, using this requires a CTL.jar in the same directory</echo>
     <jar jarfile="congocc-minimal.jar" basedir="build" compress="true" excludes="**/*.java">
       <manifest>
         <attribute name="Main-Class" value="org.congocc.app.Main" />
-        <attribute name="Class-Path" value="ctemplates.jar bin/ctemplates.jar" />
+        <attribute name="Class-Path" value="CTL.jar bin/CTL.jar" />
         <attribute name="Built-By" value="${user.name}" />
         <attribute name="Build-Date" value="${timestamp}" />
       </manifest>
@@ -187,13 +205,23 @@
     <echo>Creating jar with all dependencies included</echo>
     <jar jarfile="congocc.jar" compress="true" excludes="**/*.java">
       <fileset dir="build" includes="include/,org/,templates/"/>
-     <zipfileset includes="**/*.class" src="bin/ctemplates.jar" />
+     <!--zipfileset includes="**/*.class" src="bin/CTL.jar" / -->
       <manifest>
         <attribute name="Main-Class" value="org.congocc.app.Main" />
         <attribute name="Built-By" value="${user.name}" />
         <attribute name="Build-Date" value="${timestamp}" />
       </manifest>
     </jar>
+  </target>
+
+  <target name="templates-jar" depends="templates-compile">
+     <jar jarfile="congo-templates.jar" basedir="build" compress="true" includes="org/congocc/templates/**/*.class">
+        <manifest>
+           <attribute name="Main-Class" value="org.congocc.templates.core.CommandLine"/>
+           <attribute name="Built-By" value="${user.name}"/>
+           <attribute name="Build-Date"   value="${timestamp}"/>
+        </manifest>
+     </jar>
   </target>
 
   <target name="update-bootstrap">
