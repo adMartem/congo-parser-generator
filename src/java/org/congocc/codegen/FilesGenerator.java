@@ -11,7 +11,8 @@ import java.util.logging.Logger;
 
 import org.congocc.app.AppSettings;
 import org.congocc.app.Errors;
-import org.congocc.codegen.python.PythonFormatter;
+//import org.congocc.codegen.python.PythonFormatter;
+import org.congocc.codegen.python.PyFormatter;
 import org.congocc.core.Grammar;
 import org.congocc.core.RegularExpression;
 import org.congocc.codegen.java.*;
@@ -234,17 +235,18 @@ public class FilesGenerator {
     void outputPythonFile(String code, Path outputFile) throws IOException {
         Module module;
         Writer out = Files.newBufferedWriter(outputFile);
-        int initialLines = countChars(code, '\n');
+        //int initialLines = countChars(code, '\n');
 
         try {
-            if (!outputFile.toString().endsWith("parser.py")) {
-                out.write(code);
-                return;
+            if (!outputFile.toString().endsWith("py")) {
+                 out.write(code);
+                 return;
             }
             module = CongoCCParser.parsePythonFile(outputFile.getFileName().toString(), code);
         }
         catch (Exception e) {
             out.write(code);
+            e.printStackTrace();
             return;
         }
         finally {
@@ -254,13 +256,13 @@ public class FilesGenerator {
         try (Writer output = Files.newBufferedWriter(outputFile)) {
             Reaper reaper = new Reaper(module);
             reaper.reap();
-            PythonFormatter formatter = new PythonFormatter(module);
-            String s = formatter.format();
-            int finalLines = countChars(s, '\n');
-            if (initialLines != finalLines) {
-                logger.fine(String.format("Parser line count went from %d to %d", initialLines, finalLines));
-            }
-            output.write(formatter.format());
+            //PythonFormatter formatter = new PythonFormatter(module);
+            // int finalLines = countChars(s, '\n');
+            // if (initialLines != finalLines) {
+            //     logger.fine(String.format("Parser line count went from %d to %d", initialLines, finalLines));
+            // }
+            String s = new PyFormatter().format(module);
+            output.write(s);
         }
     }
 

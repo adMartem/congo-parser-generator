@@ -46,12 +46,6 @@ public class PyTest {
                 continue;
             }
             addPaths(path, paths);
-/*            
-            Files.walk(path).forEach(p->{
-                if (p.toString().endsWith(".py")) {
-                    paths.add(p);
-                }
-            });*/
         }
         if (paths.isEmpty()) usage();
         long startTime = System.currentTimeMillis();
@@ -70,7 +64,7 @@ public class PyTest {
     static void addPaths(Path path, List<Path> paths) throws IOException {
         Files.walk(path).forEach(p->{
             if (!Files.isDirectory(p)) {
-                if (p.toString().endsWith(".py") || p.toString().endsWith(".pywim")) {
+                if (p.toString().endsWith(".py")) {
                     paths.add(p);
                 }
                 else if (p.toString().endsWith(".zip")) {
@@ -91,9 +85,9 @@ public class PyTest {
     static public void parseFile(Path path) {
         try {
             PythonParser parser = new PythonParser(path);
-            if (path.toString().endsWith(".pywim")) {
-                parser.setUseExplicitIndent(true);
-            }
+//            if (path.toString().endsWith(".pywim")) {
+//                parser.setUseExplicitIndent(true);
+//            }
             Node root = parser.Module();
             if (retainInMemory) roots.add(root);
             if (paths.size()==1) {

@@ -282,6 +282,7 @@ public class ${settings.baseTokenClassName} ${implements} {
      * @return the (1-based) line location where this ${settings.baseTokenClassName} ends
      */
     public int getEndLine() {
+        if (getEndOffset() <= getBeginOffset()) return getBeginLine();
         ${settings.lexerClassName} ts = getTokenSource();
         return ts == null ? 0 : ts.getLineFromOffset(getEndOffset() - 1);
     };
@@ -298,6 +299,7 @@ public class ${settings.baseTokenClassName} ${implements} {
      * @return the (1-based) column offset where this ${settings.baseTokenClassName} ends
      */
     public int getEndColumn() {
+        if (getEndOffset() <= getBeginOffset()) return getBeginColumn();
         ${settings.lexerClassName} ts = getTokenSource();
         return ts == null ? 0 : ts.getCodePointColumnFromOffset(getEndOffset() - 1);
     }
