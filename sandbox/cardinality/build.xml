@@ -1,7 +1,7 @@
 <project name="Cardinality" default="compile">
   <target name="clean">
     <delete dir="org" />
-  	<delete dir="CardTestsParse.class"/>
+  	<delete file="CardTestsParse.class"/>
   </target>
 
   <target name="init">

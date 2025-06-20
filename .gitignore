@@ -46,6 +46,10 @@ __pycache__/*
 /personal.code-workspace
 /.vscode/*
 /.idea/*
+.DS_Store
+.java-version
+.project
+.classpath
 
 # Compiled class file
 *.class

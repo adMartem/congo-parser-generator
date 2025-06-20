@@ -61,6 +61,7 @@
     <ant target="clean" dir="examples/csharp" />
     <ant target="clean" dir="examples/lua" />
     <ant target="clean" dir="examples/preprocessor" />
+    <ant target="clean" dir="examples/cics" />
     <!--ant target="clean" dir="examples/freemarker" /-->
   </target>
 
@@ -157,9 +158,6 @@
     <echo>Testing the JSON Parser</echo>
     <ant dir="examples/json" target="clean" />
     <ant dir="examples/json" target="test" />
-    <echo>Testing the cardinality constraint assertions</echo>
-    <ant dir="examples/cardinality" target="clean" />
-    <ant dir="examples/cardinality" target="test" />
     <echo>Testing the CICS parser</echo>
     <ant dir="examples/cics" target="clean" />
     <ant dir="examples/cics" target="test" />
