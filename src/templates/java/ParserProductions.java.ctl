@@ -615,6 +615,8 @@
    #-- take care of the non-tree-building classes --
    #if classname = "CodeBlock"
       ${expansion}
+   #elif classname = "RawCode"
+      ${expansion.parsedContent!}
    #elif classname = "UncacheTokens"
          uncacheTokens();
    #elif classname = "Failure"
@@ -691,7 +693,7 @@
       #set optionalPart = " + " + assertion.messageExpression
    #endif
    #var assertionMessage = "Assertion at: " + assertion.location?j_string + " failed. "
-   #if assertion.assertionExpression??
+   #if assertion.assertionExpression
       if (!(${assertion.assertionExpression})) {
          fail("${assertionMessage}"${optionalPart}, getToken(1));
       }  
@@ -700,7 +702,7 @@
          fail("Maximum cardinality constraint at: ${assertion.location?j_string} exceeded.", getToken(1));
       }
    #endif
-   #if assertion.expansion??
+   #if assertion.expansion
       if ( [#if !assertion.expansionNegated]![/#if]
       ${assertion.expansion.scanRoutineName}()) {
          fail("${assertionMessage}"${optionalPart}, getToken(1));

@@ -51,6 +51,9 @@ public class CSharpTranslator extends Translator {
         else if (ident.equals("currentNodeScope")) {
             result = "CurrentNodeScope";
         }
+        else if (ident.equals("activeTokenTypes")) {
+            result = "ActiveTokenTypes";
+        }
         else if (ident.equals("addAll")) {
             result = "AddRange";
         }
@@ -62,6 +65,9 @@ public class CSharpTranslator extends Translator {
         }
         else if (ident.equals("String")) {
             result = "string";
+        }
+        else if (ident.equals("toLowerCase")) {
+            result ="ToLower";
         }
         else if (ident.equals("isUnparsed")) {
             result = "IsUnparsed";

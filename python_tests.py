@@ -229,7 +229,7 @@ def test_grammar(gdata, options):
         compare_diffs()
         print('Results for Python & Java '
           'lexers & parsers are identical - yay!')
-    else : print('Not comparing diffs for Python for now')
+    else : print('Not comparing diffs for for now')
 
 def main():
     # if sys.version_info[:2] < (3, 8):
@@ -284,13 +284,6 @@ def main():
                             jparser='org.parsers.csharp.CSharpParser',
                             ppackage='csharpparser', ext='.cs',
                             production='CompilationUnit'),
-        'python': Namespace(name='Python', dir='python',
-                            grammar='Python.ccc',
-                            files=['*.ccc', 'testfiles'],
-                            jlexer='org.parsers.python.PythonLexer',
-                            jparser='org.parsers.python.PythonParser',
-                            ppackage='pythonparser', ext='.py',
-                            production='Module'),
         'lua': Namespace(name='Lua', dir='lua',
                             grammar='Lua.ccc',
                             files=['*.ccc', 'testfiles'],
@@ -305,6 +298,13 @@ def main():
                             jparser='org.parsers.preprocessor.PreprocessorParser',
                             ppackage='preprocessorparser', ext='.cs',
                             production='PP_Root'),
+        'python': Namespace(name='Python', dir='python',
+                            grammar='Python.ccc',
+                            files=['*.ccc', 'testfiles'],
+                            jlexer='org.parsers.python.PythonLexer',
+                            jparser='org.parsers.python.PythonParser',
+                            ppackage='pythonparser', ext='.py',
+                            production='Module'),
     }
     try:
         langs = options.langs.split(',')
