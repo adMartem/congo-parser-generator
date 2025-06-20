@@ -24,7 +24,7 @@
     <javac srcdir="." failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
   </target>
 
-  <target name="test-cics" depends="compile">
+  <target name="test" depends="compile">
     <java fork="true" classpath="." failonerror="true" classname="CicsParse">
       <assertions>
         <enable />

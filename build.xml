@@ -157,6 +157,12 @@
     <echo>Testing the JSON Parser</echo>
     <ant dir="examples/json" target="clean" />
     <ant dir="examples/json" target="test" />
+    <echo>Testing the cardinality constraint assertions</echo>
+    <ant dir="examples/cardinality" target="clean" />
+    <ant dir="examples/cardinality" target="test" />
+    <echo>Testing the CICS parser</echo>
+    <ant dir="examples/cics" target="clean" />
+    <ant dir="examples/cics" target="test" />
     <echo>Testing the Preprocessor</echo>
     <ant dir="examples/preprocessor" target="clean" />
     <ant dir="examples/preprocessor" target="test" />
@@ -175,11 +181,6 @@
     <!--echo>Testing the newer FreeMarker parser</echo>
     <ant dir="examples/freemarker" target="clean" />
     <ant dir="examples/freemarker" target="test" />
-    -->
-  	<!--
-    <echo>Testing the CICS parser</echo>
-    <ant dir="examples/cics" target="clean" />
-    <ant dir="examples/cics" target="test" />
     -->
   </target>
 

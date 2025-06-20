@@ -172,7 +172,7 @@ OddNumberSet :
         OddNumber
     )+ 
     ENSURE ("}")
-    {System.out.println("A non-empty subset of the odd natuaral numbers <= 5");}
+    {System.out.println("A non-empty subset of the odd natural numbers <= 5");}
 ;
 
 AllOddNumbersSet :
