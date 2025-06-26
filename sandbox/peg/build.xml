@@ -12,7 +12,7 @@
 
   <target name="init">
     <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
-      <srcfiles dir="." includes="grammar.*,ccc.*" />
+      <srcfiles dir="." includes="Pongo.java,grammar.*,ccc.*" />
     </uptodate>
   	<!--
     <uptodate property="cppparser.uptodate" targetfile="org/parsers/cpp/CppParser.java">
@@ -184,13 +184,13 @@
     </java>
   </target>
 
-  <target name="dump-minimal-ast" depends="compile-peg">
+  <target name="dump-calculator-ast" depends="compile-peg">
     <java fork="true" classpath="." failonerror="true" classname="Pongo">
       <assertions>
         <enable />
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="testfiles/minimal.peg" />
+      <arg value="testfiles/calculator.peg" />
     </java>
   </target>
 </project>
