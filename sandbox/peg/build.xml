@@ -18,10 +18,10 @@
     <uptodate property="cppparser.uptodate" targetfile="org/parsers/cpp/CppParser.java">
       <srcfiles dir="." includes="testfiles/CPP14.peg" />
     </uptodate>
+    -->
     <uptodate property="antlrparser.uptodate" targetfile="org/parsers/antlr/AntlrParser.java">
       <srcfiles dir="." includes="testfiles/ANTLRv4.peg" />
     </uptodate>
-    -->
   </target>
 
   <!--
@@ -45,7 +45,16 @@
     </java>
   </target>
 
-  <target name="antlr-gen" depends="build">
+  -->
+  <target name="antlr-gen" depends="build,init" unless="antlrparser.uptodate">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/ANTLRv4.peg" />
+    </java>
+    <echo message="Now the antlr parser is at grammar/generated/ANTLRv4.ccc, so let's generate the ANTLR(Java) parser "/>
     <java jar="../../congocc.jar" failonerror="true" fork="true">
       <assertions>
         <enable />
@@ -56,7 +65,6 @@
       <arg value="${basedir}/antlr.ccc" />
     </java>
   </target>
-  -->
 
   <target name="peg-gen" depends="init" unless="pegparser.uptodate">
     <java jar="../../congocc.jar" failonerror="true" fork="true">

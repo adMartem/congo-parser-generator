@@ -702,7 +702,7 @@ ARGUMENT_CONTENT
     : .
     ;
 // -------------------------
-mode LexerCharSet;
+//mode LexerCharSet;
 
 LEXER_CHAR_SET_BODY
     : (~ [\]\\] | '\\' .)+ -> more
@@ -720,32 +720,32 @@ UNTERMINATED_CHAR_SET
 // ------------------------------------------------------------------------------
 // Grammar specific Keywords, Punctuation, etc.
 
-//fragment 
+fragment 
 ESC_SEQUENCE
     : '\\' ([btnfr"'\\] | UnicodeESC | . | EOF)
     ;
 
-//fragment 
+fragment 
 HexDigit
     : [0-9a-fA-F]
     ;
 
-//fragment 
+fragment 
 UnicodeESC
     : 'u' (HexDigit (HexDigit (HexDigit HexDigit?)?)?)?
     ;
 
-//fragment 
+fragment 
 DoubleQuoteLiteral
     : '"' (ESC_SEQUENCE | !["\r\n\\] .)* '"'
     ;
 
-//fragment 
+fragment 
 TripleQuoteLiteral
     : '"""' (ESC_SEQUENCE | !'"""' .)* '"""'
     ;
 
-//fragment 
+fragment 
 BacktickQuoteLiteral
     : '`' ( ESC_SEQUENCE | ![`"\r\n\\] . )* '`'
     ;
@@ -753,7 +753,7 @@ BacktickQuoteLiteral
 // -----------------------------------
 // Character ranges
 
-//fragment 
+fragment 
 NameChar
     : NameStartChar
     | [0-9]
@@ -763,7 +763,7 @@ NameChar
     | [\u203F-\u2040]
     ;
 
-//fragment 
+fragment 
 NameStartChar
     : [A-Z]
     | [a-z]

@@ -75,6 +75,8 @@ OPEN_BRACE : '{' Spacing
 CLOSE_BRACE: '}' Spacing
 SEMICOLON  : ';' Spacing
 FRAGMENT   : 'fragment' Spacing
+LANGUAGE   : ( 'J' | 'C#' | 'P' ) Spacing
+NATURAL_NUMBER: '0' | [1-9] [0-9]* Spacing
 
 Spacing    : ( <WHITESPACE> | Comment | <EOL> )*
 Comment    : <SINGLE_LINE_COMMENT> | <MULTI_LINE_COMMENT> | LegacyComment
@@ -84,9 +86,9 @@ LegacyComment : !(Cardinality Primary) (HASH (!<EOL> .)* <EOL>)
  ** Extension Syntax **
  **********************/
 
-Cardinality   : HASH (NaturalNumber (COLON NaturalNumber? HASH)? )?
-NaturalNumber : '0' | [1-9] [0-9]* Spacing
-Entails       : (TRIPLE_GT | NESTED_GT) Spacing
-Action        : OPEN_BRACE BalancedBraces CLOSE_BRACE
-BalancedBraces: OPEN_BRACE BalancedBraces CLOSE_BRACE | (!CLOSE_BRACE .)*
+Cardinality   : HASH (NATURAL_NUMBER (COLON NATURAL_NUMBER? HASH)? )?
+Entails       : (TRIPLE_GT | NESTED_GT)
+Action        : OPEN_BRACE LanguageHint? BalancedBlocks CLOSE_BRACE
+BalancedBlocks: OPEN_BRACE BalancedBlocks CLOSE_BRACE | (!CLOSE_BRACE .)*
+LanguageHint  : LANGUAGE COLON
         
