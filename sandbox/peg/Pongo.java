@@ -329,12 +329,8 @@ public class Pongo {
        }
        
        void visit(Definition n) {
-           String name = mungPegIdentifier(n.firstChildOfType(Identifier.class).toString().trim());
-           ps.nl().append(name);
-           if (n.firstChildOfType(FRAGMENT.class) != null) {
-               ps.append("#void");
-           }
-           ps.colon().indent().nl();
+           String name = mungPegIdentifier(n.firstChildOfType(Identifier.class).toString());
+           ps.nl().append(name).colon().indent().nl();
            if (TRACE) {
                ps.append("{System.out.println(\"applying?: " + normalizeForJava(name) + "\");}# ");
            }
@@ -424,11 +420,22 @@ public class Pongo {
            for (int i = 1; i < n.size(); i++) {
                visit(n.get(i));
            }
+       } 
+       
+       boolean isVoid = false;
+       
+       void visit(FRAGMENT n) {
+           isVoid = true;
        }
        
        void visit(Identifier n) {
-           ps.append(mungPegIdentifier(n.toString()));
-//           ps.append(' ');
+           ps.append(mungPegIdentifier(n.toRealString()));
+           if (isVoid) {
+               ps.append("#void");
+           }
+           ps.append(' ');
+           isVoid = false;
+           recurse(n);
        }
        
        void visit(Literal n) {

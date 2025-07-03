@@ -40,7 +40,8 @@ Primary    : Identifier !(LEFTARROW | COLON)
  ** Lexical Syntax **
  ********************/
     
-Identifier : (IdentStart IdentCont* | '<' Identifier '>') Spacing
+Identifier : Identity Spacing
+Identity   : IdentStart IdentCont* | '<' Identifier '>' // to provide a node without Spacing
 IdentStart : [a-zA-Z_]
 IdentCont  : IdentStart | [0-9]
 Literal    : (

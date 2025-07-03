@@ -26,8 +26,8 @@
  ** Hierarchical Syntax **
  *************************/
 
-Grammar    : Spacing (Definition)+ EndOfFile
-Definition :  Identifier (LEFTARROW | COLON) Expression SEMICOLON?
+Grammar    : Spacing (Definition)+ <EOF>
+Definition : FRAGMENT? Identifier (LEFTARROW | COLON) Expression SEMICOLON?
 Expression : Sequence ((SLASH | BAR) Sequence)*
 Sequence   : Action | (Prefix Entails? Action?)*
 Prefix     : (Cardinality | (AND | NOT))? Suffix
@@ -40,11 +40,15 @@ Primary    : Identifier !(LEFTARROW | COLON)
  ** Lexical Syntax **
  ********************/
     
-Identifier : (IdentStart IdentCont* | '<' Identifier '>') Spacing
+Identifier : Identity Spacing
+Identity   : IdentStart IdentCont* | '<' Identifier '>' // to provide a node without Spacing
 IdentStart : [a-zA-Z_]
 IdentCont  : IdentStart | [0-9]
-Literal    : ['] (!['] Char)* ['] Spacing 
-             | ["] (!["] Char)* ["] Spacing 
+Literal    : (
+                ['] (!['] Char)* [']
+                | 
+                ["] (!["] Char)* ["]
+             ) Spacing 
 Class      : '[' (!']' Range )* ']' Spacing
 Range      : Char '-' Char | Char
 Char       : '\\' [nrt"'\[\]\\]
@@ -71,15 +75,11 @@ TRIPLE_GT  : '>>>' Spacing
 OPEN_BRACE : '{' Spacing
 CLOSE_BRACE: '}' Spacing
 SEMICOLON  : ';' Spacing
+FRAGMENT   : 'fragment' Spacing
 
-Spacing    : ( Whitespace | Comment )*
-
+Spacing    : ( <WHITESPACE> | Comment | <EOL> )*
 Comment    : <SINGLE_LINE_COMMENT> | <MULTI_LINE_COMMENT> | LegacyComment
-LegacyComment : !Cardinality (HASH (!EndOfLine .)* EndOfLine)
-Whitespace : Space+
-Space      : ' ' | '\t' | EndOfLine
-EndOfLine  : '\r\n' | '\n' | '\r'
-EndOfFile  : !.
+LegacyComment : !(Cardinality Primary) (HASH (!<EOL> .)* <EOL>)
              
 /**********************
  ** Extension Syntax **
