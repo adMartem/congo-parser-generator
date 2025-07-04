@@ -5,6 +5,8 @@ import org.congocc.parser.Token.TokenType;
 import static org.congocc.parser.Token.TokenType.*;
 
 import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
 
 import org.congocc.parser.tree.*;
 
@@ -14,6 +16,8 @@ public class BNFProduction extends Expansion {
     private String lexicalState, name;
     private final String leadingComments = "";
     private boolean implicitReturnType;
+    private boolean isPotentiallyLeftRecursive = false;
+    private Set<BNFProduction> recursiveCluster;
     
     public Expansion getExpansion() {
         return expansion;
@@ -144,10 +148,32 @@ public class BNFProduction extends Expansion {
     }
 
     /**
-     * Does this production potentially have left recursion?
+     * Does this production have left recursion?
      */
     public boolean isLeftRecursive() {
-        return getExpansion().potentiallyStartsWith(getName());
+        if (isPotentiallyLeftRecursive()) {
+            for (BNFProduction prod : getRecursiveCluster()) {
+                boolean isLeftRecursive = prod.potentiallyStartsWith(getName());
+                if (isLeftRecursive) return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean isPotentiallyLeftRecursive() {
+        return isPotentiallyLeftRecursive;
+    }
+    
+    public void setPotentiallyLeftRecursive(boolean isInLeftRecursiveSCC) {
+        this.isPotentiallyLeftRecursive = isInLeftRecursiveSCC;
+    }
+    
+    public void setRecursiveCluster(Set<BNFProduction> cluster) {
+        this.recursiveCluster = cluster;
+    }
+    
+    public Set<BNFProduction> getRecursiveCluster() {
+        return recursiveCluster;
     }
     
     @Override

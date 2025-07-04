@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 import org.congocc.codegen.FilesGenerator;
 import org.congocc.codegen.java.CodeInjector;
@@ -514,11 +515,186 @@ public class Grammar extends BaseNode {
         }
         return false;
     }
+    
+    public static class SCCDetectorVisitor extends Node.Visitor {
+
+        private final Map<BNFProduction, Set<BNFProduction>> callGraph = new HashMap<>();
+        private final List<BNFProduction> allProductions = new ArrayList<>();
+        private final Map<BNFProduction, Integer> indexMap = new HashMap<>();
+        private final Map<BNFProduction, Integer> lowlinkMap = new HashMap<>();
+        private final Deque<BNFProduction> stack = new ArrayDeque<>();
+        private final Set<BNFProduction> onStack = new HashSet<>();
+        private int index = 0;
+
+        private BNFProduction currentContext;
+
+        public void visit(BNFProduction p) {
+            allProductions.add(p);
+            currentContext = p;
+            callGraph.computeIfAbsent(p, __ -> new HashSet<>());
+            recurse(p);
+            currentContext = null;
+        }
+
+        public void visit(NonTerminal nt) {
+            if (currentContext == null) return;
+            BNFProduction target = resolve(nt);
+            if (target != null && target != currentContext) {
+                callGraph.get(currentContext).add(target);
+            } else if (target == currentContext) {
+                // Self-recursive call
+                callGraph.get(currentContext).add(target);
+            }
+        }
+
+        public void detectSCCs() {
+            for (BNFProduction p : allProductions) {
+                if (!indexMap.containsKey(p)) {
+                    strongConnect(p);
+                }
+            }
+        }
+
+        private void strongConnect(BNFProduction node) { // Use Tarjan’s Algorithm
+            indexMap.put(node, index);
+            lowlinkMap.put(node, index);
+            index++;
+            stack.push(node);
+            onStack.add(node);
+
+            for (BNFProduction neighbor : callGraph.getOrDefault(node, Set.of())) {
+                if (!indexMap.containsKey(neighbor)) {
+                    strongConnect(neighbor);
+                    lowlinkMap.put(node, Math.min(lowlinkMap.get(node), lowlinkMap.get(neighbor)));
+                } else if (onStack.contains(neighbor)) {
+                    lowlinkMap.put(node, Math.min(lowlinkMap.get(node), indexMap.get(neighbor)));
+                }
+            }
+
+            if (lowlinkMap.get(node).equals(indexMap.get(node))) {
+                Set<BNFProduction> scc = new HashSet<>();
+                BNFProduction n;
+                do {
+                    n = stack.pop();
+                    onStack.remove(n);
+                    scc.add(n);
+                } while (!n.equals(node));
+
+                if (scc.size() > 1 || (scc.size() == 1 && callGraph.get(node).contains(node))) {
+                    node.setRecursiveCluster(scc);
+                    node.setPotentiallyLeftRecursive(true);
+                    assert scc != null;
+                    for (BNFProduction p : scc) {
+                        p.setPotentiallyLeftRecursive(true);
+                        p.setRecursiveCluster(scc);
+                    }
+                }
+            }
+        }
+
+        private BNFProduction resolve(NonTerminal nt) {
+            Node root = nt.getRoot();
+            return root.descendantsOfType(BNFProduction.class).stream()
+                .filter(p -> Objects.equals(p.getName(), nt.getImage()))
+                .findFirst().orElse(null);
+        }
+    }
+    
+    public static class NullableRecursivePathDetector extends Node.Visitor {
+        private final Set<BNFProduction> scc;
+        private final Map<String, BNFProduction> prodMap;
+        private final Set<BNFProduction> result = new HashSet<>();
+
+        public NullableRecursivePathDetector(Set<BNFProduction> scc) {
+            this.scc = scc;
+            this.prodMap = scc.stream().collect(Collectors.toMap(BNFProduction::getName, p -> p));
+        }
+
+        public Set<BNFProduction> findNullableRecursiveProds() {
+            for (BNFProduction prod : scc) {
+                Set<String> visited = new HashSet<>();
+                if (hasNullablePathToSelf(prod, prod, visited)) {
+                    result.add(prod);
+                }
+            }
+            return result;
+        }
+
+        private boolean hasNullablePathToSelf(BNFProduction origin, Expansion exp, Set<String> visited) {
+            
+            if (exp instanceof NonTerminal nt) {
+                String name = nt.getName();
+                if (name.equals(origin.getName())) return true;
+                if (!prodMap.containsKey(name) || visited.contains(name)) return false;
+                visited.add(name);
+                return hasNullablePathToSelf(origin, nt.getNestedExpansion(), visited);
+            }
+            if (exp instanceof ExpansionSequence seq) {
+                for (Expansion child : seq.childrenOfType(Expansion.class)) {
+                    if (!child.isPossiblyEmpty()) break;
+                    if (hasNullablePathToSelf(origin, child, visited)) return true;
+                }
+                return false;
+            }
+
+            if (exp instanceof ExpansionChoice choice) { //check this!!!
+                for (Expansion alt : choice.getChoices()) {
+                    if (hasNullablePathToSelf(origin, alt, new HashSet<>(visited))) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            if (exp instanceof ZeroOrMore || exp instanceof ZeroOrOne) {
+                return hasNullablePathToSelf(origin, ((Expansion) exp.getNestedExpansion()), visited);
+            }
+
+            if (exp instanceof OneOrMore) {
+                Expansion body = (Expansion) exp.get(0);
+                return body.isPossiblyEmpty() && hasNullablePathToSelf(origin, body, visited);
+            }
+            
+            if (exp instanceof ExpansionWithParentheses) {
+                return hasNullablePathToSelf(origin, exp.getNestedExpansion(), visited);
+            }
+            
+            return exp.getMinimumSize() == 0; 
+        }
+    }
+    
+    private boolean hasDangerousRecursion() {
+        
+        SCCDetectorVisitor visitor = new SCCDetectorVisitor();
+        visitor.visit(this);
+        visitor.detectSCCs();
+        
+        boolean hasDangerousRecursion = false;
+        
+        for (BNFProduction p : descendants(BNFProduction.class)) {
+            if (p.isPotentiallyLeftRecursive()) {
+                NullableRecursivePathDetector detector = new NullableRecursivePathDetector(p.getRecursiveCluster());
+                Set<BNFProduction> needingFrost = detector.findNullableRecursiveProds();
+                if (p.isLeftRecursive()) {
+                    hasDangerousRecursion = true;
+                    errors.addError(p, "Production " + p.getName() + " is left recursive.");
+                } else if (needingFrost.contains(p)) {
+                    hasDangerousRecursion = true;
+                    errors.addError(p, "Production " + p.getName() + " has a nullable recursive path to itself, which can result in indefinate recursion.");
+                }
+            }
+        }
+        return hasDangerousRecursion;
+    }
 
     /**
      * Run over the tree and do some sanity checks
      */
     public void doSanityChecks() {
+        
+        if (hasDangerousRecursion()) return; // NOTE: following code might fail if grammar is dangerously recursive, so we bail here.
+        
+        
         if (defaultLexicalState == null) {
             setDefaultLexicalState("DEFAULT");
             lexerData.addLexicalState("DEFAULT");
@@ -533,6 +709,7 @@ public class Grammar extends BaseNode {
         for (CompilationUnit cu : descendants(CompilationUnit.class)) {
             checkForHooks(cu, null);
         }
+        
         // Check whether we have any LOOKAHEADs at non-choice points
         for (ExpansionSequence sequence : descendants(ExpansionSequence.class)) {
             if (sequence.getHasExplicitLookahead()
@@ -585,17 +762,6 @@ public class Grammar extends BaseNode {
         for (RegexpSpec regexpSpec : descendants(RegexpSpec.class)) {
             if (regexpSpec.getRegexp().matchesEmptyString()) {
                 errors.addError(regexpSpec, "Regular Expression can match empty string. This is not allowed here.");
-            }
-        }
-
-        for (BNFProduction prod : descendants(BNFProduction.class)) {
-            String lexicalStateName = prod.getLexicalState();
-            if (lexicalStateName != null && lexerData.getLexicalState(lexicalStateName) == null) {
-                errors.addError(prod, "Lexical state \""
-                + lexicalStateName + "\" has not been defined.");
-            }
-            if (prod.isLeftRecursive()) {
-                errors.addError(prod, "Production " + prod.getName() + " is left recursive.");
             }
         }
 
