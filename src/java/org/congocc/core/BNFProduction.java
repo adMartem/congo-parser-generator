@@ -151,8 +151,12 @@ public class BNFProduction extends Expansion {
      * Does this production have left recursion?
      */
     public boolean isLeftRecursive() {
+        // First, check direct left recursion.
+        if (potentiallyStartsWith(getName())) return true;
+        // Now check if indirect left recursion.
         if (isPotentiallyLeftRecursive()) {
             for (BNFProduction prod : getRecursiveCluster()) {
+                // Check if left recursive (if so, all in the cluster will be left recursive).
                 boolean isLeftRecursive = prod.potentiallyStartsWith(getName());
                 if (isLeftRecursive) return true;
             }

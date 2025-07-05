@@ -629,10 +629,15 @@ public class Grammar extends BaseNode {
                 visited.add(name);
                 return hasNullablePathToSelf(origin, nt.getNestedExpansion(), visited);
             }
-            if (exp instanceof ExpansionSequence seq) {
+            if (exp instanceof ExpansionSequence seq) {            
+                boolean allToLeftAreEmpty = true;
                 for (Expansion child : seq.childrenOfType(Expansion.class)) {
-                    if (!child.isPossiblyEmpty()) break;
-                    if (hasNullablePathToSelf(origin, child, visited)) return true;
+                    if (allToLeftAreEmpty && hasNullablePathToSelf(origin, child, visited)) {
+                        return true;
+                    }
+                    if (!child.isPossiblyEmpty()) {
+                        allToLeftAreEmpty = false;
+                    }
                 }
                 return false;
             }
@@ -668,6 +673,8 @@ public class Grammar extends BaseNode {
         SCCDetectorVisitor visitor = new SCCDetectorVisitor();
         visitor.visit(this);
         visitor.detectSCCs();
+        // At this point, productions in recursive cycles have been marked
+        // and each marked production has the set of productions in its cycle(s).
         
         boolean hasDangerousRecursion = false;
         
