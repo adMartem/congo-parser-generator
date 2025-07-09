@@ -25,7 +25,7 @@ FAULT_TOLERANT_DEFAULT=true;
 #endif
 
 #PegGrammar :
-    Grammar {return HOC;}
+    Grammar {return thisProduction;}
 ;
 
 <EXT_PEG, EXT_ALT_PEG> TOKEN : 
@@ -67,8 +67,12 @@ INJECT BASE_NODE_CLASS :
 
 #if ALT_BOOT
 INCLUDE "grammar/ccc/peg_alt_boot.inc" // For generating an alternative peg parser using the original peg grammar.
-#elif PEG_ALT
+#elif TEST_PEG_ALT
 INCLUDE "grammar/generated/peg_alt.ccc"// For testing a new alternative peg parser.
+#elif PEG_PLUS
+INCLUDE "grammar/generated/peg_plus.ccc"// For testing a new extended peg parser.
+#elif LR
+INCLUDE "grammar/generated/ss.ccc"// For testing a new extended peg parser.
 #else
 INCLUDE "grammar/ccc/peg_alt.inc"      // For generating an alternative peg parser using the alternative peg grammar.
 #endif

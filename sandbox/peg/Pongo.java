@@ -366,9 +366,14 @@ public class Pongo {
            if (ANTLR && isChoice.peek()) {
                ps.append("ENSURE {&} ");
            }
-           recurse(sequence);
-           if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment && isChoice.peek()) {
-               ps.append(" =>|| ");
+           if (sequence.size() == 0) {
+               // epsilon
+               ps.append("{}");
+           } else {
+               recurse(sequence);
+               if (AUTO_ENTAILMENT && !isPredicate && !isExplicitEntailment && isChoice.peek()) {
+                   ps.append(" =>|| ");
+               }
            }
            if (TRACE) {
                ps.append("{System.out.println(\"chosen: " + normalizeForJava(sequence.toString()) + "\");}# ");
