@@ -339,7 +339,7 @@ public class ExpansionSequence extends Expansion {
             }
         }
         for (Expansion exp : childrenOfType(Expansion.class)) {
-            if (exp.startsWithLexicalChange(stopAtScanLimit && exp instanceof NonTerminal)) return true;
+            if (exp instanceof NonTerminal && exp.startsWithLexicalChange(stopAtScanLimit)) return true;
             if (!exp.isPossiblyEmpty()) break;
             if (stopAtScanLimit && exp.isScanLimit()) break;
         }

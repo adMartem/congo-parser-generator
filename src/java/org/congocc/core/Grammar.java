@@ -1,23 +1,58 @@
 package org.congocc.core;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import static org.congocc.core.LexerData.isJavaIdentifier;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Stack;
+import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
-import org.congocc.codegen.FilesGenerator;
-import org.congocc.codegen.java.CodeInjector;
-import org.congocc.codegen.TemplateGlobals;
-import org.congocc.codegen.Translator;
 import org.congocc.app.AppSettings;
 import org.congocc.app.Errors;
-import org.congocc.parser.*;
-import org.congocc.parser.tree.*;
-import static org.congocc.core.LexerData.isJavaIdentifier;
+import org.congocc.codegen.FilesGenerator;
+import org.congocc.codegen.TemplateGlobals;
+import org.congocc.codegen.Translator;
+import org.congocc.codegen.java.CodeInjector;
+import org.congocc.parser.CongoCCParser;
+import org.congocc.parser.Node;
+import org.congocc.parser.Token;
+import org.congocc.parser.tree.Assertion;
+import org.congocc.parser.tree.Assignment;
+import org.congocc.parser.tree.AttemptBlock;
+import org.congocc.parser.tree.BaseNode;
+import org.congocc.parser.tree.CodeBlock;
+import org.congocc.parser.tree.CodeInjection;
+import org.congocc.parser.tree.CompilationUnit;
+import org.congocc.parser.tree.EmptyDeclaration;
+import org.congocc.parser.tree.ExpansionChoice;
+import org.congocc.parser.tree.ExpansionWithParentheses;
+import org.congocc.parser.tree.GrammarFile;
+import org.congocc.parser.tree.IteratingExpansion;
+import org.congocc.parser.tree.LookBehind;
+import org.congocc.parser.tree.Lookahead;
+import org.congocc.parser.tree.MethodDeclaration;
+import org.congocc.parser.tree.OneOrMore;
+import org.congocc.parser.tree.RegexpStringLiteral;
+import org.congocc.parser.tree.TypeDeclaration;
+import org.congocc.parser.tree.ZeroOrMore;
+import org.congocc.parser.tree.ZeroOrOne;
 
 /**
  * This object is the root Node of the data structure that contains all the
@@ -616,14 +651,15 @@ public class Grammar extends BaseNode {
             for (BNFProduction prod : scc) {
                 Set<String> visited = new HashSet<>();
                 List<Expansion> breadcrumbs = new ArrayList<>();
-                if (hasNullablePathToSelf(prod, prod.getNestedExpansion(), visited, breadcrumbs, errors)) {
+                if (hasNullablePathToSelf(prod, prod.getNestedExpansion(), visited, breadcrumbs, errors, false)) {
                     result.add(prod);
                 }
             }
             return result;
         }
         
-        private void removeLast(List<Expansion> breadcrumbs) {
+        private void pickUpCrumb(List<Expansion> breadcrumbs) {
+            assert (breadcrumbs == null || breadcrumbs.size() > 0) : "No crumb to pick up!";
             if (breadcrumbs != null && breadcrumbs.size() > 0) {
                 breadcrumbs.remove(breadcrumbs.size() - 1);
             }
@@ -634,93 +670,97 @@ public class Grammar extends BaseNode {
                 Expansion exp,
                 Set<String> visited,
                 List<Expansion> breadcrumbs,
-                Errors error
+                Errors error,
+                boolean isConsumed
             ) {
-            if (exp == null) return false;
-
-            if (exp instanceof ExpansionSequence seq) {
-                for (Expansion child : seq.allUnits()) {
-                    if (hasNullablePathToSelf(origin, child, visited, breadcrumbs, errors)) {
-                        removeLast(breadcrumbs);
-                        return true;
-                    }
-                    if (!child.isPossiblyEmpty()) break;
-                }
-                removeLast(breadcrumbs);
-                return false;
-            }
             
-            // If not a syntax element (i.e., transparent) recurse.
-            if (!(exp instanceof ExpansionSequence.SyntaxElement)) {
-                boolean result = false;
-                for (Node child : exp.children()) {
-                    if (child instanceof Expansion childExp) {
-                        result |= hasNullablePathToSelf(origin, childExp, visited, breadcrumbs, errors);
-                    } 
-                }
-                return result;
-            }
-            // This is a syntax element; drop a crumb.
             breadcrumbs.add(exp);
-            
-            // Check for nullable reference by syntax element type.
-            
-            if (exp instanceof ZeroOrMore || exp instanceof ZeroOrOne || exp instanceof ExpansionWithParentheses) {
-                boolean result = hasNullablePathToSelf(origin, exp.getNestedExpansion(), visited, breadcrumbs, errors);
-                removeLast(breadcrumbs);
-                return result;
-            }
-
-            if (exp instanceof OneOrMore) {
-                Expansion body = (Expansion) exp.get(0);
-                boolean result = body.isPossiblyEmpty() && hasNullablePathToSelf(origin, body, visited, breadcrumbs, errors);
-                removeLast(breadcrumbs);
-                return result;
-            }
-            
-            if (exp instanceof NonTerminal nt) {
-                String name = nt.getName();
-                if (name.equals(origin.getName())) {
-                    // Found nullable recursive path to self
+            try {
+                if (exp == null) return false;
+                
+                else if (exp instanceof EmptyExpansion) {
+                    // Found an empty result in the recursive cluster
                     StringBuilder message = new StringBuilder();
-                    message.append(name)
-                           .append(
-                              " has a recursive path to itself potentially consuming no input:\n"
-                           );
-                    message.append("  ")
-                           .append(name)
-                           .append("\n");
+                    String name = origin.getName();
+                    message.append("  " + name)
+                           .append(" directly or indirectly includes a recursive path that does not consume any tokens. It can be non-terminating if reached.")
+                           .append('\n');
                     for (Expansion crumb : breadcrumbs) {
-                        message.append("  ^\n")
-                               .append("  | [")
-                               .append(crumb.toString().replace("\n", " "))
+                        message.append("  \u2191 ")
+                               .append(crumb.toString().replace("\n", ""))
+                               .append('\n');
+                    }
+                    message.append("  ")
+                    .append(exp.toString());
+                    error.addInfo(origin, "\n" + message.toString());
+                } 
+    
+                else if (exp instanceof ExpansionSequence seq) {
+                    boolean hasNullPath = false;
+                    for (Expansion child : seq.allUnits()) {
+                        hasNullPath |= hasNullablePathToSelf(origin, child, visited, breadcrumbs, errors, isConsumed) && !isConsumed;
+                        if (!child.isPossiblyEmpty()) {
+                            isConsumed = true;
+                        }
+                    }
+                    return hasNullPath;
+                }
+                
+                // Check for nullable reference by syntax element type.
+                
+                else if (exp instanceof ZeroOrMore || exp instanceof OneOrMore || exp instanceof ZeroOrOne || exp instanceof ExpansionWithParentheses) {
+                    return hasNullablePathToSelf(origin, exp.getNestedExpansion(), visited, breadcrumbs, errors, isConsumed);
+                }
+                
+                else if (exp instanceof NonTerminal nt) {
+                    String name = nt.getName();
+                    if (name.equals(origin.getName()) && !isConsumed) {
+                        // Found nullable recursive path to self
+                        StringBuilder message = new StringBuilder();
+                        message.append(name)
+                               .append(
+                                  " has a recursive path to itself potentially consuming no input:\n"
+                               );
+                        message.append("  ")
+                               .append(name)
                                .append("\n");
-                    }
-                    error.addWarning(origin, message.toString().trim());
-                    return true;
-                }
-                if (!prodMap.containsKey(name) || visited.contains(name)) {
-                    removeLast(breadcrumbs);
-                    return false;
-                }
-                // 
-                visited.add(name);
-                boolean result = hasNullablePathToSelf(origin, nt.getNestedExpansion(), visited, breadcrumbs, errors);
-                removeLast(breadcrumbs);
-                return result;
-            }
-
-            if (exp instanceof ExpansionChoice choice) {
-                for (Expansion alt : choice.getChoices()) {
-                    if (hasNullablePathToSelf(origin, alt, new HashSet<>(visited), new ArrayList<>(breadcrumbs), errors)) {
-                        removeLast(breadcrumbs);
+                        for (Expansion crumb : breadcrumbs) {
+                            message.append("  \u2191 [")
+                                   .append(crumb.toString().replace("\n", " "))
+                                   .append("\n");
+                        }
+                        error.addWarning(origin, message.toString().trim());
                         return true;
+                    } else if (!visited.contains(name)) {
+                        // in the scc and not yet visited for this origin
+                        visited.add(name);
+                        if (prodMap.containsKey(name)) {
+                            return hasNullablePathToSelf(origin, nt.getNestedExpansion(), visited, breadcrumbs, errors, isConsumed);
+                        }
                     }
                 }
+                        
+                else if (exp instanceof ExpansionChoice choice) {
+                    for (ExpansionSequence choiceSeq : choice.getChoices()) {
+                        return (hasNullablePathToSelf(origin, choiceSeq, new HashSet<>(visited), new ArrayList<>(breadcrumbs), errors, isConsumed));
+                    }
+                }
+                
+                // If not a syntax element (i.e., transparent) recurse.
+                else {
+                    boolean result = false;
+                    for (Node child : exp.children()) {
+                        if (child instanceof Expansion childExp) {
+                            result |= hasNullablePathToSelf(origin, childExp, visited, breadcrumbs, errors, isConsumed);
+                        } 
+                    }
+                    return result;
+                }
+                
+                return false;
+            } finally {
+                pickUpCrumb(breadcrumbs);
             }
-            
-            removeLast(breadcrumbs);
-            return false;
         }
     }
     
@@ -752,7 +792,7 @@ public class Grammar extends BaseNode {
      */
     public void doSanityChecks() {
         
-        if (hasHazardousRecursion()) return; // NOTE: following code might fail if grammar is dangerously recursive, so we bail here.
+//        if (hasHazardousRecursion()) return; // NOTE: following code might fail if grammar is dangerously recursive, so we bail here.
         
         
         if (defaultLexicalState == null) {
@@ -822,6 +862,17 @@ public class Grammar extends BaseNode {
         for (RegexpSpec regexpSpec : descendants(RegexpSpec.class)) {
             if (regexpSpec.getRegexp().matchesEmptyString()) {
                 errors.addError(regexpSpec, "Regular Expression can match empty string. This is not allowed here.");
+            }
+        }
+
+        for (BNFProduction prod : descendants(BNFProduction.class)) {
+            String lexicalStateName = prod.getLexicalState();
+            if (lexicalStateName != null && lexerData.getLexicalState(lexicalStateName) == null) {
+                errors.addError(prod, "Lexical state \""
+                + lexicalStateName + "\" has not been defined.");
+            }
+            if (prod.isLeftRecursive()) {
+                errors.addError(prod, "Production " + prod.getName() + " is left recursive.");
             }
         }
 
