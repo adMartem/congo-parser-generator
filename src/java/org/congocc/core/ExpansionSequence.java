@@ -232,12 +232,21 @@ public class ExpansionSequence extends Expansion {
 
     @Override
     public boolean potentiallyStartsWith(String productionName, Set<String> alreadyVisited) {
-        boolean result = false;
+        boolean isFound = false;
+        boolean hasConsumed = false;
         for (Expansion unit : allUnits()) {
-            if (unit.potentiallyStartsWith(productionName, alreadyVisited)) result = true;
-            if (!unit.isPossiblyEmpty()) break;
+            isFound = unit.potentiallyStartsWith(productionName, alreadyVisited);
+            if (hasConsumed) {
+                if (isFound && unit.isPossiblyEmpty()) {
+                    hasConsumed = false;
+                }
+                continue;
+            } else {
+                if (isFound) return true;
+                if (!unit.isPossiblyEmpty()) hasConsumed = true;
+            }
         }
-        return result;
+        return false;
     }
 
     @Override

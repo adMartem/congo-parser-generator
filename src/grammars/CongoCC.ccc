@@ -764,11 +764,12 @@ INJECT ExpansionChoice :
 
     @Override
     public boolean potentiallyStartsWith(String productionName, java.util.Set<String> alreadyVisited) {
+        boolean isRecursionHazard = false;
         for (ExpansionSequence seq : getChoices()) {
-            if (seq.potentiallyStartsWith(productionName, alreadyVisited)) return true;
+            if (seq.potentiallyStartsWith(productionName, alreadyVisited)) isRecursionHazard = true;
             if (seq.isEnteredUnconditionally()) break;
         }
-        return false;
+        return isRecursionHazard;
     }
 
     @Override
