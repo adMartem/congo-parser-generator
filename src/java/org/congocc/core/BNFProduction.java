@@ -14,6 +14,7 @@ public class BNFProduction extends Expansion {
     private String lexicalState, name;
     private final String leadingComments = "";
     private boolean implicitReturnType;
+    private Set<BNFProduction> recursiveCluster = Set.of();
     
     public Expansion getExpansion() {
         return expansion;
@@ -148,6 +149,18 @@ public class BNFProduction extends Expansion {
      */
     public boolean isLeftRecursive() {
         return getExpansion().potentiallyStartsWith(getName());
+    }
+    
+    public void setRecursiveCluster(Set<BNFProduction> recursiveCluster) {
+        this.recursiveCluster = recursiveCluster;
+    }
+    
+    public Set<BNFProduction> getRecursiveCluster() {
+        return recursiveCluster;
+    }
+    
+    public boolean hasRecursiveHazard() {
+        return recursiveCluster.size() > 0 && isLeftRecursive();
     }
     
     @Override

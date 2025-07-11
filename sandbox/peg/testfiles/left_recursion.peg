@@ -19,6 +19,11 @@ FooBar <- 'foo' FooBar 'bar' | 'foo' '|' 'bar'
 Z <- Z 
 A <- (A 'a')+ |
 C <- (C 'c')*   
-B <- (A | C) 'b' !.
+B <- (A | C) 'b' !.  
+D <- (A | C) D !.
+G <- H
+H <- J
+J <- J | K
+K <- G | H
 /*
  */

@@ -513,6 +513,134 @@ public class Grammar extends BaseNode {
             if (assertion.isCardinalityConstraint()) return true;
         }
         return false;
+    } 
+    
+//    private boolean hasHazardousRecursion() {
+//        
+//        SCCDetectorVisitor visitor = new SCCDetectorVisitor();
+//        visitor.visit(this);
+//        visitor.detectSCCs();
+//        // At this point, productions in recursive cycles have been marked
+//        // and each marked production has the set of productions in its cycle(s).
+//        
+//        boolean hasDangerousRecursion = false;
+//        
+//        for (BNFProduction p : descendants(BNFProduction.class)) {
+//            if (p.isPotentiallyLeftRecursive()) {
+//                NullableRecursivePathDetector detector = new NullableRecursivePathDetector(p.getRecursiveCluster(), errors);
+//                Set<BNFProduction> needingFrost = detector.findNullableRecursiveProds();
+//                if (needingFrost.contains(p)) {
+//                    hasDangerousRecursion = true;
+//                    errors.addError(p, "Production " + p.getName() + " is left recursive and cannot be safely parsed.");
+//                }
+//            }
+//        }
+//        return hasDangerousRecursion;
+//    } 
+    
+    public class SCCDetectorVisitor extends Node.Visitor {
+        
+        private static final boolean TRACE_GRAPH = false;
+        private static final boolean TRACE_TARJAN = false;
+
+        private final Map<BNFProduction, Set<BNFProduction>> callGraph = new HashMap<>();
+        private final List<BNFProduction> allProductions = new ArrayList<>();
+        private final Map<BNFProduction, Integer> indexMap = new HashMap<>();
+        private final Map<BNFProduction, Integer> lowlinkMap = new HashMap<>();
+        private final Deque<BNFProduction> stack = new ArrayDeque<>();
+        private final Set<BNFProduction> onStack = new HashSet<>();
+        private int index = 0;
+        public record Stats (int nodeCount, long complexity) {};
+        private Stats stats;
+
+        private BNFProduction currentContext;
+
+        public void visit(BNFProduction p) {
+            allProductions.add(p);
+            currentContext = p;
+            callGraph.computeIfAbsent(p, __ -> new HashSet<>());
+            if (TRACE_GRAPH) errors.addInfo("added " + p.getName());
+            recurse(p);
+            currentContext = null;
+        }
+
+        public void visit(NonTerminal nt) {
+            if (currentContext == null) return;
+            BNFProduction target = nt.getProduction();
+            if (target != null && target != currentContext) {
+                callGraph.get(currentContext).add(target);
+                if (TRACE_GRAPH) errors.addInfo("added " + target.getName() + " to call graph of " + currentContext.getName());
+            } else if (target == currentContext) {
+                // Self-recursive call
+                callGraph.get(currentContext).add(target);
+            }
+        }
+
+        public Stats detectSCCs() {
+            long complexity = 0;
+            int count = 0;
+            for (BNFProduction p : allProductions) {
+                if (!indexMap.containsKey(p)) {
+                    if (TRACE_TARJAN) errors.addInfo("Checking " + p.getName());
+                    Stats stats = strongConnect(p);
+                    if (TRACE_TARJAN) errors.addInfo(p.getName() + " has " + stats.nodeCount() + " strongly connected nodes");
+                    complexity =+ stats.complexity();
+                    count =+ stats.nodeCount();
+                }
+            }
+            return new Stats(count, complexity);
+        }
+
+        private Stats strongConnect(BNFProduction node) { // Use Tarjan’s Algorithm
+            indexMap.put(node, index);
+            lowlinkMap.put(node, index);
+            index++;
+            stack.push(node);
+            onStack.add(node);
+            long complexity = 0;
+            Set<BNFProduction> scc = new HashSet<>();
+            
+            if (TRACE_TARJAN) errors.addInfo("Node " + node.getName() + "'s index is " + index + " and it is now stacked");
+
+            for (BNFProduction neighbor : callGraph.getOrDefault(node, Set.of())) {
+                if (TRACE_TARJAN) errors.addInfo("  " + neighbor.getName() + " is a neighbor of " + node.getName());
+                if (!indexMap.containsKey(neighbor)) {
+                    if (TRACE_TARJAN) errors.addInfo("  " + neighbor.getName() + " has not been visited yet");
+                    Stats newStats = strongConnect(neighbor);
+                    complexity =+ newStats.complexity();
+                    lowlinkMap.put(node, Math.min(lowlinkMap.get(node), lowlinkMap.get(neighbor)));
+                } else if (onStack.contains(neighbor)) {
+                    if (TRACE_TARJAN) errors.addInfo("  index map contains neighbor " + neighbor.getName() + " which has previously been stacked");
+                    lowlinkMap.put(node, Math.min(lowlinkMap.get(node), indexMap.get(neighbor)));
+                }
+                if (TRACE_TARJAN) errors.addInfo("  " + node.getName() + "'s low-link has been set to " + lowlinkMap.get(node));
+                complexity++;
+            }
+
+            if (lowlinkMap.get(node).equals(indexMap.get(node))) {
+                if (TRACE_TARJAN) errors.addInfo(node.getName() + "'s low-link == its index; determine its SCC");
+                BNFProduction n;
+                do {
+                    n = stack.pop();
+                    onStack.remove(n);
+                    scc.add(n);
+                    if (TRACE_TARJAN) errors.addInfo("  unstack " + n.getName() + " and add to SCC for " + node.getName());
+                } while (!n.equals(node));
+
+                if (scc.size() > 1 || (scc.size() == 1 && callGraph.get(node).contains(node))) {
+                   // warn that a recursive cycle dominated by node is present and could contain hazardous looping
+                   StringBuilder sb = new StringBuilder("A recursive cycle is present and includes:");
+                   for (BNFProduction p : scc) {
+                        p.setRecursiveCluster(scc);
+                        sb.append(' ').append(p.getName()).append(',');
+                   }
+                   sb.setLength(sb.length() - 1);
+                   errors.addInfo(node, sb.toString());
+                }
+            }
+            if (TRACE_TARJAN) errors.addInfo("For " + node.getName() + " the SCC has " + scc.size() + " nodes and a complexity of " + complexity);
+            return new Stats(scc.size(), complexity);
+        }
     }
 
     /**
@@ -587,6 +715,15 @@ public class Grammar extends BaseNode {
                 errors.addError(regexpSpec, "Regular Expression can match empty string. This is not allowed here.");
             }
         }
+        
+        SCCDetectorVisitor visitor = new SCCDetectorVisitor();
+        // Build the call graph.
+        visitor.visit(this);
+        // Detect the strongly-connected node clusters.
+        SCCDetectorVisitor.Stats stats = visitor.detectSCCs();        
+        errors.addInfo("Grammar contains " + stats.nodeCount() + " recursive clusters and has an aggregate complexity of " + stats.complexity() +".");
+        // At this point, productions in recursive cycles have been marked
+        // and each marked production has the set of productions in its cycle(s).
 
         for (BNFProduction prod : descendants(BNFProduction.class)) {
             String lexicalStateName = prod.getLexicalState();
@@ -594,7 +731,7 @@ public class Grammar extends BaseNode {
                 errors.addError(prod, "Lexical state \""
                 + lexicalStateName + "\" has not been defined.");
             }
-            if (prod.isLeftRecursive()) {
+            if (prod.hasRecursiveHazard() && prod.isLeftRecursive()) {
                 errors.addError(prod, "Production " + prod.getName() + " is left recursive.");
             }
         }
