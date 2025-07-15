@@ -350,7 +350,7 @@ public class Grammar extends BaseNode {
                                                                   //  V
             if ((expansion instanceof BNFProduction) || (expansion.getParent() instanceof BNFProduction)) continue; // Handle these separately
             if (type == 0 || type == 2) {   // follow sets
-                if (expansion instanceof CodeBlock) {
+                if (expansion instanceof EmbeddedCode) {
                     continue;
                 }
             }
@@ -523,6 +523,88 @@ public class Grammar extends BaseNode {
             if (assertion.isCardinalityConstraint()) return true;
         }
         return false;
+    }
+    
+    public class CardinalityChecker extends Visitor {
+        private final Grammar context;
+        CardinalityChecker(Grammar context) {
+            this.context = context;
+            visit(context);
+        }
+        
+        @Override
+        public void visit(Node n) {
+            super.visit(n);
+        }
+        
+        Stack<int[]> rangeStack = new Stack<>();
+        
+        public void visit(BNFProduction n) {
+            recurse(n);
+        }
+        
+        // check repetition cardinality constraints (depth first)
+        public void visit(ExpansionWithParentheses n) {
+            if (n.isCardinalityContainer()) {
+                rangeStack.push(new int[] {0,Integer.MAX_VALUE});
+            }
+            recurse(n.getNestedExpansion());
+            if (n.isCardinalityContainer()) {
+                int[] repetitionRange = rangeStack.pop();
+                if (repetitionRange[0] > 0 && (n instanceof ZeroOrMore)) {
+                    // This is a very weak warning, as there are valid reasons to do this. Probably it is between info and warning (i.e., a caution).
+                    context.errors.addInfo(n, "This ZeroOrMore expansion contains a minimum cardinality assertion of > 0; this might not behave as intended.");
+                }
+                if (!(n instanceof IteratingExpansion)) {
+                    //FIXME: warn on constraints within ZeroOrOne (below does not work)
+                    context.errors.addError(n, "Cardinality constraints may only allowed be contained in ZeroOrMore and OneOrMore expansions.");
+                }
+            }
+            
+        }
+        
+        public void visit(AttemptBlock attempt) {
+            /*
+             *REVISIT:JB This restriction should probably be relaxed for consistency and least surprise. If/When it is, it
+             *needs to provide a way to save the state of the currently active cardinality (if any) in the parser state and restore
+             *it when recovering.
+             */
+            if (rangeStack.size() != 0) {
+                context.errors.addError(attempt, "Cardinality constraints are not allowed to be asserted within an ATTEMPT...RECOVER block.");
+            }
+            recurse(attempt);
+        }
+        
+        public void visit(ExpansionSequence s) {
+            recurse(s);
+            try {
+                if (s.isCardinalityConstrained()) {
+                    int[] repetitionRange = rangeStack.peek();
+                    int minCardinality = repetitionRange[0];
+                    int maxCardinality = repetitionRange[1];
+                    int numberOfConstraints = 0;
+                    //TODO: warn on improperly telescoped constraints in single sequence (i.e., shrinking the min or expanding the max)
+                    List<Assertion> assertions = s.getCardinalityAssertions();
+                    if (assertions != null) {
+                        for (Assertion a : assertions) {
+                            if (a.isCardinalityConstraint()) {
+                                int[] constraint = a.getCardinalityConstraint();
+                                if (constraint[1] == 0) errors.addWarning(a, "Maximum cardinality is 0; this is likely an error.");
+                                if (constraint[0] > constraint[1]) errors.addError(a, "Maximum cardinality is less than the minimum.");
+                                
+                                minCardinality = Math.max(constraint[0], minCardinality);
+                                maxCardinality = Math.min(constraint[1], maxCardinality);
+                            }
+                        }
+                    }
+                    repetitionRange[0] = minCardinality;
+                    repetitionRange[1] = maxCardinality;
+                }
+            } catch (Exception e) {
+                s.firstAncestorOfType(BNFProduction.class).dump();
+                throw e;
+            }
+        }
     }
 
     /**
