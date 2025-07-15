@@ -696,7 +696,7 @@ public class Grammar extends BaseNode {
         }
 
         for (Assignment assignment : descendants(Assignment.class)) {
-            if (assignment.isPropertyAssignment() || assignment.isNamedAssignment()) {
+            if (assignment.isPropertyAssignment()/* || assignment.isNamedAssignment()*/) {
                 BNFProduction production = assignment.firstAncestorOfType(BNFProduction.class);
                 if (production.getTreeNodeBehavior() != null) {
                     if (production.getTreeNodeBehavior().isNeverInstantiated()) {

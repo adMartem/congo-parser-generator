@@ -755,7 +755,7 @@ ${is}    self.pop_call_stack()
       #set impliedLHS = globals::translateIdentifier("THIS_PRODUCTION") + "." + newName + " = @"
    /#if
    [#-- Accept the non-terminal expansion --]
-   [#if nonterminal.production.returnType != "void" && expressedLHS != "@" && !nonterminal.assignment.namedAssignment && !nonterminal.assignment.propertyAssignment]
+   [#if nonterminal.production.returnType != "void" && expressedLHS != "@" [#--&& !nonterminal.assignment.namedAssignment--] && !nonterminal.assignment.propertyAssignment]
       [#-- Not a void production, so accept and clear the expressedLHS, it has already been applied. --]
 ${is}${expressedLHS?replace("@", "self.parse_" + nonterminal.name + "(" + globals::translateNonterminalArgs(nonterminal.args) + ")")}
       [#set expressedLHS = "@"]
@@ -763,7 +763,7 @@ ${is}${expressedLHS?replace("@", "self.parse_" + nonterminal.name + "(" + global
 ${is}${"self.parse_" + nonterminal.name + "(" + globals::translateNonterminalArgs(nonterminal.args) + ")"}
    [/#if]
    [#if expressedLHS != "@" || impliedLHS != "@"]
-      [#if nonterminal.assignment?? && (nonterminal.assignment.addTo!false || nonterminal.assignment.namedAssignment)]
+      [#if nonterminal.assignment?? && (nonterminal.assignment.addTo!false[#-- || nonterminal.assignment.namedAssignment--])]
 ${is}if self.build_tree:
 ${is}    ${expressedLHS?replace("@", impliedLHS?replace("@", "self.peek_node()"))}
       [#else]

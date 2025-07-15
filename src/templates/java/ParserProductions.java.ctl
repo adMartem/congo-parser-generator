@@ -542,21 +542,27 @@
             #-- This is a declaration assignment; inject required property --
             ${injectDeclaration(lhsType, assignment.name, assignment)}
          #endif
+[#-- DEACTIVATE add-to
          #if assignment.addTo!false
             #-- This is the addition of the current node as a child of the specified property's node value --
             #return globals::translateIdentifier("THIS_PRODUCTION") + ".get" + lhsName + "().add(" + getRhsAssignmentPattern(assignment) + ")"
          #else
+--]
             #-- This is an assignment of the current node's effective value to the specified property of the production node --
             #return globals::translateIdentifier("THIS_PRODUCTION") + ".set" + lhsName + "(" + getRhsAssignmentPattern(assignment) + ")"
-         #endif
-      #elif assignment.namedAssignment!false
-         #if assignment.addTo
-            #-- This is the addition of the current node to the named child list of the production node --
-            #return "${currentNodeVariableName()}" + ".addToNamedChildList(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
-         #else
-            #-- This is an assignment of the current node to a named child of the production node --
-            #return "${currentNodeVariableName()}" + ".setNamedChild(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
-         #endif
+[#-- DEACTIVATE add-to
+            #endif 
+--]
+[#-- DEACTIVATE named assignment
+          #elif assignment.namedAssignment!false
+             #if assignment.addTo
+                #-- This is the addition of the current node to the named child list of the production node --
+                #return "${currentNodeVariableName()}" + ".addToNamedChildList(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
+             #else
+                #-- This is an assignment of the current node to a named child of the production node --
+                #return "${currentNodeVariableName()}" + ".setNamedChild(\"" + lhsName + "\", " + getRhsAssignmentPattern(assignment) + ")"
+             #endif
+--]
       #endif
       #-- This is the assignment of the current node or it's returned value to an arbitrary LHS "name" (i.e., the legacy JavaCC assignment) --
       #return lhsName + " = " + getRhsAssignmentPattern(assignment)
@@ -580,9 +586,11 @@
       #set type = "boolean"
    #elif assignment?? && assignment.stringOf
       #set type = "String"
-   #elif assignment?? && assignment.addTo
-      #set type = "List<Node>"
-      #set field = field + " = new ArrayList<Node>()"
+[#-- DEACTIVATE add-to
+       #elif assignment?? && assignment.addTo
+          #set type = "List<Node>"
+          #set field = field + " = new ArrayList<Node>()"
+--]
    #endif
    #if !(injectedFields[field])??
       #set injectedFields = injectedFields + {field : type}
@@ -796,7 +804,7 @@
       #set impliedLHS = globals::translateIdentifier("THIS_PRODUCTION") + "." + imputedJtbFieldName(nonterminal.production.nodeName) + " = @"
    #endif
    #-- Accept the non-terminal expansion --
-   #if nonterminal.production.returnType != "void" && expressedLHS != "@" && !nonterminal.assignment.namedAssignment && !nonterminal.assignment.propertyAssignment
+   #if nonterminal.production.returnType != "void" && expressedLHS != "@" [#--&& !nonterminal.assignment.namedAssignment--] && !nonterminal.assignment.propertyAssignment
       #-- Not a void production, so accept and clear the expressedLHS, it has already been applied. --
       ${expressedLHS?replace("@", nonterminal.name + "(" + nonterminal.args! + ")")};
       #set expressedLHS = "@"
@@ -804,7 +812,7 @@
       ${nonterminal.name}(${nonterminal.args!});
    #endif
    #if expressedLHS != "@" || impliedLHS != "@"
-      #if nonterminal.assignment?? && (nonterminal.assignment.addTo!false || nonterminal.assignment.namedAssignment)
+      #if nonterminal.assignment?? && (nonterminal.assignment.addTo!false [#--|| nonterminal.assignment.namedAssignment--])
          if (buildTree) {
             #if impliedLHS == "@"
                ${expressedLHS?replace("@", impliedLHS?replace("@", "peekNode()"))};

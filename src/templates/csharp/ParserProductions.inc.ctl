@@ -743,7 +743,7 @@ finally {
       #set impliedLHS = globals::translateIdentifier("THIS_PRODUCTION") + "." + newName + " = @"
    /#if
    [#-- Accept the non-terminal expansion --]
-   [#if nonterminal.production.returnType != "void" && expressedLHS != "@" && !nonterminal.assignment.namedAssignment && !nonterminal.assignment.propertyAssignment]
+   [#if nonterminal.production.returnType != "void" && expressedLHS != "@"[#-- && !nonterminal.assignment.namedAssignment--] && !nonterminal.assignment.propertyAssignment]
       [#-- Not a void production, so accept and clear the expressedLHS, it has already been applied. --]
       ${expressedLHS?replace("@", "Parse" + nonterminal.name + "(" + globals::translateNonterminalArgs(nonterminal.args)! + ")")};
       [#set expressedLHS = "@"]
@@ -751,7 +751,7 @@ finally {
       Parse${nonterminal.name}(${globals::translateNonterminalArgs(nonterminal.args)!});
    [/#if]
    [#if expressedLHS != "@" || impliedLHS != "@"]
-      [#if nonterminal.assignment?? && (nonterminal.assignment.addTo!false || nonterminal.assignment.namedAssignment)]
+      [#if nonterminal.assignment?? && (nonterminal.assignment.addTo!false[#-- || nonterminal.assignment.namedAssignment--])]
          if (BuildTree) {
             [#if impliedLHS == "@"]
                ${expressedLHS?replace("@", impliedLHS?replace("@", "PeekNode()"))};

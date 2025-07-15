@@ -827,22 +827,22 @@ Assignment :
             (@existenceOf :=? "=?" | @existenceOf :=? ":=?" {thisProduction.setDeclarationOf(true);})
         |
             (@stringOf :=? "=$" | @stringOf :=? ":=$" {thisProduction.setDeclarationOf(true);})
-        |
-            (@addTo :=? "+=" | @addTo :=? ":+=" {thisProduction.setDeclarationOf(true);})
+//        |
+//            (@addTo :=? "+=" | @addTo :=? ":+=" {thisProduction.setDeclarationOf(true);})
     ) =>||
-    |
-    DEACTIVATE_TOKENS SLASHASSIGN (
-        @namedAssignment :=?
-        "/"
-        @name =$ Name
-        "/"
-    )
-    (
-        "="
-        |
-        @addTo :=? "+="
-    )
-    =>||
+//    |
+//    DEACTIVATE_TOKENS SLASHASSIGN (
+//        @namedAssignment :=?
+//        "/"
+//        @name =$ Name
+//        "/"
+//    )
+//    (
+//        "="
+//        |
+//        @addTo :=? "+="
+//    )
+//    =>||
 ;
 
 ExpansionWithParentheses :
