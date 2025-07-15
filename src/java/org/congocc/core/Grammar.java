@@ -347,7 +347,7 @@ public class Grammar extends BaseNode {
         Set<String> usedNames = new LinkedHashSet<>();
         List<Expansion> result = new ArrayList<>();
         for (Expansion expansion : descendants(Expansion.class)) { // | is this one necessary now that BNFProduction is an Expansion? [jb]
-        														  //  V
+                                                                  //  V
             if ((expansion instanceof BNFProduction) || (expansion.getParent() instanceof BNFProduction)) continue; // Handle these separately
             if (type == 0 || type == 2) {   // follow sets
                 if (expansion instanceof CodeBlock) {
@@ -502,7 +502,7 @@ public class Grammar extends BaseNode {
      * @param fieldName is the name of the field to be injected
      */
     public void addFieldInjection(String nodeName, String modifiers, String typeName, String fieldName) {
-    	CodeInjection.inject(this, nodeName, "{" + modifiers + " " + typeName + " " + fieldName + ";}");
+        CodeInjection.inject(this, nodeName, "{" + modifiers + " " + typeName + " " + fieldName + ";}");
     }
 
     public boolean isInInclude() {
@@ -517,7 +517,13 @@ public class Grammar extends BaseNode {
         }
         return undefinedNTs.isEmpty();
     }
-
+    
+    public boolean isUsingCardinality() {
+        for (Assertion assertion : descendants(Assertion.class)) {
+            if (assertion.isCardinalityConstraint()) return true;
+        }
+        return false;
+    }
 
     /**
      * Run over the tree and do some sanity checks
@@ -616,6 +622,10 @@ public class Grammar extends BaseNode {
                     }
                 }
             }
+        }
+        
+        if (isUsingCardinality()) {
+            new CardinalityChecker(this);
         }
 
         if (errors.getErrorCount() >0) return;
@@ -745,7 +755,11 @@ public class Grammar extends BaseNode {
     }
 
     private Expansion nextExpansion(Expansion exp) {
-        Expansion next = (Expansion) exp.nextSibling();
+        Node n = exp.nextSibling();
+        while (n != null && !(n instanceof Expansion)) {
+            n = n.nextSibling();
+        }
+        Expansion next = (Expansion) n;
         if (next == null) {
             Expansion enclosing = (Expansion) exp.getParent().getParent();
             if (enclosing != null && enclosing.getClass() == ExpansionWithParentheses.class) {

@@ -61,6 +61,7 @@
     <ant target="clean" dir="examples/csharp" />
     <ant target="clean" dir="examples/lua" />
     <ant target="clean" dir="examples/preprocessor" />
+    <ant target="clean" dir="examples/cics" />
     <!--ant target="clean" dir="examples/freemarker" /-->
   </target>
 
