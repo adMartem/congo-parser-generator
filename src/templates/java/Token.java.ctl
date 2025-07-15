@@ -38,6 +38,8 @@ public class ${settings.baseTokenClassName} ${implements} {
             ("${regexp.literalString}", true)
           #elseif regexp.class.simpleName == "RegexpStringLiteral"
             ("${regexp.literalString?j_string}")
+          #elseif regexp.class.simpleName == "RegexpStringLiteral"
+            ("${regexp.literalString?j_string}", true)
           #endif
           ,
         #endlist
