@@ -102,6 +102,7 @@
       <assertions>
         <enable />
       </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y"/>
       <arg value="-n" />
       <arg value="${basedir}/grammar/generated/left_recursion.ccc" />
       <arg value="-p" />

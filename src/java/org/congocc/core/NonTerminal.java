@@ -72,13 +72,14 @@ public class NonTerminal extends Expansion implements SyntaxElement {
           return getNestedExpansion().getFinalSet();
      }
      
-     protected int getMinimumSize(Set<String> visitedNonTerminals) {
+     protected int getMinimumSize(Set<String> visitedNonTerminals, int minLeft) {
         if (minSize >=0) return minSize;
          if (visitedNonTerminals.contains(getName())) {
-            return Integer.MAX_VALUE;
+            System.out.println("recursion for " + getName() + " left size is " + minLeft + " min size " + minSize);
+            return minLeft > 0 || minSize == -1 ? Integer.MAX_VALUE : 0;
          }
          visitedNonTerminals.add(getName());
-         minSize = getNestedExpansion().getMinimumSize(visitedNonTerminals);
+         minSize = getNestedExpansion().getMinimumSize(visitedNonTerminals, minLeft);
          visitedNonTerminals.remove(getName());
          return minSize;
      }
@@ -129,7 +130,7 @@ public class NonTerminal extends Expansion implements SyntaxElement {
         if (productionName.equals(getName())) {
             return true;
         }
-        if (alreadyVisited.contains(getName())) return false;
+        if (alreadyVisited.contains(getName()) || !getProduction().isStronglyConnected()) return false;
         alreadyVisited.add(getName());
         return getNestedExpansion().potentiallyStartsWith(productionName, alreadyVisited);
     }

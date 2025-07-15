@@ -18,7 +18,7 @@ abstract public class EmptyExpansion extends Expansion {
     }
 
     @Override
-    protected final int getMinimumSize(Set<String> unused) {
+    protected final int getMinimumSize(Set<String> unused, int unusedInt) {
         return 0;
     }
 

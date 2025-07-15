@@ -741,11 +741,11 @@ INJECT ExpansionChoice :
     }
 
     @Override
-    protected int getMinimumSize(Set<String> usedNonTerminals) {
+    protected int getMinimumSize(Set<String> usedNonTerminals, int minLeft) {
         int result = Integer.MAX_VALUE;
         for (ExpansionSequence choice : getChoices()) {
             if (choice.isFailure()) continue; // REVISIT
-            int choiceMin = choice.getMinimumSize(usedNonTerminals);
+            int choiceMin = choice.getMinimumSize(usedNonTerminals, minLeft);
             if (choiceMin ==0) return 0;
             result = Math.min(result, choiceMin);
         }
@@ -1415,7 +1415,7 @@ INJECT Terminal :
         return regexp.getOrdinal();
     }
 
-    public int getMinimumSize(Set<String> unused) {return 1;}
+    public int getMinimumSize(Set<String> unused, int unusedInt) {return 1;}
 
     public int getMaximumSize(Set<String> unused) {return 1;}
 
@@ -1471,7 +1471,7 @@ INJECT ZeroOrOne :
      extends ExpansionWithParentheses
 {
     @Override
-    protected int getMinimumSize(java.util.Set<String> unused) {return 0;}
+    protected int getMinimumSize(java.util.Set<String> unused, int unusedInt) {return 0;}
 }
 
 
@@ -1483,7 +1483,7 @@ INJECT ZeroOrMore :
      implements IteratingExpansion
 {
     @Override
-    protected int getMinimumSize(Set<String> unused) {return 0;}
+    protected int getMinimumSize(Set<String> unused, int unusedInt) {return 0;}
 
     @Override
     protected int getMaximumSize(Set<String> unused) {return Integer.MAX_VALUE;}

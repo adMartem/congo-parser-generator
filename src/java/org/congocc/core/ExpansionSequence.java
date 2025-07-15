@@ -169,11 +169,11 @@ public class ExpansionSequence extends Expansion {
         return lookahead != null;
     }
 
-    public int getMinimumSize(Set<String> visitedNonTerminals) {
+    public int getMinimumSize(Set<String> visitedNonTerminals, int minLeft) {
         if (this.minSize >= 0) return minSize;
         int result = 0;
         for (Expansion unit : childrenOfType(Expansion.class)) {
-            int minUnit = unit.getMinimumSize(visitedNonTerminals);
+            int minUnit = unit.getMinimumSize(visitedNonTerminals, result);
             if (minUnit == Integer.MAX_VALUE)
                 return Integer.MAX_VALUE;
             result += minUnit;

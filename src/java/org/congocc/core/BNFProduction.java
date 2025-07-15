@@ -159,8 +159,12 @@ public class BNFProduction extends Expansion {
         return recursiveCluster;
     }
     
+    public boolean isStronglyConnected() {
+        return recursiveCluster.size() > 0;
+    }
+    
     public boolean hasRecursiveHazard() {
-        return recursiveCluster.size() > 0 && isLeftRecursive();
+        return isStronglyConnected() && isLeftRecursive();
     }
     
     @Override
@@ -179,8 +183,8 @@ public class BNFProduction extends Expansion {
 	}
 
 	@Override
-	protected int getMinimumSize(Set<String> visitedNonTerminals) {
-		return expansion.getMinimumSize(visitedNonTerminals);
+	protected int getMinimumSize(Set<String> visitedNonTerminals, int minLeft) {
+		return expansion.getMinimumSize(visitedNonTerminals, minLeft);
 	}
 
 	@Override

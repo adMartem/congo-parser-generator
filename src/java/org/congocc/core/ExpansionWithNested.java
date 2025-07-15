@@ -18,8 +18,8 @@ abstract public class ExpansionWithNested extends Expansion {
     }
 
     @Override
-    protected int getMinimumSize(Set<String> visitedNonTerminals) {
-        return getNestedExpansion().getMinimumSize(visitedNonTerminals);
+    protected int getMinimumSize(Set<String> visitedNonTerminals, int minLeft) {
+        return getNestedExpansion().getMinimumSize(visitedNonTerminals, minLeft);
     }
 
     @Override

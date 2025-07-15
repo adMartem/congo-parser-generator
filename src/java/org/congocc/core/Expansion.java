@@ -376,7 +376,7 @@ abstract public class Expansion extends BaseNode {
     /**
      * @return the minimum number of tokens that this expansion consumes.
      */
-    abstract protected int getMinimumSize(Set<String> visitedNonTerminals);
+    abstract protected int getMinimumSize(Set<String> visitedNonTerminals, int minLeft);
 
     /**
      * @return the maximum number of tokens that this expansion consumes.
@@ -400,7 +400,7 @@ abstract public class Expansion extends BaseNode {
      */
     final public int getMinimumSize() {
         if (minSize == -1) {
-            minSize = getMinimumSize(new HashSet<>());
+            minSize = getMinimumSize(new HashSet<>(), 0);
         }
         return minSize;
     }

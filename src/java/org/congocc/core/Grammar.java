@@ -541,7 +541,7 @@ public class Grammar extends BaseNode {
     public class SCCDetectorVisitor extends Node.Visitor {
         
         private static final boolean TRACE_GRAPH = false;
-        private static final boolean TRACE_TARJAN = false;
+        private static final boolean TRACE_TARJAN = true;
 
         private final Map<BNFProduction, Set<BNFProduction>> callGraph = new HashMap<>();
         private final List<BNFProduction> allProductions = new ArrayList<>();
@@ -600,7 +600,7 @@ public class Grammar extends BaseNode {
             long complexity = 0;
             Set<BNFProduction> scc = new HashSet<>();
             
-            if (TRACE_TARJAN) errors.addInfo("Node " + node.getName() + "'s index is " + index + " and it is now stacked");
+            if (TRACE_TARJAN) errors.addInfo(">>Node " + node.getName() + "'s index is " + (index - 1) + " and it is now stacked");
 
             for (BNFProduction neighbor : callGraph.getOrDefault(node, Set.of())) {
                 if (TRACE_TARJAN) errors.addInfo("  " + neighbor.getName() + " is a neighbor of " + node.getName());
@@ -609,12 +609,13 @@ public class Grammar extends BaseNode {
                     Stats newStats = strongConnect(neighbor);
                     complexity =+ newStats.complexity();
                     lowlinkMap.put(node, Math.min(lowlinkMap.get(node), lowlinkMap.get(neighbor)));
+                    complexity++;
                 } else if (onStack.contains(neighbor)) {
                     if (TRACE_TARJAN) errors.addInfo("  index map contains neighbor " + neighbor.getName() + " which has previously been stacked");
                     lowlinkMap.put(node, Math.min(lowlinkMap.get(node), indexMap.get(neighbor)));
+                    complexity++;
                 }
                 if (TRACE_TARJAN) errors.addInfo("  " + node.getName() + "'s low-link has been set to " + lowlinkMap.get(node));
-                complexity++;
             }
 
             if (lowlinkMap.get(node).equals(indexMap.get(node))) {
@@ -638,7 +639,7 @@ public class Grammar extends BaseNode {
                    errors.addInfo(node, sb.toString());
                 }
             }
-            if (TRACE_TARJAN) errors.addInfo("For " + node.getName() + " the SCC has " + scc.size() + " nodes and a complexity of " + complexity);
+            if (TRACE_TARJAN) errors.addInfo("<<" + node.getName() + " has " + scc.size() + " neighbor" + (scc.size()!=1 ? "s" : "") + " and a complexity of " + complexity);
             return new Stats(scc.size(), complexity);
         }
     }
@@ -732,7 +733,7 @@ public class Grammar extends BaseNode {
                 + lexicalStateName + "\" has not been defined.");
             }
             if (prod.hasRecursiveHazard() && prod.isLeftRecursive()) {
-                errors.addError(prod, "Production " + prod.getName() + " is left recursive.");
+                errors.addError(prod, "Production " + prod.getName() + " is left recursive or potentially null recursive.");
             }
         }
 
@@ -770,7 +771,7 @@ public class Grammar extends BaseNode {
         for (ExpansionWithNested exp : descendants(ExpansionWithNested.class, e->e instanceof ZeroOrMore || e instanceof OneOrMore || e instanceof ZeroOrOne)) {
             if (exp.getNestedExpansion().isEnteredUnconditionally()) {
                 errors.addWarning(exp, "The expansion inside this construct is entered unconditionally. That is probably not your intention.");
-                //errors.addError(exp, "The expansion inside this construct is entered unconditionally. This is not permitted here.");
+//                errors.addError(exp, "The expansion inside this construct is entered unconditionally. This is not permitted here.");
             }
         }
 
