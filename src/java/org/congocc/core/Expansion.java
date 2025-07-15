@@ -28,7 +28,7 @@ abstract public class Expansion extends BaseNode {
     private String scanRoutineName, firstSetVarName;
 
     private boolean tolerantParsing;
-    private CodeBlock recoveryBlock;
+    private EmbeddedCode recoveryBlock;
 
     /**
      * If we hit a parsing error in this expansion, do we try to recover? This is
@@ -46,11 +46,11 @@ abstract public class Expansion extends BaseNode {
      * If a recovery action is provided (in fault-tolerant mode), this is it.
      * @return the recovery action {@link CodeBlock}
      */
-    public CodeBlock getRecoveryBlock() {
+    public EmbeddedCode getRecoveryBlock() {
         return recoveryBlock;
     }
 
-    public void setRecoveryBlock(CodeBlock recoveryBlock) {
+    public void setRecoveryBlock(EmbeddedCode recoveryBlock) {
         this.recoveryBlock = recoveryBlock;
     }
 
@@ -232,7 +232,7 @@ abstract public class Expansion extends BaseNode {
     // be okay.
     private boolean hasGlobalSemanticActions() {
         assert this.getMaximumSize() <= 1;
-        return descendants(CodeBlock.class).stream().anyMatch(CodeBlock::isAppliesInLookahead)
+        return descendants(CodeBlock.class).stream().anyMatch(CodeBlock::isAppliesInLookahead) //FIXME: But EmbeddedCode needs isAppliedInLookahead!
             || descendants(Assertion.class).stream().anyMatch(nt->nt.startsWithGlobalCodeAction())
             || descendants(NonTerminal.class).stream().anyMatch(nt->nt.getNestedExpansion().hasGlobalSemanticActions());
     }
