@@ -19,14 +19,13 @@ Suffix     <- Primary
 
 Repetition <- Primary (QUESTION / STAR / PLUS)
 
-Cardinality <- CARD (CardinalityConstraint)?
+Cardinality <- CARD (CardinalityConstraint CARD)?
 
 Primary    <- Identifier !(LEFTARROW / COLON)
             / OPEN Expression CLOSE
             / Literal
             / Class
             / DOT
-
 
 ##########################
 ## Constraint Syntax    ##
@@ -65,7 +64,9 @@ CLOSE       <- ')' Spacing
 DOT         <- '.' Spacing
 
 Spacing     <- ( Space / Comment )*
-Comment     <- '#' (!EndOfLine .)* EndOfLine
+Comment     <- CommentLine / CommentBlock
+CommentLine <- '#' (!EndOfLine .)* EndOfLine
+CommentBlock<- '/*' (!'*/' .)* '*/'
 Space       <- ' ' / '\t' / EndOfLine
 EndOfLine   <- '\r\n' / '\n' / '\r'
 EndOfFile   <- !.
@@ -76,7 +77,7 @@ EndOfFile   <- !.
 #######################
 
 ENTAILS     <- '>>>' Spacing
-CARD        <- '%' Spacing / !Comment '#'
+CARD        <- '%' Spacing
 
 NATURAL     <- '0' / [1-9] [0-9]* Spacing
 COMMA       <- ',' Spacing

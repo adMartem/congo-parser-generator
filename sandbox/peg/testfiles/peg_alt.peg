@@ -1,18 +1,18 @@
 /*
- * This is essentially Bryan Ford's original PEG grammar as defined by his paper 
+ * This is a "sugar-frosted" version of Bryan Ford's original PEG grammar as defined by his paper 
  * titled "Parsing Expression Grammars: A Recognition-based Syntactic Foundation" 
- * in POPL'04 January 14-16, 2004, Venice, Italy.  It has been extended to illustrate the
- * addition of entailment and repetition cardinality constraints to allow more efficient
+ * in POPL'04 January 14-16, 2004, Venice, Italy.  The syntax recognized has been extended to illustrate the
+ * addition of entailment and repetition cardinality constraints to easily describe more efficient
  * LL parsing and a compact way to recognize restricted cardinality of Primaries respectively.
  * It also allows several relaxations to the syntax such as "_" in identifiers and the "|" to separate choices, 
  * which are now de facto standards, and both an ASCII version of "entails" and the prioritized choice character and a Unicode version of both that 
  * is more modern. Identifiers may also be surrounded by balanced "<" and ">" to allow external 
- * CongoCC tokens to be referenced or mimicked within the PEG grammar, thereby allowing the PEG grammar 
- * to utilize the full power of the a CongoCC-generated lexer if desired. 
+ * lexer tokens to be referenced or mimicked within the PEG grammar in addition to Literals, thereby allowing the PEG grammar 
+ * to utilize the full power of a CongoCC-generated lexer if desired. 
  *
  * N.B., Entailment in Extended PEG functions identically to "=>||" in CongoCC. It is possible
  * that this will change in the future. It is also probable that the original PEG commenting syntax
- * will be changed to match modern conventions (i.e., Java/C-like) and that the "*" will replace the
+ * will be changed to match modern conventions (i.e., Java/C-like) and that the "#" will replace the
  * "%" for cardinality predicates.
  *
  * By convention, nonterminals begin with an upper-case letter, terminals are all upper-case, and lexer
@@ -20,7 +20,7 @@
  * "_" character.
  */
 
-// This grammar is parsable by the extended PEG grammar.
+// This grammar is parsable by the PEG+ grammar.
 
 /*************************
  ** Hierarchical Syntax **
@@ -62,7 +62,7 @@ COLON      : ':' Spacing
 SLASH      : '/' Spacing
 BAR        : '|' Spacing
 AND        : '&' Spacing
-NOT        : '!' Spacing
+NOT        : ('!'|'~') Spacing
 QUESTION   : '?' Spacing
 STAR       : '*' Spacing
 PLUS       : '+' Spacing
