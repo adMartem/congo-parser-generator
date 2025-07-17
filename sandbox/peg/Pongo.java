@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.nio.file.*;
 
 import org.parsers.peg.*;
 import org.parsers.peg.ast.*;
@@ -36,7 +37,9 @@ public class Pongo {
               PegGrammar root = pp.parseFile(file, files.size() == 1);
               String fileName = file.getName();
               fileName = "grammar/generated/" + fileName.replaceAll(".peg", ".ccc");
+              Path filePath = Paths.get(fileName);
               File outFile = new File(fileName);
+              Files.createDirectories(filePath.getParent());
               PrintStream ps;
               if (outFile.createNewFile() || outFile.exists() && outFile.canWrite()) {
                   ps = new PrintStream(outFile);

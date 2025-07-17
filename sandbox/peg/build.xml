@@ -4,7 +4,7 @@
 	
   <target name="clean">
     <delete dir="org" />
-  	<delete>
+  	<delete failonerror="false">
   	    <fileset dir="${basedir}" includes="*.class"/>
         <fileset dir="${basedir}/grammar/generated" includes="**/*"/>
   	</delete>
