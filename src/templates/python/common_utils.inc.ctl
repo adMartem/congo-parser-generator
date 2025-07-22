@@ -82,7 +82,12 @@ ${prefix}${newID()}[#rt]
 [#return val?string("True", "False")/]
 [/#function]
 
-[#macro HandleLexicalStateChange expansion inLookahead indent]
+#macro BuildCardinalities assertions indent
+#var is = ""?right_pad(indent)
+${is}[[#list assertions as range][{${range[0]}],[${range[1]}][#if range_has_next],[/#if][/#list]]
+#endmacro
+
+[#macro HandleLexicalStateChange expansion inLookahead cardinalitiesVar indent]
 [#var is = ""?right_pad(indent)]
 [#-- ${is}# DBG > HandleLexicalStateChange ${indent} ${expansion.simpleName} --]
 [#var resetToken = inLookahead?string("self.current_lookahead_token", "self.last_consumed_token")]

@@ -133,7 +133,7 @@ ${is}        self.pending_recovery = not success
 #if expansion.simpleName != "ExpansionSequence" && expansion.simpleName != "ExpansionWithParentheses"
 ${is}# Code for ${expansion.simpleName} specified at ${expansion.location}
 /#if
-[@CU.HandleLexicalStateChange expansion, false, indent; indent]
+[@CU.HandleLexicalStateChange expansion, false, [#--cardinalitiesVar!--]null, indent; indent]
   #if settings.faultTolerant && expansion.requiresRecoverMethod && !expansion.possiblyEmpty
     [#var is = ""?right_pad(indent)][#-- needed for when passed as nested content --]
 ${is}if self.pending_recovery:
