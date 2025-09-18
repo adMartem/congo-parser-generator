@@ -11,6 +11,13 @@
         <fileset dir="${basedir}/grammar/generated" includes="**/*"/>
   	</delete>
   </target>
+    
+  <target name="clean-parser">
+    <delete dir="org" />
+    <delete failonerror="false">
+        <fileset dir="${basedir}" includes="*.class"/>
+    </delete>
+  </target>
 
   <target name="init">
     <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
@@ -132,9 +139,7 @@
         <enable />
       </assertions>
       <arg value="-n" />
-      <arg value="peg.ccc" />
-      <arg value="-p" />
-      <arg value="USE_BOOT"/>
+      <arg value="boot_peg.ccc" />
     </java>
   	<echo message="Now compile the generated parser."/>
     <javac srcdir="." includes="Pongo.java" failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
@@ -144,17 +149,16 @@
         <enable />
       </assertions>
         <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
-      <arg value="grammar/peg_alt.peg" />
+      <arg value="testfiles/peg_alt.peg" />
     </java>
   	<echo message="Now the new parser is at grammar/generated/peg_alt.ccc, so let's use it on itself."/>
+  	<antcall target="clean-parser"/>
     <java jar="../../congocc.jar" failonerror="true" fork="true">
       <assertions>
         <enable />
       </assertions>
       <arg value="-n" />
-      <arg value="${basedir}/peg.ccc" />
-      <arg value="-p" />
-      <arg value="USE_NEW_PEG_ALT"/>
+      <arg value="${basedir}/peg_alt.ccc" />
     </java>
   	<echo message="Now the peg_alt.ccc grammar can be tested against the testfiles." />
   </target>
@@ -168,8 +172,8 @@
     <javac classpath="." srcdir="./grammar/generated/" includes="Pongo.java,org" failonerror="true"  debug="on" optimize="off" includeantruntime="no" fork="true" />
   </target>
 
-  <target name="compile-peg-alt" depends="peg-alt-gen">
-    <javac classpath="." srcdir="./grammar/generated/" includes="Pongo.java,org" failonerror="true"  debug="on" optimize="off" includeantruntime="no" fork="true" />
+  <target name="compile-peg-alt" depends="bootstrap-new-peg_alt-parser">
+    <javac srcdir="." includes="Pongo.java" failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
   </target>
 
   <target name="compile-peg" depends="peg-gen">
@@ -196,7 +200,7 @@
     </java>
   </target>
 
-  <target name="test-new-peg_alt-parser" depends="bootstrap-new-peg_alt-parser">
+  <target name="test-new-peg_alt-parser" depends="compile-peg-alt">
   	<!-- The test target is now in grammar/generated. Use it to parse all test files.-->
     <java fork="true" classpath=". " failonerror="true" classname="Pongo">
       <assertions>

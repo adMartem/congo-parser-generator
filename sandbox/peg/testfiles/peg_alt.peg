@@ -34,12 +34,12 @@
  *************************/
 
 Grammar    : Spacing (BoundedDef | Definition)+ <EOF>; 
-BoundedDef : FRAGMENT? Definition SEMICOLON;
-Definition : Identifier (LEFTARROW | COLON) Expression;
-Expression : Sequence ((SLASH | BAR) ⫸ Sequence)*;
-Sequence   : Action | (Prefix ⫸ Entails? Action?)*;
+BoundedDef : FRAGMENT? Definition SEMICOLON ⫸;
+Definition : Identifier (LEFTARROW | COLON) ⫸ Expression;
+Expression : Sequence ⫸ ((SLASH | BAR) ⫸ Sequence)*;
+Sequence   : Action | (Prefix Entails? Action?)*;
 Prefix     : (Cardinality | (AND | NOT))? Suffix;
-Suffix     : !FRAGMENT Primary (QUESTION | STAR | PLUS)?;
+Suffix     : Primary (QUESTION | STAR | PLUS)?;
 Primary    : Identifier !(LEFTARROW | COLON)
              | OPEN ⫸ Expression CLOSE
              | Literal | Class | DOT;
@@ -84,23 +84,24 @@ TRIPLE_GT     : '>>>' ⫸ Spacing;
 OPEN_BRACE    : '{' ⫸ Spacing;
 CLOSE_BRACE   : '}' ⫸ Spacing;
 SEMICOLON     : ';' ⫸ Spacing;
-PERCENT       : '%' ⫸ Spacing;
+HASH          : '#' ⫸ Spacing;
 FRAGMENT      : 'fragment'⫸ Spacing;
+AT_SIGN       : '@' ⫸ Spacing;
 
 Spacing    : ( EndOfLine | Space | Comment )*;
 Comment    : TailComment | BlockComment;
-TailComment: ('//' | '#') (!EndOfLine .)* EndOfLine;
-BlockComment  : '/*' (!(Literal | '*/') .)* '*/'
-Space         : ' ' / '\t' / EndOfLine
-EndOfLine     : '\r\n' / '\n' / '\r'
+TailComment: ('//' | '#') (!EndOfLine .)*;
+BlockComment  : '/*' ( !'*/' . )* '*/';
+Space         : ' ' | '\t' | EndOfLine;
+EndOfLine     : '\r\n' | '\n' | '\r';
              
 /**********************
  ** Extension Syntax **
  **********************/
 
-Cardinality   : PERCENT (NaturalNumber (COLON NaturalNumber? PERCENT)? )?;
+Cardinality   : AT_SIGN (NaturalNumber (COLON NaturalNumber? AT_SIGN)? )?;
 NaturalNumber : '0' | [1-9] ⫸ [0-9]* Spacing;
 Entails       : (TRIPLE_GT | NESTED_GT) ⫸ Spacing;
-Action        : OPEN_BRACE ⫸ BalancedBraces CLOSE_BRACE;
-BalancedBraces: OPEN_BRACE ⫸ BalancedBraces CLOSE_BRACE | (!CLOSE_BRACE .)*;
+Action        : BalancedBraces;
+BalancedBraces: OPEN_BRACE ( BalancedBraces | !CLOSE_BRACE . )* CLOSE_BRACE;
         

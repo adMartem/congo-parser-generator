@@ -1,0 +1,41 @@
+PARSER_PACKAGE=org.parsers.peg;
+PARSER_CLASS=PegParser;
+LEXER_CLASS=PegLexer;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TERMINATING_STRING="";
+
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+#PegGrammar :
+    Grammar {return thisProduction;}
+;
+
+TOKEN : 
+    <SINGLE_LINE_COMMENT : ("//"|"#") (~["\n","\r"])* >
+    |
+    <?MULTI_LINE_COMMENT : "/*" (~[])* "*/" >
+;
+
+INJECT BASE_NODE_CLASS :
+{
+    public String toRealString() {
+        List<Token> tokens = getRealTokens();
+        StringBuilder sb = new StringBuilder();
+        for (Token t : tokens) {
+            sb.append(t.toString());
+        }
+        return sb.toString();
+    }
+}
+
+/////////////////////////////////////
+// Use the desired grammar variant //
+/////////////////////////////////////
+
+INCLUDE "grammar/ccc/peg_alt_boot.inc";

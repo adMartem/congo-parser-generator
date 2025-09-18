@@ -1,4 +1,6 @@
-
+/*** 
+ * The PEG (Congo-style) grammar for the IntelliJ Grammar.bnf used to generate its parser.
+ */
 //{
 //  classHeader="license.txt"
 //  generate=[java="8" names="long" visitor-value="R"]
@@ -58,19 +60,22 @@
 
 grammar : 
     grammar_element*
-; 
+;
 
 fragment grammar_element : 
     !<EOF> (attrs | rule) 
     {%
       pin=1 recoverWhile=grammar_element_recover
-    %};
+    %}
+;
 
 fragment grammar_element_recover : !('{'|rule_start);
 
 rule : 
     rule_start expression attrs? ';'? 
-    {%pin=2%}
+    {%
+        pin=2
+    %}
 ;
 
 fragment rule_start : 
@@ -89,7 +94,9 @@ modifier :
 
 attrs : 
     '{' attr * '}' 
-    {%pin=1%}
+    {%
+        pin=1
+    %}
 ;
 
 attr : 
@@ -99,9 +106,12 @@ attr :
     %}
 ;
 
-fragment attr_start : id (attr_pattern '=' | '=') {%
-  pin(".*")="attr_pattern"
-%};
+fragment attr_start : 
+    id (attr_pattern '=' | '=') 
+    {%
+        pin(".*")="attr_pattern"
+    %}
+;
 
 fragment attr_start_simple : 
     id attr_pattern? '='

@@ -319,12 +319,12 @@ public class Pongo {
                comment = comment.replaceFirst("#", "//");
            }
            ps.append(comment).nl(); 
-           recurse(n);
+//           recurse(n);
        }
        
-       void visit(WHITESPACE n) {
-           ps.append(n.toString());
-       }
+//       void visit(WHITESPACE n) {
+//           ps.append(n.toString());
+//       }
        
        void visit(Grammar n) {
            recurse(n);
@@ -334,7 +334,8 @@ public class Pongo {
        void visit(Definition n) {
            String name = mungPegIdentifier(n.firstChildOfType(Identifier.class).toString().trim());
            ps.nl().append(name);
-           if (n.previousSibling().toString().trim().equals("fragment")) {
+           Node previousSibling = n.previousSibling();
+           if (previousSibling != null && previousSibling.toString().trim().equals("fragment")) {
                ps.append("#void");
            }
            ps.colon().indent().nl();

@@ -6,15 +6,14 @@ TERMINATING_STRING="";
 
 //////////////////////////////////////////////////////////////////////////////
 // Select the default lexer state based on the variant to be generated:     //
-// ALT_BOOT      - SINGLE_LINE_COMMENT and MULTILINE_COMMENT are referenced //
-// ALT_PEG       - All lexer tokens are referenced in the grammar           //
-// Not specified - DEFAULT                                                    //
+// USE_BOOT      - SINGLE_LINE_COMMENT and MULTILINE_COMMENT are referenced //
+// Not specified - DEFAULT                                                  //
 //////////////////////////////////////////////////////////////////////////////
 
 #if USE_BOOT
     DEFAULT_LEXICAL_STATE=EXT_PEG; // This is the "boot" PEG until a stable one replaces it
-#elif ALT_PEG
-    DEFAULT_LEXICAL_STATE=EXT_ALT_PEG; // This is the current alternate PEG in grammar/ccc
+#else
+    DEFAULT_LEXICAL_STATE=DEFAULT; // This is the current alternate PEG in grammar/ccc
 #endif
 
 //#define FT
@@ -27,13 +26,13 @@ FAULT_TOLERANT_DEFAULT=true;
     Grammar {return thisProduction;}
 ;
 
-<EXT_PEG, EXT_ALT_PEG> TOKEN : 
+/*
+<EXT_PEG> TOKEN : 
     <SINGLE_LINE_COMMENT : ("//"|"#") (~["\n","\r"])* >
     |
     <?MULTI_LINE_COMMENT : "/*" (~[])* "*/" >
 ;
-
-<EXT_ALT_PEG> TOKEN :
+<EXT_PEG> TOKEN :
     <WHITESPACE : 
         ( 
             [
@@ -45,8 +44,8 @@ FAULT_TOLERANT_DEFAULT=true;
         )+ 
     >
 ;
-
-<EXT_ALT_PEG> TOKEN : <EOL: "\n" | "\r\n" | "\r" >;
+<EXT_PEG> TOKEN : <EOL: "\n" | "\r\n" | "\r" >;
+*/
 
 INJECT BASE_NODE_CLASS :
 {
