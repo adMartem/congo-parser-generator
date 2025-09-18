@@ -1,0 +1,192 @@
+# =========================================================
+# Top level
+# =========================================================
+ExecBlock        <- S 'EXEC' S 'ACCEL' S ExecBody S 'END-EXEC' S
+
+ExecBody         <- ( UseArraysStmt
+                    / LetStmt
+                    / VarStmt
+                    / CopyInStmt
+                    / CopyOutStmt
+                    / IntoStmt
+                    / KernelStmt
+                    / EwiseStmt
+                    / ScanStmt
+                    )+
+
+
+# =========================================================
+# Declarations / Residency
+# =========================================================
+UseArraysStmt    <- 'USE' S 'ARRAYS' S UseList (S 'RESIDENT' S ResidentVal)? StmtEnd
+UseList          <- QName (S ',' S QName)*
+ResidentVal      <- 'TRUE' / 'FALSE' / 'CANDIDATE'
+
+
+# =========================================================
+# LET / VAR (host→device capture/alloc/init)
+# =========================================================
+LetStmt          <- 'LET' S VarDef (S ',' S VarDef)* StmtEnd
+VarStmt          <- 'VAR' S VarDef (S ',' S VarDef)* (S 'RESIDENT')? StmtEnd
+
+VarDef           <- LValue S '=' S InitExpr
+
+# LHS can be scalar or vector on device
+LValue           <- Ident
+                  / ArraySlice
+
+# Initializer can be host-side or device-side
+InitExpr         <- HostExpr
+                  / DevExpr
+
+
+# =========================================================
+# INTO … FROM … (device→host write-back, supersedes COPYOUT)
+# =========================================================
+IntoStmt         <- 'INTO' S HostTargetList S 'FROM' S DevValueList
+                    (S 'RND' S 'COBOL')?
+                    (S 'ATTR' S AttrList)?
+                    StmtEnd
+
+HostTargetList   <- HostLValue (S ',' S HostLValue)*
+DevValueList     <- DevValue (S ',' S DevValue)*
+
+# Host l-values (targets):
+#  - :qualified.name    (EXEC SQL–style)
+#  - ` ... `            (your CobolAccessor; may include * / ANY placeholders)
+HostLValue       <- HostRef
+                  / BacktickLValue
+
+# Device values (sources):
+#  - H(DeviceScalarName)   (scalar)  OR
+#  - ArraySlice            (vector)
+DevValue         <- HCall
+                  / ArraySlice
+
+
+# =========================================================
+# Statements (compute)
+# =========================================================
+KernelStmt       <- 'KERNEL' S Ident S KernelClause* StmtEnd
+KernelClause     <- 'IN'   S ValueList
+                  / 'OUT'  S ValueList
+                  / 'ATTR' S AttrList
+                  / 'NOTES' S String
+
+EwiseStmt        <- 'EWISE' S EwiseOp S LVec S '<-' S DevExpr
+                    (S 'RND' S 'COBOL')?
+                    (S 'ATTR' S AttrList)?
+                    StmtEnd
+EwiseOp          <- 'MOVE' / 'ADD' / 'SUBTRACT' / 'MULTIPLY' / 'DIVIDE' / 'MULTIPLY-ADD'
+
+ScanStmt         <- ('SCAN_PREFIX+' / 'SCAN_SUFFIX+') S ArraySlice S '(' S ScanOp S ')'
+                    (S 'ATTR' S AttrList)?
+                    StmtEnd
+ScanOp           <- 'ADD' / 'MIN' / 'MAX' / 'AND' / 'OR'
+
+
+# =========================================================
+# Common lists / attributes
+# =========================================================
+ValueList        <- Value (S ',' S Value)*
+Value            <- ArraySlice / HCall / QName
+
+AttrList         <- Attr (S ',' S Attr)*
+Attr             <- Ident ('(' S ArgList? S ')')?          # e.g., SEQ_IN_I, TEN_POW(3)
+ArgList          <- DevExpr (S ',' S DevExpr)*
+
+
+# =========================================================
+# Arrays & slices
+# =========================================================
+LVec             <- ArraySlice
+ArraySlice       <- QName S '[' S Slice S ']'
+Slice            <- '*'                                     # full
+                  / DevExpr S ':' S DevExpr                 # lo:hi (inclusive)
+                  / DevExpr                                 # single index
+
+
+# =========================================================
+# Expressions
+# =========================================================
+
+# Device expressions (used inside kernels, LET/VAR device init, attrs):
+DevExpr          <- Sum
+Sum              <- Prod (S ('+' / '-') S Prod)*
+Prod             <- Unary (S ('*' / '/') S Unary)*
+Unary            <- ('+' / '-')? Primary
+Primary          <- HCall                # H(DeviceScalarName) treated as scalar value
+                  / ArrayElem
+                  / Number
+                  / QName
+                  / '(' S DevExpr S ')'
+
+ArrayElem        <- QName S '[' S DevExpr S ']'             # scalar element on device
+
+# Host expressions (evaluate on host before launch):
+# Can include :qualified refs and backtick CobolAccessor for full COBOL/Java eval.
+HostExpr         <- HostSum
+HostSum          <- HostProd (S CobolOp S HostProd)*
+HostProd         <- HostUnary (S CobolMulDiv S HostUnary)*
+HostUnary        <- ('+' / '-')? HostPrimary
+HostPrimary      <- HostRef
+                  / BacktickHostVal
+                  / Number
+                  / '(' S HostExpr S ')'
+                  / CobolFn
+
+HostRef          <- ':' QName                               # EXEC SQL–style shorthand
+
+# Function in host context (COBOL FUNCTION …), arguments are host-exprs
+CobolFn          <- 'FUNCTION' S Ident S '(' S HostArgList? S ')'
+HostArgList      <- HostExpr (S ',' S HostExpr)*
+
+CobolOp          <- 'MIN' / 'MAX' / '+' / '-'               # allow COBOL MIN/MAX infix
+CobolMulDiv      <- '*' / '/'
+
+
+# =========================================================
+# H(...) binding (host scalar or device scalar name)
+# =========================================================
+# H(...) may carry a host expression OR refer to an existing device scalar name.
+HCall            <- 'H' S '(' S (HostExpr / Ident) S ')'
+
+
+# =========================================================
+# Backtick CobolAccessor integration
+# =========================================================
+# When a backtick host VALUE is needed (e.g., LET initializer, H(...)):
+BacktickHostVal  <- '`' CobolAccessor '`'
+
+# When a backtick host L-VALUE is needed (INTO targets), allow placeholders:
+BacktickLValue   <- '`' CobolLValue '`'
+
+# These nonterminals are compiled by your existing engine via lexer state
+# transitions (<INTO_COBOL> ... <INTO_JAVA>). They are shown here as atoms.
+CobolAccessor    <- /* Getter | Performer — must produce a Java VALUE */
+CobolLValue      <- /* Setter target form — may contain placeholders * or ANY */
+
+# Placeholders semantics (in CobolLValue):
+#   * or ANY inside subscripts denotes the running index for INTO [lo:hi]
+#   Examples:  group(*), group(ANY), group[*], group[ANY]
+
+
+# =========================================================
+# Legacy copies (optional; INTO supersedes COPYOUT)
+# =========================================================
+CopyInStmt       <- 'COPYIN'  S ValueList StmtEnd
+CopyOutStmt      <- 'COPYOUT' S ValueList StmtEnd
+
+
+# =========================================================
+# Lexical
+# =========================================================
+StmtEnd          <- (';' S)?                                # newline also ends a stmt
+QName            <- Ident ('.' Ident)*
+Ident            <- [A-Za-z_][A-Za-z0-9_-]*
+Number           <- [0-9]+ (('.' / ',') [0-9]+)?            # allow 1.0 or 1,0
+String           <- '"' (!'"' .)* '"'
+
+S                <- (WS / Comment)*
+WS               <- [ \t\r\n]+
+Comment          <- ('*' (!'\n' .)* '\n')
