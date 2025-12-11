@@ -81,6 +81,9 @@ public class CSharpTranslator extends Translator {
         else if (ident.equals("THIS_PRODUCTION") || ident.equals("THIS")) {
             result = "thisProduction";
         }
+        else if (ident.equals("THAT")) {
+            result = "PeekNode()";
+        }
         else if (ident.equals("BASE_TOKEN_CLASS") || ident.equals(appSettings.getBaseTokenClassName())) {
             result = "Token";
         }
@@ -761,8 +764,8 @@ public class CSharpTranslator extends Translator {
                 if (!(m instanceof ASTPrimaryExpression) || (((ASTPrimaryExpression) m).getLiteral() == null)) {
                     result.append(".ToString()");
                 }
-                result.append(");\n");
             }
+            result.append(");\n");
         }
         else if (stmt instanceof ASTTryStatement tryStmt) {
             result.append("try {\n");
