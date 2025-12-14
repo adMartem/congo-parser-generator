@@ -39,7 +39,7 @@ INCLUDE "CSharpLexer.ccc"
    (GlobalAttributeSection)*
    CompilationUnitBody
    <EOF>
-   {return thisProduction;}
+   {return THIS;}
 ;
 
 CompilationUnitBody#void :

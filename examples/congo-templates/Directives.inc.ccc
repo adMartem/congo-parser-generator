@@ -477,7 +477,7 @@ AssignmentInstruction#org.congocc.templates.core.nodes.AssignmentInstruction :
 
 IncludeInstruction :
 {
-    thisProduction.setTemplate(template);
+    THIS.setTemplate(template);
 }
    (<_INCLUDE>|<EMBED>)
    Expression
@@ -569,7 +569,7 @@ ImportDeclaration :
    <ID>
    LooseDirectiveEnd
    {
-       thisProduction.setTemplate(template);
+       THIS.setTemplate(template);
    }
 ;
 
@@ -689,7 +689,7 @@ INJECT ImportDeclaration :
                     + "\n\"Catch-all\" macro parameter may not have a default value.",
                     arg.getBeginLine(), arg.getEndLine());
               }
-              thisProduction.setCatchAll(arg.toString());
+              THIS.setCatchAll(arg.toString());
           }
           else if (defValue == null) {
              if (hasDefaults) {
@@ -698,16 +698,16 @@ INJECT ImportDeclaration :
                     + "must all occur before the parameters with default values.",
                     arg.getBeginLine(), arg.getEndLine());
              }
-          	 thisProduction.addParam(arg.toString());
+          	 THIS.addParam(arg.toString());
           }
           else {
-              thisProduction.addParam(arg.toString(), defValue);
+              THIS.addParam(arg.toString(), defValue);
           	  hasDefaults = true;
           }
 	  }
     )*
 	{
-		return thisProduction;
+		return THIS;
 	}
 ;
 
@@ -1013,7 +1013,7 @@ VarDirective :
      ]
    )
    {
-      thisProduction.addVar(var, valueExp);
+      THIS.addVar(var, valueExp);
       valueExp = null;
    }
    (
@@ -1026,7 +1026,7 @@ VarDirective :
         ]
       )
       {
-         thisProduction.addVar(var, valueExp);
+         THIS.addVar(var, valueExp);
          valueExp = null;
       }
    )*
@@ -1275,7 +1275,7 @@ INJECT Block :
         Interpolation
     )+
     {
-       return thisProduction;
+       return THIS;
     }
 ;
 

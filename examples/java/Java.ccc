@@ -113,7 +113,7 @@ ProvidesDirective :
     <EOF>
   ]
   {
-    return thisProduction;
+    return THIS;
   }
 ;
 
@@ -508,7 +508,7 @@ ArrayInitializer :
   =>|+1 FormalParameters ( (Annotation)* <LBRACKET><RBRACKET> )*
   [ ThrowsList ]
   ( Block | <SEMICOLON> )
-  {return thisProduction;}
+  {return THIS;}
 ;
 
 FormalParameters : <LPAREN> [ FormalParameter ( <COMMA> FormalParameter)* ] <RPAREN> ;

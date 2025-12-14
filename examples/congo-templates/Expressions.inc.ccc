@@ -749,7 +749,7 @@ BuiltinVariable :
    <DOT>
    <ID>
    {
-      thisProduction.setName(lastConsumedToken.toString());
+      THIS.setName(lastConsumedToken.toString());
    }
 ;
 
@@ -1146,14 +1146,14 @@ NamedArgsList :
 	<EQUALS>
 	arg=Expression
 	{
-		thisProduction.addNamedArg(param, arg);
+		THIS.addNamedArg(param, arg);
 	}
 	(
 	   [<COMMA>]
 	   <ID> {param = lastConsumedToken.toString();}
 	   <EQUALS>
 	   arg=Expression
-	   {thisProduction.addNamedArg(param, arg);}
+	   {THIS.addNamedArg(param, arg);}
 	)*
 ;
 

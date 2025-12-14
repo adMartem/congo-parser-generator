@@ -88,8 +88,8 @@ public class PythonTranslator extends Translator {
         else if (ident.equals("THIS_PRODUCTION") || ident.equals("THIS")) {
             result = "this_production";
         }
-        else if (ident.equals("THAT")) {
-            result = "self.peek_node()";
+        else if (ident.equals("peekNode")) {
+            result = "self.peek_node";
         }
         else if (ident.equals("BASE_TOKEN_CLASS") || (ident.equals(appSettings.getBaseTokenClassName()))) {
             result = "Token";

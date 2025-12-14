@@ -69,7 +69,13 @@ TOKEN #Literal :
     <NUMBER : ("-")?(<ZERO>|<NON_ZERO>)(<FRACTION>)?(<EXPONENT>)?> #NumberLiteral
 ;
 
-Root : Value! <EOF>! ;
+#Root : 
+    {
+        Node n;
+    }
+    Value! <EOF>!  {n = THAT;} 
+    {return THIS;}
+;
 
 Array :
     <OPEN_BRACKET>

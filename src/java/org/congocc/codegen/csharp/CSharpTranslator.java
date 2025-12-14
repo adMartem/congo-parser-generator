@@ -78,11 +78,8 @@ public class CSharpTranslator extends Translator {
         else if (ident.equals("PARSER_CLASS") || ident.equals(appSettings.getParserClassName())) {
             result = "Parser";
         }
-        else if (ident.equals("THIS_PRODUCTION") || ident.equals("THIS")) {
+        else if (ident.equals("THIS_PRODUCTION") || ident.equals("THIS")) { // [JB] why is this here? Is it not already transformed by grammar?
             result = "thisProduction";
-        }
-        else if (ident.equals("THAT")) {
-            result = "PeekNode()";
         }
         else if (ident.equals("BASE_TOKEN_CLASS") || ident.equals(appSettings.getBaseTokenClassName())) {
             result = "Token";
