@@ -48,8 +48,8 @@
   </target>
 
   <target name="restore-bootstrap-jar">
-    <exec executable="git" dir="template-engine">
-      <arg line="checkout bin/congocc.jar" />
+    <exec executable="git" dir="bin">
+      <arg line="checkout congocc.jar" />
     </exec>
   </target>
 
