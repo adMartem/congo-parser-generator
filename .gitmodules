@@ -1,3 +1,6 @@
 [submodule "template-engine"]
 	path = template-engine
 	url = https://github.com/congo-cc/congo-template-engine.git
+[submodule "bin"]
+	path = bin
+	url = https://github.com/congo-cc/binaries

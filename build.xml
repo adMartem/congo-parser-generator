@@ -58,6 +58,10 @@
     <available file="template-engine/build.xml" property="template.engine.present" />
   </target>
 
+  <target name="check-for-bootstrap">
+    <available file="bin/congocc.jar" property="bootstrap.jar.present" />
+  </target>
+
   <target
     name="init-template-submodule"
     depends="check-template-engine"
@@ -68,6 +72,18 @@
       <arg line="submodule update --init --recursive" />
     </exec>
   </target>
+
+  <target
+    name="init-bootstrap"
+    depends="check-for-bootstrap"
+    unless="bootstrap.jar.present"
+  >
+    <echo>Initializing bootstrap jar submodule...</echo>
+    <exec executable="git" dir="${basedir}" failonerror="true">
+      <arg line="submodule update --init --recursive" />
+    </exec>
+  </target>
+
 
   <!--
      Build and test using the bootstrap jarfile, then
@@ -111,6 +127,7 @@
   <target
     name="build-parsers"
     depends="init,
+               init-bootstrap,
                build-ctl-code,
                parser-gen,
                preprocessor-gen,
