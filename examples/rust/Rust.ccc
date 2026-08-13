@@ -254,13 +254,11 @@ Function :
     (";" | BlockExpression)
 ;
 
-
 FunctionQualifiers :
    ["const"]
    ["async"]
-   ["unsafe"]
-   ["extern"
-   [Abi]]
+   ["unsafe" | 'safe']
+   ["extern" [Abi]]
 ;
 
 FunctionParameters :
@@ -969,7 +967,16 @@ MatchExpression :
     "}"
 ;
 
-MatchArm : (OuterAttribute)* Pattern ["if" Expression] ;
+MatchArm :
+   (OuterAttribute)*
+   Pattern
+   [
+       "if"
+       ["let" Pattern "="]
+       ConditionExpression
+       ("&&" ChainedLetExp)*
+   ]
+;
 
 LetStatement :
    (OuterAttribute)*
