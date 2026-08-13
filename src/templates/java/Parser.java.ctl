@@ -335,22 +335,22 @@ public boolean getLegacyGlitchyLookahead() {
   // Otherwise, it goes to the token_source, i.e. the Lexer.
   private ${settings::baseTokenClassName} nextToken(final ${settings::baseTokenClassName} tok) {
     ${settings::baseTokenClassName} result = token_source.getNextToken(tok);
-    while (result.isUnparsed()) {
      #list grammar::parserTokenHooks as methodName
       result = ${methodName}(result);
      #endlist
+    while (result.isUnparsed()) {
       result = token_source.getNextToken(result);
-     #if settings::faultTolerant
-      if (result.isInvalid()) {
-        if (isParserTolerant()) {
-          result.setUnparsed(true);
-        }
-      }
-     #endif
+     #list grammar::parserTokenHooks as methodName
+      result = ${methodName}(result);
+     #endlist
     }
-#list grammar::parserTokenHooks as methodName
-    result = ${methodName}(result);
-#endlist
+   #if settings::faultTolerant
+    if (result.isInvalid()) {
+      if (isParserTolerant()) {
+        result.setUnparsed(true);
+      }
+    }
+   #endif
     return result;
   }
 

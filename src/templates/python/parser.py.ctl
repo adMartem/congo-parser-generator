@@ -484,13 +484,13 @@ ${globals.translateParserInjections(true)}
     def next_token(self, tok):
         ts = self.token_source
         result = ts.get_next_token(tok)
-        while result.is_unparsed:
 [#list grammar::parserTokenHooks as methodName]
             result = self.${methodName}(result)
 [/#list]
+        while result.is_unparsed:
             result = ts.get_next_token(result)
 [#list grammar::parserTokenHooks as methodName]
-        result = self.${methodName}(result)
+            result = self.${methodName}(result)
 [/#list]
         self._next_token_type = None
         return result

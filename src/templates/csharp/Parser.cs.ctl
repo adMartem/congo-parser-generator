@@ -503,15 +503,15 @@ ${globals.translateParserInitializers()}
         // Otherwise, it goes to the lexer.
         private Token NextToken(Token tok) {
             Token result = tokenSource.GetNextToken(tok);
-            while (result.IsUnparsed) {
 #list grammar::parserTokenHooks as methodName
                 result = ${methodName}(result);
 #endlist
+            while (result.IsUnparsed) {
                 result = tokenSource.GetNextToken(result);
-            }
 #list grammar::parserTokenHooks as methodName
-            result = ${methodName}(result);
+                result = ${methodName}(result);
 #endlist
+            }
             _nextTokenType = null;
             return result;
         }
