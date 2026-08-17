@@ -80,6 +80,23 @@ private ListIterator<NonTerminalCall> stackIteratorBackward() {
     };
 }
 
+private Iterator<String> backwardStackIteratorIncludingCurrent() {
+    String first = currentLookaheadProduction != null ? currentLookaheadProduction : currentlyParsedProduction;
+    Iterator<NonTerminalCall> it = stackIteratorBackward();
+    return new Iterator<String>() {
+        boolean atStart = true;
+        public boolean hasNext() {
+            return it.hasNext();
+        }
+        public String next() {
+            if (atStart == true) {
+                atStart = false;
+                return first;
+            }
+            return it.next().productionName;
+        }
+    };
+}
 
 private void pushOntoLookaheadStack(String methodName, String fileName, int line, int column) {
     lookaheadStack.add(new NonTerminalCall(

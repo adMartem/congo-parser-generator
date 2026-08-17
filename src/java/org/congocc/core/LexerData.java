@@ -391,8 +391,9 @@ public class LexerData {
                     errors.addError(ref,
                             "Token name \"" + label + "\" refers to a private (with a #) regular expression.");
                 } else if (referenced.getTokenProduction().getKind() != TOKEN && referenced.getTokenProduction().getKind() != CONTEXTUAL) {
-                    errors.addError(ref, "Token name \"" + label
-                            + "\" refers to a non-token (SKIP, MORE, UNPARSED) regular expression.");
+                    errors.addWarning(ref, "Token name \"" + label
+                            + "\" refers to a pattern (SKIP, MORE, UNPARSED) that is not normally passed "
+                            + "through to the parsing machinery.");
                 }
             }
             if (referenced != null) {

@@ -192,6 +192,7 @@
       finally {
          lookaheadRoutineNesting = 0;
          currentLookaheadToken = null;
+         currentLookaheadProduction = null;
          hitFailure = false;
      }
    }
