@@ -1,0 +1,92 @@
+#-----------------------------
+# Top level
+#-----------------------------
+ExecBlock      <- S 'EXEC' S 'CUDA' S ExecBody S 'END-EXEC' S
+
+ExecBody       <- ( UseArraysStmt
+                  / HvarStmt
+                  / CopyInStmt
+                  / CopyOutStmt
+                  / KernelStmt
+                  / EwiseStmt
+                  / ScanStmt
+                  )+
+
+#-----------------------------
+# Declarations
+#-----------------------------
+UseArraysStmt  <- 'USE' S 'ARRAYS' S UseList (S 'RESIDENT' S ResidentVal)? S
+UseList        <- UseItem (S ',' S UseItem)*
+UseItem        <- QName                                   # array family name
+ResidentVal    <- 'TRUE' / 'FALSE' / 'CANDIDATE'
+
+HvarStmt       <- 'HVAR' S HvarAssign (S ',' S HvarAssign)* S
+HvarAssign     <- Ident S '=' S ':' S Ident               # e.g., LT-V = :LT-V
+
+CopyInStmt     <- 'COPYIN'  S ValueList S
+CopyOutStmt    <- 'COPYOUT' S ValueList S
+
+ValueList      <- Value (S ',' S Value)*
+Value          <- ArraySlice / HCall / QName
+
+#-----------------------------
+# Statements (inside ExecBody)
+#-----------------------------
+KernelStmt     <- 'KERNEL' S Ident S KernelClause* S
+KernelClause   <- 'IN'   S ValueList
+                / 'OUT'  S ValueList
+                / 'ATTR' S AttrList
+                / 'NOTES' S String
+
+EwiseStmt      <- 'EWISE' S EwiseOp S LVec S '<-' S Expr
+                  (S 'RND' S 'COBOL')?
+                  (S 'ATTR' S AttrList)?
+                  S
+EwiseOp        <- 'MOV' / 'ADD' / 'SUB' / 'MUL' / 'DIV' / 'FMA'
+
+ScanStmt       <- ('SCAN_PREFIX+' / 'SCAN_SUFFIX+') S ArraySlice S '(' S ScanOp S ')'
+                  (S 'ATTR' S AttrList)?
+                  S
+ScanOp         <- 'ADD' / 'MIN' / 'MAX' / 'AND' / 'OR'
+
+AttrList       <- Attr (S ',' S Attr)*
+Attr           <- Ident ('(' S ArgList? S ')')?           # e.g., SEQ_IN_I | TEN_POW(3)
+ArgList        <- Expr (S ',' S Expr)*
+
+#-----------------------------
+# LHS vectors, arrays & slices
+#-----------------------------
+LVec           <- ArraySlice
+ArraySlice     <- QName S '[' S Slice S ']'
+Slice          <- '*'                                     # full
+                / Expr S ':' S Expr                       # lo:hi (inclusive)
+                / Expr                                    # single index
+
+#-----------------------------
+# Expressions (scalar)
+#-----------------------------
+Expr           <- Sum
+Sum            <- Prod (S ('+' / '-') S Prod)*
+Prod           <- Unary (S ('*' / '/') S Unary)*
+Unary          <- ('+' / '-')? Primary
+Primary        <- HCall
+                / ArrayElem
+                / Number
+                / QName
+                / '(' S Expr S ')'
+
+ArrayElem      <- QName S '[' S Expr S ']'                # scalar element
+HCall          <- 'H' S '(' S Expr S ')'                  # host scalar capture
+
+#-----------------------------
+# Lexical
+#-----------------------------
+QName          <- Ident ('.' Ident)*                      # dotted names ok
+Ident          <- [A-Za-z_][A-Za-z0-9_-]*
+
+Number         <- [0-9]+ (('.' / ',') [0-9]+)?            # allow 1.0 or 1,0
+String         <- '"' (!'"' .)* '"'                       # basic string literal
+
+S              <- (WS / Comment)*
+WS             <- [ \t\r\n]+
+Comment        <- ('*' (!'\n' .)* '\n')                   # simple line comment

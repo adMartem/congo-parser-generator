@@ -51,7 +51,10 @@ __pycache__/*
 /examples/python/rust-pythonparser/*
 /examples/csharp/rust-csharpparser/*
 /examples/sqlexpr/rust-sqlparser/*
-/sandbox/peg/*
+# PEG sandbox build outputs (sources are tracked; see sandbox/peg/.gitignore)
+/sandbox/peg/org/*
+/sandbox/peg/grammar/generated/*
+/sandbox/peg/*.class
 /personal.code-workspace
 /.vscode/*
 /.idea/*
@@ -89,3 +92,7 @@ __pycache__/*
 hs_err_pid*
 /classes/
 /build/
+
+# TOML example
+/examples/toml/org/*
+

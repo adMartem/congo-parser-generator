@@ -1,0 +1,76 @@
+PARSER_PACKAGE=org.parsers.peg;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TERMINATING_STRING="";
+
+//////////////////////////////////////////////////////////////////////////////
+// Select the default lexer state based on the variant to be generated:     //
+// USE_BOOT      - SINGLE_LINE_COMMENT and MULTILINE_COMMENT are referenced //
+// Not specified - DEFAULT                                                  //
+//////////////////////////////////////////////////////////////////////////////
+
+#if USE_BOOT
+    DEFAULT_LEXICAL_STATE=EXT_PEG; // This is the "boot" PEG until a stable one replaces it
+#else
+    DEFAULT_LEXICAL_STATE=DEFAULT; // This is the current alternate PEG in grammar/ccc
+#endif
+
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+#PegGrammar :
+    Grammar {return thisProduction;}
+;
+
+/*
+<EXT_PEG> TOKEN : 
+    <SINGLE_LINE_COMMENT : ("//"|"#") (~["\n","\r"])* >
+    |
+    <?MULTI_LINE_COMMENT : "/*" (~[])* "*/" >
+;
+<EXT_PEG> TOKEN :
+    <WHITESPACE : 
+        ( 
+            [
+             " ", "\t", "\f",
+             "\u000b", "\u00a0", "\u1680",
+             "\u2000"-"\u200a",
+             "\u202f", "\u205f", "\u3000","\uC2A0"
+            ]
+        )+ 
+    >
+;
+<EXT_PEG> TOKEN : <EOL: "\n" | "\r\n" | "\r" >;
+*/
+
+INJECT BASE_NODE_CLASS :
+{
+    public String toRealString() {
+        List<Token> tokens = getRealTokens();
+        StringBuilder sb = new StringBuilder();
+        for (Token t : tokens) {
+            sb.append(t.toString());
+        }
+        return sb.toString();
+    }
+}
+
+/////////////////////////////////////
+// Use the desired grammar variant //
+/////////////////////////////////////
+
+#if USE_BOOT
+    INCLUDE "grammar/ccc/peg_alt_boot.inc" // For generating an alternative peg parser using the original peg grammar.
+#elif USE_NEW_PEG_ALT
+    INCLUDE "grammar/generated/peg_alt.ccc"// For testing a new alternative peg parser.
+#elif USE_PEG_PLUS
+    INCLUDE "grammar/generated/peg_plus.ccc"// For testing a new extended peg parser.
+#else
+    // no dialect specified
+    INCLUDE "grammar/ccc/peg_alt.inc.ccc"      // Use the current enhanced PEG parser.
+#endif
+;

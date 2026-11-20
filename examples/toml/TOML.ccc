@@ -1,0 +1,21 @@
+/*
+ * CongoCC wrapper for the TOML PEG grammar.
+ * Source of truth: TOML.peg (ABNF -> PEG). Generated include produced by
+ * sandbox/peg Pongo (PEG_TIP): peg -> generated/toml.ccc
+ */
+PARSER_PACKAGE=org.parsers.toml;
+PARSER_CLASS=TomlParser;
+LEXER_CLASS=TomlLexer;
+NODE_PACKAGE=org.parsers.toml.ast;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TERMINATING_STRING="";
+TEST_PRODUCTION=Root;
+TEST_EXTENSION=toml;
+
+#Root :
+    Toml {return thisProduction;}
+;
+
+INCLUDE "generated/toml.ccc";
