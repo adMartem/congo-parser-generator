@@ -1,0 +1,211 @@
+/*
+ * TOML grammar in PEG form, converted from the official TOML ABNF
+ * (https://github.com/toml-lang/toml / RFC 5234 ABNF).
+ *
+ * Conversion notes:
+ * - ABNF `=/` alternatives become prioritized choice `/`.
+ * - ABNF left-recursive `array-values` / `inline-table-keyvals` rewritten iteratively.
+ * - ABNF case-insensitive literals (`"T"`, `"Z"`, `"e"`, HEXDIG letters) expanded.
+ * - Numeric `%x..` terminals kept case-sensitive (`true`, `false`, `inf`, `nan`, ...).
+ * - `1*2quotation-mark` / `1*2apostrophe` use negative lookahead so they do not
+ *   consume the closing multiline delimiter.
+ * - `Table` tries `ArrayTable` before `StdTable` so `[[` is not swallowed by `[`
+ *   (ABNF unordered choice would be ambiguous under PEG ordered choice).
+ *
+ * Compatible with CongoCC sandbox PEG-alt (git tag PEG_TIP / sandbox/peg).
+ */
+
+/* Overall Structure */
+
+Toml       <- Expression (Newline Expression)* EndOfFile
+Expression <- Ws (Keyval / Table)? Ws Comment?
+
+/* Whitespace */
+
+Ws         <- Wschar*
+Wschar     <- ' ' / '\t'
+
+/* Newline */
+
+Newline    <- '\n' / '\r\n'
+
+/* Comment */
+
+CommentStartSymbol <- '#'
+NonAscii   <- ![\u0000-\u007F\uD800-\uDFFF] .
+NonEol     <- '\t' / [\u0020-\u007E] / NonAscii
+Comment    <- CommentStartSymbol NonEol*
+
+/* Key-Value pairs */
+
+Keyval     <- Key KeyvalSep Val
+Key        <- SimpleKey / DottedKey
+Val        <- String / Boolean / Array / InlineTable / DateTime / Float / Integer
+
+SimpleKey  <- QuotedKey / UnquotedKey
+UnquotedKey <- (Alpha / Digit / '-' / '_')+
+
+QuotedKey  <- BasicString / LiteralString
+DottedKey  <- SimpleKey (DotSep SimpleKey)+
+
+DotSep     <- Ws '.' Ws
+KeyvalSep  <- Ws '=' Ws
+
+/* String */
+
+String     <- MlBasicString / BasicString / MlLiteralString / LiteralString
+
+/* Basic String */
+
+BasicString <- QuotationMark BasicChar* QuotationMark
+QuotationMark <- '"'
+BasicChar  <- BasicUnescaped / Escaped
+BasicUnescaped <- Wschar / '!' / [\u0023-\u005B] / [\u005D-\u007E] / NonAscii
+Escaped    <- Escape EscapeSeqChar
+Escape     <- '\\'
+/* Use character classes for u/U/x so Pongo does not emit colliding TokenType names. */
+EscapeSeqChar <- [\"\\befnrt]
+             / [x] Hexdig Hexdig
+             / [u] Hexdig Hexdig Hexdig Hexdig
+             / [U] Hexdig Hexdig Hexdig Hexdig Hexdig Hexdig Hexdig Hexdig
+
+/* Multiline Basic String */
+
+MlBasicString <- MlBasicStringDelim Newline? MlBasicBody MlBasicStringDelim
+MlBasicStringDelim <- QuotationMark QuotationMark QuotationMark
+MlBasicBody <- MlbContent* (MlbQuotes MlbContent+)* MlbQuotes?
+MlbContent <- BasicChar / Newline / MlbEscapedNl
+/* one or two quotes that are not the start of the closing delimiter */
+MlbQuotes  <- QuotationMark QuotationMark? !QuotationMark
+MlbEscapedNl <- Escape Ws Newline (Wschar / Newline)*
+
+/* Literal String */
+
+LiteralString <- Apostrophe LiteralChar* Apostrophe
+Apostrophe <- "'"
+LiteralChar <- '\t' / [\u0020-\u0026] / [\u0028-\u007E] / NonAscii
+
+/* Multiline Literal String */
+
+MlLiteralString <- MlLiteralStringDelim Newline? MlLiteralBody MlLiteralStringDelim
+MlLiteralStringDelim <- Apostrophe Apostrophe Apostrophe
+MlLiteralBody <- MllContent* (MllQuotes MllContent+)* MllQuotes?
+MllContent <- LiteralChar / Newline
+MllQuotes  <- Apostrophe Apostrophe? !Apostrophe
+
+/* Integer */
+
+Integer    <- DecInt / HexInt / OctInt / BinInt
+
+Minus      <- '-'
+Plus       <- '+'
+Underscore <- '_'
+Digit1_9   <- [1-9]
+Digit0_7   <- [0-7]
+Digit0_1   <- [0-1]
+
+HexPrefix  <- '0x'
+OctPrefix  <- '0o'
+BinPrefix  <- '0b'
+
+DecInt     <- (Minus / Plus)? UnsignedDecInt
+UnsignedDecInt <- Digit1_9 (Digit / Underscore Digit)+
+               / Digit
+
+HexInt     <- HexPrefix Hexdig (Hexdig / Underscore Hexdig)*
+OctInt     <- OctPrefix Digit0_7 (Digit0_7 / Underscore Digit0_7)*
+BinInt     <- BinPrefix Digit0_1 (Digit0_1 / Underscore Digit0_1)*
+
+/* Float */
+
+Float      <- FloatIntPart (Exp / Frac Exp?)
+            / SpecialFloat
+
+FloatIntPart <- DecInt
+Frac       <- DecimalPoint ZeroPrefixableInt
+DecimalPoint <- '.'
+ZeroPrefixableInt <- Digit (Digit / Underscore Digit)*
+
+Exp        <- [eE] FloatExpPart
+FloatExpPart <- (Minus / Plus)? ZeroPrefixableInt
+
+SpecialFloat <- (Minus / Plus)? (Inf / Nan)
+Inf        <- 'inf'
+Nan        <- 'nan'
+
+/* Boolean */
+
+Boolean    <- True / False
+True       <- 'true'
+False      <- 'false'
+
+/* Date and Time (as defined in RFC 3339) */
+
+DateTime   <- OffsetDateTime / LocalDateTime / LocalDate / LocalTime
+
+DateFullyear <- Digit Digit Digit Digit
+DateMonth  <- Digit Digit
+DateMday   <- Digit Digit
+TimeDelim  <- [Tt] / ' '
+TimeHour   <- Digit Digit
+TimeMinute <- Digit Digit
+TimeSecond <- Digit Digit
+TimeSecfrac <- '.' Digit+
+TimeNumoffset <- ('+' / '-') TimeHour ':' TimeMinute
+TimeOffset <- [Zz] / TimeNumoffset
+
+PartialTime <- TimeHour ':' TimeMinute (':' TimeSecond TimeSecfrac?)?
+FullDate   <- DateFullyear '-' DateMonth '-' DateMday
+FullTime   <- PartialTime TimeOffset
+
+OffsetDateTime <- FullDate TimeDelim FullTime
+LocalDateTime <- FullDate TimeDelim PartialTime
+LocalDate  <- FullDate
+LocalTime  <- PartialTime
+
+/* Array */
+
+Array      <- ArrayOpen ArrayValues? WsCommentNewline ArrayClose
+ArrayOpen  <- '['
+ArrayClose <- ']'
+/* iterative rewrite of ABNF left-recursive array-values */
+ArrayValues <- WsCommentNewline Val WsCommentNewline
+               (ArraySep WsCommentNewline Val WsCommentNewline)*
+               ArraySep?
+ArraySep   <- ','
+WsCommentNewline <- (Wschar / Comment? Newline)*
+
+/* Table */
+
+Table      <- ArrayTable / StdTable
+
+/* Standard Table */
+
+StdTable   <- StdTableOpen Key StdTableClose
+StdTableOpen <- '[' Ws
+StdTableClose <- Ws ']'
+
+/* Inline Table */
+
+InlineTable <- InlineTableOpen InlineTableKeyvals? WsCommentNewline InlineTableClose
+InlineTableOpen <- '{'
+InlineTableClose <- '}'
+InlineTableSep <- ','
+/* iterative rewrite of ABNF left-recursive inline-table-keyvals */
+InlineTableKeyvals <- WsCommentNewline Keyval WsCommentNewline
+                      (InlineTableSep WsCommentNewline Keyval WsCommentNewline)*
+                      InlineTableSep?
+
+/* Array Table */
+
+ArrayTable <- ArrayTableOpen Key ArrayTableClose
+ArrayTableOpen <- '[[' Ws
+ArrayTableClose <- Ws ']]'
+
+/* Built-in ABNF terminals */
+
+Alpha      <- [A-Za-z]
+Digit      <- [0-9]
+Hexdig     <- Digit / [A-Fa-f]
+
+EndOfFile  <- !.

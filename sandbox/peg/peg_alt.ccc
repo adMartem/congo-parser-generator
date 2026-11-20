@@ -1,0 +1,31 @@
+PARSER_PACKAGE=org.parsers.peg;
+PARSER_CLASS=PegParser;
+LEXER_CLASS=PegLexer;
+TAB_SIZE=4;
+ENSURE_FINAL_EOL;
+SMART_NODE_CREATION=false;
+TERMINATING_STRING="";
+
+//#define FT
+#if FT
+FAULT_TOLERANT;
+FAULT_TOLERANT_DEFAULT=true;
+#endif
+
+#PegGrammar :
+    Grammar {return thisProduction;}
+;
+
+INJECT BASE_NODE_CLASS :
+{
+    public String toRealString() {
+        List<Token> tokens = getRealTokens();
+        StringBuilder sb = new StringBuilder();
+        for (Token t : tokens) {
+            sb.append(t.toString());
+        }
+        return sb.toString();
+    }
+}
+
+INCLUDE "grammar/generated/peg_alt.ccc";

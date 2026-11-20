@@ -1,0 +1,305 @@
+<project name="PEG Converter/Parser Example" default="test-peg">
+	
+  <target name="build" depends="clean,init,compile-peg"/>
+	
+  <target name="build-peg-alt" depends="build, compile-peg-alt"/>
+	
+  <target name="clean">
+    <delete dir="org" />
+  	<delete failonerror="false">
+  	    <fileset dir="${basedir}" includes="*.class"/>
+        <fileset dir="${basedir}/grammar/generated" includes="**/*"/>
+  	</delete>
+  </target>
+    
+  <target name="clean-parser">
+    <delete dir="org" />
+    <delete failonerror="false">
+        <fileset dir="${basedir}" includes="*.class"/>
+    </delete>
+  </target>
+
+  <target name="init">
+    <uptodate property="pegparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
+      <srcfiles dir="." includes="grammar.*,ccc.*" />
+    </uptodate>
+    <uptodate property="pegplusparser.uptodate" targetfile="org/parsers/peg/PegParser.java">
+      <srcfiles dir="." includes="grammar.*,ccc.*" />
+    </uptodate>
+  	<!--
+    <uptodate property="cppparser.uptodate" targetfile="org/parsers/cpp/CppParser.java">
+      <srcfiles dir="." includes="testfiles/CPP14.peg" />
+    </uptodate>
+    <uptodate property="antlrparser.uptodate" targetfile="org/parsers/antlr/AntlrParser.java">
+      <srcfiles dir="." includes="testfiles/ANTLRv4.peg" />
+    </uptodate>
+    -->
+  </target>
+
+  <!--
+  <target name="cpp-gen" depends="build,init" unless="cppparser.uptodate">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/CPP14.peg" />
+    </java>
+    <echo message="Now the cpp parser is at grammar/generated/CPP14.ccc, so let's generate the CPP(Java) parser "/>
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+        <arg value="-p" />
+        <arg value="CPP"/>
+      <arg value="${basedir}/cpp.ccc" />
+    </java>
+  </target>
+
+  <target name="antlr-gen" depends="build">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+        <arg value="-p" />
+        <arg value="ANTLR"/>
+      <arg value="${basedir}/antlr.ccc" />
+    </java>
+  </target>
+  -->
+
+  <target name="peg-gen" depends="init" unless="pegparser.uptodate">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/peg.ccc" />
+    </java>
+  </target>
+
+  <target name="peg-alt-gen" depends="init">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/peg.ccc" />
+      <arg value="-p" />
+      <arg value="ALT_PEG"/>
+    </java>
+  </target>
+
+  <target name="peg-plus-gen" depends="init">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/grammar/generated/peg_plus.ccc" />
+      <arg value="-p" />
+      <arg value="PEG_PLUS"/>
+    </java>
+  </target>
+
+  <target name="left-recursive-gen" depends="dump-left-recursive-ast">
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/grammar/generated/left_recursion.ccc" />
+      <arg value="-p" />
+      <arg value="LR"/>
+    </java>
+  </target>
+
+	  <target name="exec-accel-gen" depends="dump-exec-accel">
+	    <java jar="../../congocc.jar" failonerror="true" fork="true">
+	      <assertions>
+	        <enable />
+	      </assertions>
+	      <arg value="-n" />
+	      <arg value="${basedir}/grammar/generated/exec_accel.ccc" />
+	      <arg value="-p" />
+	      <arg value="ACCEL"/>
+	    </java>
+	  </target>
+
+  <target name="bootstrap-new-peg_alt-parser" depends="clean">
+  	<!-- This starts by using the peg_alt_boot.ccc grammar to generate a boot parser of peg_alt. 
+  	     Then it compiles the java and runs Pongo against the grammar/peg_alt.peg grammar to generate a peg_alt.ccc grammar in grammar/generated/peg_alt.ccc.  
+  	     Then it uses the new peg_alt.ccc to generate a new parser in org/.
+  	-->  
+  	<echo message="First, generate the congo parser for the boot grammar."/>
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="boot_peg.ccc" />
+    </java>
+  	<echo message="Now compile the generated parser."/>
+    <javac srcdir="." includes="Pongo.java" failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
+  	<echo message="Pongo can now parse a current alternative PEG grammar." />
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/peg_alt.peg" />
+    </java>
+  	<echo message="Now the new parser is at grammar/generated/peg_alt.ccc, so let's use it on itself."/>
+  	<antcall target="clean-parser"/>
+    <java jar="../../congocc.jar" failonerror="true" fork="true">
+      <assertions>
+        <enable />
+      </assertions>
+      <arg value="-n" />
+      <arg value="${basedir}/peg_alt.ccc" />
+    </java>
+  	<echo message="Now the peg_alt.ccc grammar can be tested against the testfiles." />
+  </target>
+	
+  <target name="update-default-peg_alt-grammar" depends="test-new-peg_alt-parser">
+    <move file="grammar/generated/peg_alt.ccc" toFile="grammar/ccc/peg_alt.ccc.inc"/>
+  	<echo message="Now the peg_alt.ccc has become the current peg.ccc grammar."/>
+  </target>
+
+  <target name="compile-peg-plus" depends="peg-plus-gen">
+    <javac classpath="." srcdir="./grammar/generated/" includes="Pongo.java,org" failonerror="true"  debug="on" optimize="off" includeantruntime="no" fork="true" />
+  </target>
+
+  <target name="compile-peg-alt" depends="bootstrap-new-peg_alt-parser">
+    <javac srcdir="." includes="Pongo.java" failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
+  </target>
+
+  <target name="compile-peg" depends="peg-gen">
+    <javac srcdir="." includes="Pongo.java,org" failonerror="true" classpath="." debug="on" optimize="off" includeantruntime="no" fork="true" />
+  </target>
+	
+  <!--
+  <target name="compile-cpp" depends="cpp-gen">
+    <javac classpath="." srcdir="./grammar/generated/" includeantruntime="off" failonerror="true" debug="on" release="17" fork="true" />
+  </target>
+
+  <target name="compile-antlr" depends="antlr-gen">
+    <javac classpath="./grammar/generated" srcdir="./grammar/generated" includeantruntime="off" failonerror="true" debug="on" release="17" fork="true" />
+  </target>
+  -->
+
+  <target name="test-peg" depends="build">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+    	<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles" />
+    </java>
+  </target>
+
+  <target name="test-new-peg_alt-parser" depends="compile-peg-alt">
+  	<!-- The test target is now in grammar/generated. Use it to parse all test files.-->
+    <java fork="true" classpath=". " failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles" />
+    </java>
+  </target>
+
+  <!--
+  <target name="test-cpp" depends="compile-cpp">
+    <java fork="true" classpath="." failonerror="true" classname="CppParse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/simple.cpp" />
+    </java>
+  </target>
+
+  <target name="test-antlr" depends="compile-antlr">
+    <java fork="true" classpath="." failonerror="true" classname="ANTLRv4Parse">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/calculator.g4" />
+    </java>
+  </target>
+  -->
+
+  <target name="test-original-peg" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="grammar/peg.peg" />
+    </java>
+  </target>
+
+  <target name="dump-peg-alt-ast" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="grammar/peg_alt.peg" />
+    </java>
+  </target>
+
+  <target name="dump-peg-plus-ast" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/peg_plus.peg" />
+    </java>
+  </target>
+
+  <target name="dump-json-ast" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/json.peg" />
+    </java>
+  </target>
+
+  <target name="dump-minimal-ast" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/minimal.peg" />
+    </java>
+  </target>
+
+  <target name="dump-exec-accel" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="testfiles/exec_accel.peg" />
+    </java>
+  </target>
+
+  <target name="dump-left-recursive-ast" depends="compile-peg">
+    <java fork="true" classpath="." failonerror="true" classname="Pongo">
+      <assertions>
+        <enable />
+      </assertions>
+        <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n"/>
+      <arg value="errortests/left_recursion.peg" />
+    </java>
+  </target>
+</project>

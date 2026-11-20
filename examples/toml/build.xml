@@ -1,0 +1,26 @@
+<project name="toml" default="test-java" basedir=".">
+  <import file="../../common.xml"/>
+
+  <target name="clean">
+    <delete dir="org"/>
+    <delete>
+      <fileset dir="${basedir}" includes="*.class"/>
+    </delete>
+  </target>
+
+  <target name="parser-gen">
+    <congocc target="TOML.ccc" args="-n"/>
+  </target>
+
+  <target name="compile" depends="parser-gen">
+    <javac classpath="." srcdir="." includeantruntime="off" failonerror="true" debug="on" release="8" fork="true"
+           includes="TomlParse.java,org/**/*.java"/>
+  </target>
+
+  <target name="test-java" depends="compile">
+    <java classname="TomlParse" classpath="." failonerror="true" fork="true">
+      <assertions><enable/></assertions>
+      <arg value="testfiles"/>
+    </java>
+  </target>
+</project>

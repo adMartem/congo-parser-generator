@@ -1,0 +1,29 @@
+/*
+ */
+sS <- 's' sS sS /     // right-recursive, but with an null (epsilon) recursion path (null-path hazard) -> makes sS pseudo-left recursion
+
+pS <- ('p')*          // pS as iterative
+
+pSr <- 'p' pSr /      // pS rewritten as right-recursive, can be null, but no null recursion (Ford 4.1)
+
+pSri <- (pSr)*        // pSr* rewritten as interative (('p')*)*, still ok
+
+pSrr <- pSr pSrr /    // pSri rewritten as right-recursive; has a null path hazard -> makes pSrr pseudo-left recursion
+
+N <- [1-9] [0-9]*
+O <- 'o' F
+F <- ( E ) | N          // should be left recursive thru E -> T -> F?
+T <- T '*' F / F
+E <- E '+' T / E '-' T / T
+FooBar <- 'foo' FooBar 'bar' | 'foo' '|' 'bar'
+Z <- Z 
+A <- (A 'a')+ |
+C <- (C 'c')*   
+B <- (A | C) 'b' !.  
+D <- (A | C) D !.
+G <- H
+H <- J
+J <- J | K
+K <- G | H
+/*
+ */
